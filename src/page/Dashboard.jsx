@@ -5,39 +5,46 @@ export default function Dashboard() {
 
   const stats = [
     { 
-      title: "Sinflar", 
-      value: "24", 
-      change: "+2", 
-      isIncrease: true,
-      icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-    },
-    { 
-      title: "Fanlar", 
-      value: "18", 
-      change: "+1", 
-      isIncrease: true,
-      icon: "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-    },
-    { 
-      title: "Talabalar", 
+      title: "Faol talabalar", 
       value: "1,240", 
       change: "+12%", 
       isIncrease: true,
-      icon: "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+      icon: "M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
     },
     { 
-      title: "Sovg'alar", 
-      value: "45", 
-      change: "+5", 
+      title: "Guruhlar", 
+      value: "48", 
+      change: "+3", 
       isIncrease: true,
-      icon: "M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5a2 2 0 10-2 2h2zm0 0H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2h-8z"
+      icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
     },
     { 
-      title: "O'qituvchilar", 
-      value: "84", 
-      change: "+4%", 
+      title: "Joriy oy to'lovlar", 
+      value: "45.2M", 
+      change: "+8%", 
       isIncrease: true,
-      icon: "M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+      icon: "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+    },
+    { 
+      title: "Qarzdorlar", 
+      value: "12", 
+      change: "-2", 
+      isIncrease: false,
+      icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+    },
+    { 
+      title: "Muzlatilganlar", 
+      value: "8", 
+      change: "0", 
+      isIncrease: true,
+      icon: "M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13M9 4l3 3 3-3M9 20l3-3 3 3M20 9l-3 3 3 3M4 9l3 3-3 3"
+    },
+    { 
+      title: "Arhivdagilar", 
+      value: "156", 
+      change: "+12", 
+      isIncrease: true,
+      icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
     },
   ];
 
@@ -51,21 +58,21 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-default">
-            <div className="mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-default">
+            <div className="mb-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
                 </svg>
               </div>
             </div>
             <div>
-              <h3 className="text-gray-500 text-sm font-medium">{stat.title}</h3>
-              <div className="mt-2 flex items-baseline gap-4">
-                <span className="text-2xl font-bold text-gray-800">{stat.value}</span>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.isIncrease ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <h3 className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider">{stat.title}</h3>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-lg font-bold text-gray-800">{stat.value}</span>
+                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stat.isIncrease ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                   {stat.change}
                 </span>
               </div>
