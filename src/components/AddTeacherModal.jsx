@@ -1,153 +1,247 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
+import AssignGroupModal from './AssignGroupModal';
 
-export default function AddTeacherModal({ isOpen, onClose }) {
+export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
+  const [isAssignGroupModalOpen, setIsAssignGroupModalOpen] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const [formData, setFormData] = useState({
+    phone: '+998',
+    email: '',
+    fullName: '',
+    address: '',
+    password: ''
+  });
+
   if (!isOpen) return null;
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleSave = () => {
+    if (!formData.fullName || !formData.phone) {
+      alert("Iltimos, ism va telefon raqamini kiriting!");
+      return;
+    }
+
+    const newTeacher = {
+      id: Date.now(),
+      name: formData.fullName,
+      group: selectedGroups,
+      phone: formData.phone,
+      email: formData.email,
+      address: formData.address,
+      createdDate: new Date().toLocaleDateString('ru-RU')
+    };
+
+    setTeachers(prev => [newTeacher, ...prev]);
+    
+    // Reset form
+    setFormData({
+      phone: '+998',
+      email: '',
+      fullName: '',
+      address: '',
+      password: ''
+    });
+    setSelectedGroups([]);
+    setSelectedFile(null);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-[100] flex justify-end">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/60 transition-opacity"
         onClick={onClose}
       />
 
-      {/* Sidebar Content */}
-      <div className="relative w-full max-w-md bg-white dark:bg-gray-800 h-full shadow-2xl flex flex-col animate-slide-in-right">
+      {/* Drawer Content */}
+      <div className="relative w-full max-w-[450px] bg-white dark:bg-gray-900 h-full shadow-2xl flex flex-col animate-slide-in-right overflow-hidden">
         {/* Header */}
-        <div className="p-6 pb-2 border-b border-gray-50 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">O'qituvchi qo'shish</h2>
-            <button
-              onClick={onClose}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Bu yerda siz yangi o'qituvchi ma'lumotlarini qo'shishingiz mumkin.</p>
+        <div className="p-8 pb-4 relative">
+          <button
+            onClick={onClose}
+            className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <h2 className="text-[28px] font-bold text-gray-900 dark:text-white mb-2">O'qituvchi qo'shish</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-[15px]">Bu yerda siz yangi o'qituvchi qo'shishingiz mumkin.</p>
         </div>
 
-        {/* Scrollable Form Area */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Nomi */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nomi</label>
-            <input
-              type="text"
-              placeholder="HR Manager..."
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all dark:text-white"
-            />
-          </div>
+        <div className="border-b border-gray-100 dark:border-gray-800 mx-8"></div>
 
-          {/* Filiallar */}
+        {/* Scrollable Form */}
+        <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
+          {/* Telefon raqam */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">O'qituvchi ishlaydigan filiallar</label>
-              <button className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700">Hammasini tanlash</button>
-            </div>
-            <div className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-purple-600 focus:ring-purple-500" defaultChecked />
-                <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">Filial 1</span>
-              </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <input type="checkbox" className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-purple-600 focus:ring-purple-500" defaultChecked />
-                <span className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">Filial 2</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Dars davomiyligi */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Dars davomiyligi</label>
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Telefon raqam</label>
             <div className="relative">
-              <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-gray-500 dark:text-gray-400">
-                <option>Tanlang</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Kurs davomiyligi (oylarda) */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Kurs davomiyligi (oylarda)</label>
-            <div className="relative">
-              <select className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-gray-500 dark:text-gray-400">
-                <option>Tanlang</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* Narx */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Narx</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-gray-400">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
               <input
                 type="text"
-                placeholder="Narxini kiriting"
-                className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all dark:text-white"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
               />
             </div>
           </div>
 
-          {/* Description */}
+          {/* Mail */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Description</label>
-            <textarea
-              rows="4"
-              placeholder="A little about the company and the team that you'll be working with."
-              className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all resize-none dark:text-white"
-            ></textarea>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2">This is a hint text to help user.</p>
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Mail</label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              placeholder="Elektron pochtani kiriting"
+              className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
+            />
           </div>
 
-          {/* Rangi */}
+          {/* O'qituvchi FIO */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Rangi</label>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">The color you choose will be displayed to users and in the list of roles.</p>
-            <div className="flex flex-wrap gap-2">
-              {['#334155', '#7C3AED', '#DC2626', '#C2410C', '#059669', '#0284C7', '#2563EB', '#6366F1', '#BE185D'].map((color, i) => (
-                <button
-                  key={i}
-                  className="w-8 h-8 rounded-full border-2 border-transparent hover:scale-110 transition-transform shadow-sm"
-                  style={{ backgroundColor: color }}
-                />
-              ))}
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">O'qituvchi FIO</label>
+            <input
+              type="text"
+              name="fullName"
+              value={formData.fullName}
+              onChange={handleInputChange}
+              placeholder="Ma'mulotni kiriting"
+              className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
+            />
+          </div>
+
+          {/* Guruh */}
+          <div>
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Guruh</label>
+            <div className="space-y-3">
+              {selectedGroups.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {selectedGroups.map((group, index) => (
+                    <span key={index} className="px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-[#7B2CBF] dark:text-purple-300 rounded-full text-sm font-bold border border-purple-100 dark:border-purple-800 flex items-center gap-2">
+                      {group}
+                      <button onClick={() => setSelectedGroups(selectedGroups.filter(g => g !== group))}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <button 
+                onClick={() => setIsAssignGroupModalOpen(true)}
+                className="w-full py-4 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl flex items-center justify-center gap-3 text-[#7B2CBF] font-bold text-lg hover:bg-purple-50/50 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Qo'shish
+              </button>
             </div>
+          </div>
+
+          {/* Surati */}
+          <div>
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Surati</label>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              className="hidden" 
+              accept="image/*"
+            />
+            <div 
+              onClick={handleUploadClick}
+              className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-10 flex flex-col items-center justify-center bg-gray-50/30 dark:bg-gray-800/30 hover:bg-gray-50 transition-colors cursor-pointer group"
+            >
+              <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+              </div>
+              <p className="text-[15px] text-gray-600 dark:text-gray-400 text-center">
+                <span className="text-[#7B2CBF] font-bold">
+                  {selectedFile ? selectedFile.name : 'Click to upload'}
+                </span> or drag and drop
+              </p>
+              <p className="text-[13px] text-gray-400 mt-1 uppercase">JPG or PNG (max. 800x800px)</p>
+            </div>
+          </div>
+
+          {/* Manzil */}
+          <div>
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Manzil</label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              placeholder="Yashash manzilini kiriting"
+              className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
+            />
+          </div>
+
+          {/* Parol */}
+          <div>
+            <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Parol</label>
+            <input
+              type="password"
+              name="password"
+              value={formData.password}
+              onChange={handleInputChange}
+              placeholder="Parol yarating"
+              className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
+            />
           </div>
         </div>
 
-        {/* Footer Buttons */}
-        <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex gap-3 bg-white dark:bg-gray-800">
+        {/* Footer */}
+        <div className="p-8 bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-100 dark:border-gray-700 flex gap-4">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="flex-1 px-6 py-4 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-2xl text-[17px] font-bold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             Bekor qilish
           </button>
           <button
-            className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200 dark:shadow-none"
+            onClick={handleSave}
+            className="flex-1 px-6 py-4 bg-[#6A1B9A] dark:bg-[#7B2CBF] text-white rounded-2xl text-[17px] font-bold hover:bg-[#5E35B1] transition-colors shadow-lg shadow-purple-200/50 dark:shadow-none relative overflow-hidden group"
           >
-            Saqlash
+            <span className="relative z-10">Saqlash</span>
+            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
           </button>
         </div>
       </div>
+
+      {/* Assign Group Modal (Centered) */}
+      <AssignGroupModal 
+        isOpen={isAssignGroupModalOpen}
+        onClose={() => setIsAssignGroupModalOpen(false)}
+        selectedGroups={selectedGroups}
+        onAssign={(groups) => setSelectedGroups(groups)}
+      />
 
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -156,7 +250,14 @@ export default function AddTeacherModal({ isOpen, onClose }) {
           to { transform: translateX(0); }
         }
         .animate-slide-in-right {
-          animation: slideInRight 0.3s ease-out forwards;
+          animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
         }
       `}} />
     </div>

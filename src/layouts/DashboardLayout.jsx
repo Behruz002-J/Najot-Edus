@@ -8,6 +8,37 @@ export default function DashboardLayout() {
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  
+  const [teachers, setTeachers] = useState([
+    { 
+      id: 1, 
+      name: 'Mohirbek', 
+      group: ['N26', 'n105'], 
+      phone: '+998944481309', 
+      email: 'moxirbek@gmail.com', 
+      address: 'Tashkent', 
+      createdDate: '12.05.2026' 
+    },
+    { 
+      id: 2, 
+      name: 'Javohir', 
+      group: ['N27'], 
+      phone: '+998944481310', 
+      email: 'javohir@gmail.com', 
+      address: 'Samarkand', 
+      createdDate: '13.05.2026' 
+    },
+    { 
+      id: 3, 
+      name: 'Doston', 
+      group: ['N28', 'm202'], 
+      phone: '+998944481311', 
+      email: 'doston@gmail.com', 
+      address: 'Andijan', 
+      createdDate: '14.05.2026' 
+    },
+  ]);
+
   const location = useLocation();
   const username = window.localStorage.getItem("username") || "Admin";
 
@@ -33,7 +64,18 @@ export default function DashboardLayout() {
               <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               </button>
-              <button className="flex items-center gap-2 px-3 py-1.5 bg-[#7C3AED] text-white rounded-lg text-xs font-bold hover:bg-[#6D28D9] transition-colors shadow-sm ml-1">
+              <button 
+                onClick={() => {
+                  if (location.pathname === '/dashboard/students') {
+                    setIsStudentModalOpen(true);
+                  } else if (location.pathname === '/dashboard/teacher') {
+                    setIsTeacherModalOpen(true);
+                  } else if (location.pathname === '/dashboard/groups') {
+                    setIsGroupModalOpen(true);
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#7C3AED] text-white rounded-lg text-xs font-bold hover:bg-[#6D28D9] transition-colors shadow-sm ml-1"
+              >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -162,7 +204,12 @@ export default function DashboardLayout() {
               </div>
             )}
           </div>
-          <Outlet context={{ isStudentModalOpen, setIsStudentModalOpen, isTeacherModalOpen, setIsTeacherModalOpen, isGroupModalOpen, setIsGroupModalOpen }} />
+          <Outlet context={{ 
+            isStudentModalOpen, setIsStudentModalOpen, 
+            isTeacherModalOpen, setIsTeacherModalOpen, 
+            isGroupModalOpen, setIsGroupModalOpen,
+            teachers, setTeachers
+          }} />
         </main>
       </div>
     </div>

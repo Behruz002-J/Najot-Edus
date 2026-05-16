@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 const availableGroups = [
   { id: 1, name: 'N26' },
   { id: 2, name: 'n105' },
-  { id: 3, name: 'n101' },
-  { id: 4, name: 'n102' },
 ];
 
 export default function AssignGroupModal({ isOpen, onClose, onAssign, selectedGroups = [] }) {
@@ -39,18 +37,18 @@ export default function AssignGroupModal({ isOpen, onClose, onAssign, selectedGr
       />
 
       {/* Modal Content */}
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-zoom-in">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl w-full max-w-[400px] shadow-2xl overflow-hidden animate-zoom-in">
         {/* Header */}
-        <div className="p-6 pb-2 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between">
+        <div className="p-4 pb-1 flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">Guruhga biriktirish</h3>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+            <h3 className="text-[18px] font-bold text-gray-900 dark:text-white leading-tight">Guruhga biriktirish</h3>
+            <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-0.5">
               Bir yoki bir nechta guruhni tanlang
             </p>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+            className="text-gray-400 hover:text-gray-600 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -59,7 +57,7 @@ export default function AssignGroupModal({ isOpen, onClose, onAssign, selectedGr
         </div>
 
         {/* Body */}
-        <div className="p-6 pt-4 space-y-4">
+        <div className="p-4 pt-2 space-y-3">
           {/* Search */}
           <div className="relative">
             <input 
@@ -67,32 +65,30 @@ export default function AssignGroupModal({ isOpen, onClose, onAssign, selectedGr
               placeholder="Guruh qidirish..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all dark:text-white text-sm"
+              className="w-full px-4 py-1.5 bg-white dark:bg-gray-700 border border-gray-900 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all dark:text-white text-xs"
             />
           </div>
 
           {/* Groups List */}
-          <div className="max-h-48 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+          <div className="border border-gray-100 dark:border-gray-700 rounded-lg overflow-hidden divide-y divide-gray-50 dark:divide-gray-800 max-h-[150px] overflow-y-auto custom-scrollbar">
             {filteredGroups.map((group) => (
               <label 
                 key={group.id} 
-                className="flex items-center gap-3 p-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl cursor-pointer transition-colors group"
+                className="flex items-center gap-3 py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors group"
               >
-                <div className="relative flex items-center">
-                  <input 
-                    type="checkbox" 
-                    checked={tempSelected.includes(group.name)}
-                    onChange={() => toggleGroup(group.name)}
-                    className="w-5 h-5 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-purple-600 focus:ring-purple-500 transition-all cursor-pointer"
-                  />
-                </div>
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={tempSelected.includes(group.name)}
+                  onChange={() => toggleGroup(group.name)}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 transition-all cursor-pointer"
+                />
+                <span className="text-xs font-medium text-gray-900 dark:text-gray-200">
                   {group.name}
                 </span>
               </label>
             ))}
             {filteredGroups.length === 0 && (
-              <div className="text-center py-4 text-sm text-gray-400">
+              <div className="text-center py-3 text-xs text-gray-400">
                 Guruhlar topilmadi
               </div>
             )}
@@ -100,16 +96,16 @@ export default function AssignGroupModal({ isOpen, onClose, onAssign, selectedGr
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-50 dark:border-gray-700 flex gap-3 bg-gray-50/50 dark:bg-gray-800/50">
+        <div className="p-4 pt-1 flex justify-end gap-2">
           <button 
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="px-5 py-1.5 border border-gray-100 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-900 dark:text-gray-300 hover:bg-gray-50 transition-colors"
           >
             Bekor qilish
           </button>
           <button 
             onClick={handleAssign}
-            className="flex-1 px-4 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-200 dark:shadow-none"
+            className="px-5 py-1.5 bg-[#B794F4] text-white rounded-lg text-xs font-bold hover:bg-[#A78BFA] transition-all shadow-sm"
           >
             Qo'shish
           </button>
@@ -118,24 +114,18 @@ export default function AssignGroupModal({ isOpen, onClose, onAssign, selectedGr
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes zoomIn {
-          from { transform: scale(0.95); opacity: 0; }
+          from { transform: scale(0.9); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
         .animate-zoom-in {
-          animation: zoomIn 0.2s ease-out forwards;
+          animation: zoomIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #e5e7eb;
-          border-radius: 10px;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #374151;
+        .animate-fade-in {
+          animation: fadeIn 0.3s ease-out forwards;
         }
       `}} />
     </div>

@@ -4,14 +4,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 const tabs = [
   { name: 'Kurslar',        path: '/dashboard/management/courses' },
   { name: 'Xonalar',        path: '/dashboard/management/rooms' },
-  { name: 'Filiallar',      path: '/dashboard/management/branch' },
-  { name: 'Hodimlar',       path: '/dashboard/management/staff' },
-  { name: 'Rollar',         path: '/dashboard/management/roles' },
-  { name: 'Coin',           path: '/dashboard/management/coin' },
-  { name: 'Sabablar',       path: '/dashboard/management/reasons' },
-  { name: 'Xabar yuborish', path: '/dashboard/management/message' },
-  { name: 'FAQ',            path: '/dashboard/management/faq' },
-  { name: 'Tekshiruv',      path: '/dashboard/management/check' },
+  { name: 'Xodimlar',       path: '/dashboard/management/staff' },
 ];
 
 export default function ManagementLayout() {

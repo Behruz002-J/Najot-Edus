@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const initialRooms = [
   // AlCoder markazi
-  { id: 1, name: 'genious room', capacity: 15, branch: 'AlCoder markazi' },
+  { id: 1, name: 'Autodesk', capacity: 20, branch: 'AlCoder markazi' },
   { id: 2, name: 'Impact room', capacity: 12, branch: 'AlCoder markazi' },
   { id: 3, name: '99', capacity: 25, branch: 'AlCoder markazi' },
   { id: 4, name: 'Startup room', capacity: 20, branch: 'AlCoder markazi' },
@@ -92,78 +92,59 @@ export default function Rooms() {
   return (
     <div>
       {/* Section Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <h2 className="text-base font-bold text-gray-800 dark:text-white">Xonalar</h2>
-          <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded transition-colors">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <h2 className="text-[24px] font-black text-gray-900 dark:text-white">Xonalar</h2>
+          <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full transition-colors mt-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
         </div>
         <button
           onClick={handleAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-white text-sm font-semibold rounded-lg hover:bg-[#6D28D9] transition-colors shadow-sm"
+          className="flex items-center gap-2 px-6 py-2.5 bg-[#7B2CBF] text-white text-[15px] font-bold rounded-xl hover:bg-[#6D28D9] transition-all shadow-lg shadow-purple-100 dark:shadow-none active:scale-95"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
           </svg>
           Xonani qo'shish
         </button>
       </div>
 
-      {/* Branch Filter Tabs */}
-      <div className="flex gap-2 flex-wrap mb-6">
-        {branches.map(branch => (
-          <button
-            key={branch}
-            onClick={() => setActiveBranch(branch)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${activeBranch === branch
-                ? 'bg-[#7C3AED] text-white shadow'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-          >
-            {branch}
-          </button>
-        ))}
-      </div>
-
       {/* Rooms Grid */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
-          <svg className="w-12 h-12 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-          </svg>
-          <p className="text-sm">Bu filialda xonalar mavjud emas</p>
+      {rooms.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-gray-400 dark:text-gray-500">
+          <p className="text-base">Xonalar mavjud emas</p>
         </div>
       ) : (
-        <div className="grid grid-cols-4 gap-3">
-          {filtered.map(room => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {rooms.map(room => (
             <div
               key={room.id}
-              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-4 flex items-center justify-between group hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 flex items-center justify-between hover:shadow-lg transition-shadow shadow-sm"
             >
               <div>
-                <p className="text-sm font-semibold text-gray-800 dark:text-white">{room.name}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Sig'imi: {room.capacity}</p>
+                <p className="text-[15px] font-bold text-gray-900 dark:text-white mb-1">{room.name}</p>
+                <p className="text-[13px] font-medium text-gray-500 dark:text-gray-400">Sig'imi: {room.capacity}</p>
               </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleDelete(room.id)}
-                  className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors"
+                  className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                   title="O'chirish"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                   </svg>
                 </button>
                 <button
                   onClick={() => handleEdit(room)}
-                  className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg transition-colors"
+                  className="p-1.5 text-[#7B2CBF] hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
                   title="Tahrirlash"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  <svg className="w-[18px] h-[18px]" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                   </svg>
                 </button>
               </div>
