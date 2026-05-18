@@ -36,7 +36,7 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
 
   return (
     <>
-      <aside className="flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col shadow-sm z-20 relative transition-all duration-300"
+      <aside className="flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 flex flex-col shadow-sm z-[70] relative transition-all duration-300"
         style={{ width: isCollapsed ? '80px' : '256px' }}
       >
         <SidebarHeader isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />

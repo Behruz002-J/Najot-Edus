@@ -8,10 +8,10 @@ export default function SidebarHeader({ isCollapsed, setIsCollapsed }) {
       {/* Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute top-6 -right-3 w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg z-30 hover:bg-blue-700 transition-colors"
+        className="absolute top-6 -right-4 w-8 h-8 bg-[#7C3AED] border-4 border-white dark:border-gray-800 rounded-xl flex items-center justify-center text-white shadow-md z-30 hover:bg-[#6D28D9] transition-colors"
         title={isCollapsed ? 'Ochish' : 'Yopish'}
       >
-        <svg className={`w-4 h-4 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className={`w-3.5 h-3.5 transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
         </svg>
       </button>

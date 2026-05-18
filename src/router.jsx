@@ -11,6 +11,8 @@ import Dashboard from "./page/Dashboard";
 import Student from "./page/Student";
 import Teacher from "./page/Teacher";
 import Groups from "./page/Groups";
+import GroupDetails from "./page/GroupDetails";
+import LessonAttendance from "./page/LessonAttendance";
 import Rooms from "./page/management/Rooms";
 import Courses from "./page/management/Courses";
 import ManagementLayout from "./page/management/ManagementLayout";
@@ -44,6 +46,8 @@ export const route = createBrowserRouter([
       { path: "students", element: <Student /> },
       { path: "teacher", element: <Teacher /> },
       { path: "groups", element: <Groups /> },
+      { path: "groups/:id", element: <GroupDetails /> },
+      { path: "groups/:groupId/lesson/:date", element: <LessonAttendance /> },
       {
         path: "management",
         element: <ManagementLayout />,

@@ -34,20 +34,18 @@ export default function ManagementFlyout({ isCollapsed, isManagementOpen, setIsM
               <Link
                 key={subItem.name}
                 to={subItem.path}
-                className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group ${
-                  isSubItemActive
-                    ? 'bg-purple-300 dark:bg-purple-800/40'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'
-                }`}
+                className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group ${isSubItemActive
+                    ? 'bg-gray-100 dark:bg-gray-800/50'
+                    : 'hover:bg-purple-200 dark:hover:bg-purple-800/40'
+                  }`}
               >
-                <div className={`transition-colors duration-300 ${isSubItemActive ? 'text-[#5A6376] dark:text-gray-300' : 'text-[#6B7280]'}`}>
+                <div className={`transition-colors duration-300 ${isSubItemActive ? 'text-[#5A6376] dark:text-gray-300' : 'text-[#6B7280] group-hover:text-[#7B2CBF] dark:group-hover:text-purple-300'}`}>
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={subItem.icon} />
                   </svg>
                 </div>
-                <span className={`text-[17px] tracking-tight font-medium transition-colors duration-300 ${
-                  isSubItemActive ? 'text-[#7B2CBF] dark:text-purple-300' : 'text-gray-900 dark:text-gray-300'
-                }`}>
+                <span className={`text-[17px] tracking-tight font-medium transition-colors duration-300 ${isSubItemActive ? 'text-gray-900 dark:text-gray-300' : 'text-gray-900 dark:text-gray-300 group-hover:text-[#7B2CBF] dark:group-hover:text-purple-300'
+                  }`}>
                   {subItem.name}
                 </span>
               </Link>

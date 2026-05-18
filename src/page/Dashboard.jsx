@@ -4,45 +4,45 @@ export default function Dashboard() {
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
   const stats = [
-    { 
-      title: "Faol talabalar", 
-      value: "1,240", 
-      change: "+12%", 
+    {
+      title: "Faol talabalar",
+      value: "1,240",
+      change: "+12%",
       isIncrease: true,
       icon: "M12 14l9-5-9-5-9 5 9 5z M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
     },
-    { 
-      title: "Guruhlar", 
-      value: "48", 
-      change: "+3", 
+    {
+      title: "Guruhlar",
+      value: "48",
+      change: "+3",
       isIncrease: true,
       icon: "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
     },
-    { 
-      title: "Joriy oy to'lovlar", 
-      value: "45.2M", 
-      change: "+8%", 
+    {
+      title: "Joriy oy to'lovlar",
+      value: "45.2M",
+      change: "+8%",
       isIncrease: true,
       icon: "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
     },
-    { 
-      title: "Qarzdorlar", 
-      value: "12", 
-      change: "-2", 
+    {
+      title: "Qarzdorlar",
+      value: "12",
+      change: "-2",
       isIncrease: false,
       icon: "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
     },
-    { 
-      title: "Muzlatilganlar", 
-      value: "8", 
-      change: "0", 
+    {
+      title: "Muzlatilganlar",
+      value: "8",
+      change: "0",
       isIncrease: true,
       icon: "M12 3v18M3 12h18M5.5 5.5l13 13M18.5 5.5l-13 13M9 4l3 3 3-3M9 20l3-3 3 3M20 9l-3 3 3 3M4 9l3 3-3 3"
     },
-    { 
-      title: "Arhivdagilar", 
-      value: "156", 
-      change: "+12", 
+    {
+      title: "Arhivdagilar",
+      value: "156",
+      change: "+12",
       isIncrease: true,
       icon: "M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
     },
@@ -86,22 +86,22 @@ export default function Dashboard() {
         {/* Schedule Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           {/* Schedule Header (Accordian Style) */}
-          <button 
+          <button
             onClick={() => setIsScheduleOpen(!isScheduleOpen)}
             className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
             <h2 className="text-sm font-semibold text-gray-700">Dars Jadvali</h2>
-            <svg 
-              className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isScheduleOpen ? 'rotate-180' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24" 
+            <svg
+              className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isScheduleOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          
+
           {/* Schedule Content */}
           <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isScheduleOpen ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="px-6 pb-6">

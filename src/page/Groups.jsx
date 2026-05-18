@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, Link } from 'react-router-dom';
 import AddGroupModal from '../components/AddGroupModal';
 
 export default function Groups() {
@@ -166,7 +166,9 @@ export default function Groups() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="text-sm font-bold text-gray-800 dark:text-white">{group.name}</span>
+                    <Link to={`/dashboard/groups/${group.id}`} className="text-sm font-bold text-gray-800 dark:text-white hover:text-[#7C3AED] dark:hover:text-purple-400 transition-colors">
+                      {group.name}
+                    </Link>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg text-[10px] font-bold uppercase tracking-tight">

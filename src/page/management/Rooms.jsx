@@ -155,49 +155,112 @@ export default function Rooms() {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4" onClick={e => e.stopPropagation()}>
-            <h3 className="text-base font-bold text-gray-800 dark:text-white mb-5">
-              {editRoom ? 'Xonani tahrirlash' : 'Yangi xona qo\'shish'}
-            </h3>
-            <div className="space-y-4">
+        <div className="fixed inset-0 z-[100] flex justify-end">
+          {/* Backdrop / Soya */}
+          <div
+            className="absolute inset-0 bg-black/60 transition-opacity duration-300 animate-fade-in"
+            onClick={() => setShowModal(false)}
+          />
+
+          {/* Sidebar Content (Right to Left) */}
+          <div
+            className="relative w-full max-w-md bg-white dark:bg-gray-800 h-full shadow-2xl flex flex-col animate-slide-in-right"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="p-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    {editRoom ? 'Xonani tahrirlash' : 'Xonani qo\'shish'}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Form Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5 custom-scrollbar">
               <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 block">Xona nomi</label>
+                <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Nomi <span className="text-red-500">*</span></label>
                 <input
                   type="text"
-                  placeholder="Masalan: 201-xona"
+                  placeholder="Xona nomi"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all dark:text-white text-sm"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 block">Sig'imi (o'rinlar soni)</label>
+                <label className="block text-[13px] font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Sig'imi <span className="text-red-500">*</span></label>
                 <input
                   type="number"
                   placeholder="Masalan: 20"
                   value={form.capacity}
                   onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))}
-                  className="w-full border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all dark:text-white text-sm"
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+
+            {/* Footer Buttons */}
+            <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex items-center justify-end gap-3 bg-white dark:bg-gray-800 mt-auto">
               <button
+                type="button"
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-600 text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 Bekor qilish
               </button>
               <button
+                type="button"
                 onClick={handleSave}
                 disabled={!form.name || !form.capacity}
-                className="flex-1 py-2 rounded-lg bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-[#6D28D9] text-white rounded-lg text-sm font-bold hover:bg-[#5B21B6] transition-colors shadow-lg shadow-purple-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {editRoom ? 'Saqlash' : 'Qo\'shish'}
+                Saqlash
               </button>
             </div>
           </div>
+
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            @keyframes slideInRight {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            .animate-slide-in-right {
+              animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            }
+            .animate-fade-in {
+              animation: fadeIn 0.3s ease-out forwards;
+            }
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: #e5e7eb;
+              border-radius: 10px;
+            }
+            .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: #374151;
+            }
+          `}} />
         </div>
       )}
     </div>
