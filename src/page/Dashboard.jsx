@@ -60,21 +60,18 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between hover:shadow-md transition-shadow group cursor-default">
+          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center justify-between hover:shadow-[0_0_20px_rgba(57,255,20,0.12)] hover:border-[#39FF14]/30 transition-all duration-300 group cursor-default">
             <div className="mb-3">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center text-[#7B2CBF] group-hover:bg-[#39FF14] group-hover:text-black transition-all duration-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
                 </svg>
               </div>
             </div>
-            <div>
+            <div className="flex flex-col items-center w-full">
               <h3 className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider">{stat.title}</h3>
-              <div className="mt-1 flex items-baseline gap-2">
+              <div className="mt-1 flex justify-center">
                 <span className="text-lg font-bold text-gray-800">{stat.value}</span>
-                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${stat.isIncrease ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {stat.change}
-                </span>
               </div>
             </div>
           </div>
@@ -121,7 +118,7 @@ export default function Dashboard() {
                         <td className="py-4 font-medium text-gray-800">{item.subject}</td>
                         <td className="py-4 text-gray-600">{item.teacher}</td>
                         <td className="py-4 text-gray-600">
-                          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-medium">
+                          <span className="bg-purple-50 text-[#7B2CBF] px-2 py-1 rounded font-medium">
                             {item.time}
                           </span>
                         </td>

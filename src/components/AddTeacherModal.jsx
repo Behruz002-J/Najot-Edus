@@ -33,35 +33,118 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.fullName || !formData.phone) {
       alert("Iltimos, ism va telefon raqamini kiriting!");
       return;
     }
 
-    const newTeacher = {
-      id: Date.now(),
-      name: formData.fullName,
-      group: selectedGroups,
-      phone: formData.phone,
-      email: formData.email,
-      address: formData.address,
-      createdDate: new Date().toLocaleDateString('ru-RU')
-    };
+    try {
+      // Use the token provided by the user from localStorage or fallback if not present
+      const userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYmR1a2hvc2hpbTk5QGdtYWlsLmNvbSIsInJvbGUiOiJTVVBFUkFETUlOIiwiaWF0IjoxNzc5MTkyNzI4LCJleHAiOjE3NzkxOTYzMjh9.YyO_aL5pnD0t7bfRavMXoKlEbpNbJ5TDJGmIqPteb-4";
+      const token = window.localStorage.getItem("token") || userToken;
 
-    setTeachers(prev => [newTeacher, ...prev]);
-    
-    // Reset form
-    setFormData({
-      phone: '+998',
-      email: '',
-      fullName: '',
-      address: '',
-      password: ''
-    });
-    setSelectedGroups([]);
-    setSelectedFile(null);
-    onClose();
+      // Extract raw phone number (only digits) and ensure it has +998 prefix as expected by global validators
+      let rawPhone = formData.phone.replace(/\D/g, '');
+      if (rawPhone.length === 9) {
+        rawPhone = '998' + rawPhone;
+      }
+      const formattedPhone = '+' + rawPhone;
+
+      // Map group names to their corresponding database numbers as array<number> from Swagger
+      const groupIds = selectedGroups.map(name => {
+        if (name === 'N26') return 1;
+        if (name === 'n105') return 2;
+        return 1;
+      });
+
+      // Construct multipart FormData as required by the backend schema
+      const postData = new FormData();
+      postData.append('full_name', formData.fullName);
+      postData.append('phone', formattedPhone);
+      
+      // Do not append empty string for optional fields (like email and address) to prevent backend validation errors
+      if (formData.email) {
+        postData.append('email', formData.email);
+      }
+      
+      postData.append('password', formData.password || "Password123!");
+      
+      if (formData.address) {
+        postData.append('address', formData.address);
+      }
+      
+      if (selectedFile) {
+        postData.append('photo', selectedFile);
+      }
+
+      // Append array items for 'groups' individually
+      groupIds.forEach(id => {
+        postData.append('groups', id);
+      });
+
+      const response = await fetch("https://najot-edu.softwareengineer.uz/api/v1/teachers", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: postData
+      });
+
+      // Handle non-JSON response gracefully (e.g. 500 server error, HTML pages)
+      const contentType = response.headers.get("content-type");
+      let resData = null;
+      if (contentType && contentType.includes("application/json")) {
+        resData = await response.json();
+      } else {
+        const errorText = await response.text();
+        console.error("Non-JSON API Error:", errorText);
+        alert(`Server xatoligi (Status: ${response.status}):\n${errorText.substring(0, 300)}`);
+        return;
+      }
+
+      console.log("API Response:", resData);
+
+      if (response.ok && resData.success) {
+        const newTeacher = {
+          id: resData.data?.id || Date.now(),
+          name: formData.fullName,
+          group: selectedGroups,
+          phone: formData.phone,
+          email: formData.email,
+          address: formData.address,
+          createdDate: new Date().toLocaleDateString('ru-RU')
+        };
+
+        setTeachers(prev => [newTeacher, ...prev]);
+        alert("O'qituvchi muvaffaqiyatli qo'shildi!");
+        
+        // Reset form
+        setFormData({
+          phone: '+998',
+          email: '',
+          fullName: '',
+          address: '',
+          password: ''
+        });
+        setSelectedGroups([]);
+        setSelectedFile(null);
+        onClose();
+      } else {
+        // Display exact validation messages from backend if available
+        const errorMsg = Array.isArray(resData.message)
+          ? resData.message.join("\n")
+          : typeof resData.message === 'string'
+          ? resData.message
+          : JSON.stringify(resData, null, 2);
+        
+        console.error("Server validation failed:", resData);
+        alert(`O'qituvchini saqlashda xatolik yuz berdi!\n\nServer xabari:\n${errorMsg}\n\nYuborilgan ma'lumotlar:\n- Ism: ${formData.fullName}\n- Telefon: ${formattedPhone}\n- Email: ${formData.email}\n- Guruhlar: ${JSON.stringify(groupIds)}`);
+      }
+    } catch (err) {
+      console.error("Save teacher error:", err);
+      alert(`Xatolik yuz berdi: ${err.message}`);
+    }
   };
 
   return (

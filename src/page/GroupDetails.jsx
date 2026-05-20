@@ -132,20 +132,26 @@ export default function GroupDetails() {
         {activeTab === 'info' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start relative z-10">
             {/* Guruh mentorlari Card */}
-            {isMentorsVisible && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="bg-[#3B82F6] px-6 py-4 flex items-center justify-between text-white">
-                  <h3 className="font-bold text-[15px]">Guruh mentorlari</h3>
-                  <button 
-                    onClick={() => setIsMentorsVisible(false)}
-                    className="text-white/80 hover:text-white transition-colors"
-                  >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-[#3B82F6] px-6 py-4 flex items-center justify-between text-white">
+                <h3 className="font-bold text-[15px]">Guruh mentorlari</h3>
+                <button 
+                  onClick={() => setIsMentorsVisible(!isMentorsVisible)}
+                  className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg flex items-center justify-center cursor-pointer"
+                >
+                  {isMentorsVisible ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
                     </svg>
-                  </button>
-                </div>
-                <div className="p-6">
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 5v14M5 12h14" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {isMentorsVisible && (
+                <div className="p-6 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="flex items-center gap-4">
                     <img 
                       src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentGroup.teacher}`} 
@@ -160,24 +166,30 @@ export default function GroupDetails() {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Parametrlar Card */}
-            {isParamsVisible && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="bg-[#3B82F6] px-6 py-4 flex items-center justify-between text-white">
-                  <h3 className="font-bold text-[15px]">Parametrlar</h3>
-                  <button 
-                    onClick={() => setIsParamsVisible(false)}
-                    className="text-white/80 hover:text-white transition-colors"
-                  >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-[#3B82F6] px-6 py-4 flex items-center justify-between text-white">
+                <h3 className="font-bold text-[15px]">Parametrlar</h3>
+                <button 
+                  onClick={() => setIsParamsVisible(!isParamsVisible)}
+                  className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg flex items-center justify-center cursor-pointer"
+                >
+                  {isParamsVisible ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
                     </svg>
-                  </button>
-                </div>
-                <div className="p-6 divide-y divide-gray-100 dark:divide-gray-700">
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 5v14M5 12h14" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+              {isParamsVisible && (
+                <div className="p-6 divide-y divide-gray-100 dark:divide-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="flex items-center justify-between py-3">
                     <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Kurs:</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.course}</span>
@@ -207,8 +219,8 @@ export default function GroupDetails() {
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.totalLessons}</span>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Dars jadvali Section */}
             <div className="col-span-1 md:col-span-2 mt-8 space-y-4 z-10 relative">

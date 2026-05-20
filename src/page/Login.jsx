@@ -1,23 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as yup from 'yup';
 import studentSvg from '../assets/images/student.svg';
-
-const loginSchema = yup.object().shape({
-  username: yup.string()
-    .required("Telefon raqamni kiritishingiz shart")
-    .min(9, "Telefon raqam noto'g'ri kiritilgan"),
-  password: yup.string()
-    .required("Parolni kiritishingiz shart")
-    .min(1, "Parol kiritilishi kerak")
-});
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: '998975661099',
+    password: 'Benazir99!'
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -43,27 +33,15 @@ export default function Login() {
     setApiError("");
     
     try {
-      await loginSchema.validate(formData, { abortEarly: false });
       setLoading(true);
 
-      // Temporary string-based login for development
-      // Username: admin, Password: admin
-      if (formData.username === '901234567' && formData.password === 'admin123') {
-        window.localStorage.setItem("token", "dummy-token-for-dev");
-        window.localStorage.setItem("username", formData.username);
-        navigate('/dashboard');
-      } else {
-        setApiError("Login yoki parol xato! (admin: 901234567 / admin123)");
-      }
-
-      /* Commented out API call for now as per user request
       const response = await fetch("https://najot-edu.softwareengineer.uz/api/v1/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          phone: formData.username.startsWith('+') ? formData.username : `+998${formData.username}`,
+          phone: formData.username.replace(/\D/g, ''),
           password: formData.password
         }),
       });
@@ -71,7 +49,7 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        const token = data?.data?.token || data?.token || data?.access_token;
+        const token = data?.accessToken || data?.data?.accessToken || data?.data?.token || data?.token || data?.access_token;
         if (token) {
           window.localStorage.setItem("token", token);
           window.localStorage.setItem("username", formData.username);
@@ -82,19 +60,9 @@ export default function Login() {
       } else {
         setApiError(data?.message || "Login yoki parol xato!");
       }
-      */
     } catch (err) {
-      if (err.inner) {
-        // Yup validation errors
-        const newErrors = {};
-        err.inner.forEach((error) => {
-          newErrors[error.path] = error.message;
-        });
-        setErrors(newErrors);
-      } else {
-        setApiError("Xatolik yuz berdi.");
-        console.error("Login error:", err);
-      }
+      setApiError("Xatolik yuz berdi.");
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
@@ -103,12 +71,12 @@ export default function Login() {
   return (
     <div className="flex min-h-screen">
       {/* Left side with illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#1A2542] items-center justify-center p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-b from-[#0b0314] via-[#12071f] to-[#1d0a2d] border-r border-[#2d124d] shadow-[inset_-10px_0_30px_rgba(0,0,0,0.8)] items-center justify-center p-12">
         <div className="w-full max-w-lg mx-auto flex justify-center items-center">
           <img 
             src={studentSvg} 
             alt="Student Illustration" 
-            className="w-full h-auto object-contain drop-shadow-2xl"
+            className="w-full h-auto object-contain drop-shadow-[0_0_30px_rgba(57,255,20,0.15)] filter"
           />
         </div>
       </div>
@@ -126,8 +94,8 @@ export default function Login() {
             </h1>
             
             {/* Logo placeholder - using a styled div with a border to represent the seal */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-green-600 rounded-full mx-auto mb-6 flex items-center justify-center bg-gray-50">
-              <span className="text-green-700 font-bold text-2xl">TUIT</span>
+            <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-[#7B2CBF] rounded-full mx-auto mb-6 flex items-center justify-center bg-purple-50 shadow-[0_0_15px_rgba(123,44,191,0.2)]">
+              <span className="text-[#7B2CBF] font-extrabold text-2xl tracking-wider">TUIT</span>
             </div>
             
             <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-8">
@@ -155,7 +123,7 @@ export default function Login() {
                 value={formData.username}
                 onChange={handleInputChange}
                 placeholder="90 123 45 67"
-                className={`w-full px-4 py-3 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#1A2542] focus:border-transparent transition-colors`}
+                className={`w-full px-4 py-3 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#7B2CBF] focus:border-transparent transition-colors`}
               />
             </div>
 
@@ -173,7 +141,7 @@ export default function Login() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Parolni kiriting"
-                  className={`w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#1A2542] focus:border-transparent transition-colors`}
+                  className={`w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#7B2CBF] focus:border-transparent transition-colors`}
                 />
                 <button 
                   type="button"
@@ -198,7 +166,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full bg-[#1A2542] text-white py-3 px-4 rounded hover:bg-[#121a30] transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1A2542] font-medium flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-[#7B2CBF] text-white py-3 px-4 rounded hover:bg-[#5a189a] hover:shadow-[0_0_20px_rgba(123,44,191,0.4)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7B2CBF] font-semibold flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {loading ? (
                 <>

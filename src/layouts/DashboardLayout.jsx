@@ -9,35 +9,45 @@ export default function DashboardLayout() {
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   
-  const [teachers, setTeachers] = useState([
-    { 
-      id: 1, 
-      name: 'Mohirbek', 
-      group: ['N26', 'n105'], 
-      phone: '+998944481309', 
-      email: 'moxirbek@gmail.com', 
-      address: 'Tashkent', 
-      createdDate: '12.05.2026' 
-    },
-    { 
-      id: 2, 
-      name: 'Javohir', 
-      group: ['N27'], 
-      phone: '+998944481310', 
-      email: 'javohir@gmail.com', 
-      address: 'Samarkand', 
-      createdDate: '13.05.2026' 
-    },
-    { 
-      id: 3, 
-      name: 'Doston', 
-      group: ['N28', 'm202'], 
-      phone: '+998944481311', 
-      email: 'doston@gmail.com', 
-      address: 'Andijan', 
-      createdDate: '14.05.2026' 
-    },
-  ]);
+  const [teachers, setTeachers] = useState([]);
+
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        const userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYmR1a2hvc2hpbTk5QGdtYWlsLmNvbSIsInJvbGUiOiJTVVBFUkFETUlOIiwiaWF0IjoxNzc5MTkyNzI4LCJleHAiOjE3NzkxOTYzMjh9.YyO_aL5pnD0t7bfRavMXoKlEbpNbJ5TDJGmIqPteb-4";
+        if (!window.localStorage.getItem("token")) {
+          window.localStorage.setItem("token", userToken);
+        }
+        const token = window.localStorage.getItem("token") || userToken;
+
+        const response = await fetch("https://najot-edu.softwareengineer.uz/api/v1/teachers", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.success && Array.isArray(resData.data)) {
+            const formatted = resData.data.map(item => ({
+              id: item.id,
+              name: item.full_name || item.name || "Noma'lum",
+              group: item.groups || [],
+              phone: item.phone || '',
+              email: item.email || '',
+              address: item.address || '',
+              createdDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ru-RU') : ''
+            }));
+            setTeachers(formatted);
+          }
+        }
+      } catch (err) {
+        console.error("Fetch teachers error:", err);
+      }
+    };
+
+    fetchTeachers();
+  }, []);
 
   const location = useLocation();
   const username = window.localStorage.getItem("username") || "Admin";
