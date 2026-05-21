@@ -34,8 +34,14 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
   };
 
   const handleSave = async () => {
-    if (!formData.fullName || !formData.phone) {
-      alert("Iltimos, ism va telefon raqamini kiriting!");
+    if (!formData.fullName || !formData.phone || !formData.email || !formData.address) {
+      alert("Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam, Mail, Manzil) to'ldiring!");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert("Iltimos, to'g'ri elektron pochta (Mail) kiriting (masalan: oqituvchi@example.com)!");
       return;
     }
 

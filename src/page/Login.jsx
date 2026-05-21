@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import studentSvg from '../assets/images/student.svg';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import studentCopyImage from "../assets/images/student copy.svg";
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '998975661099',
-    password: 'Benazir99!'
+    username: "998975661099",
+    password: "Benazir99!",
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -15,15 +15,15 @@ export default function Login() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
@@ -31,29 +31,37 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setApiError("");
-    
+
     try {
       setLoading(true);
 
-      const response = await fetch("https://najot-edu.softwareengineer.uz/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://najot-edu.softwareengineer.uz/api/v1/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phone: formData.username.replace(/\D/g, ""),
+            password: formData.password,
+          }),
         },
-        body: JSON.stringify({
-          phone: formData.username.replace(/\D/g, ''),
-          password: formData.password
-        }),
-      });
+      );
 
       const data = await response.json();
 
       if (response.ok) {
-        const token = data?.accessToken || data?.data?.accessToken || data?.data?.token || data?.token || data?.access_token;
+        const token =
+          data?.accessToken ||
+          data?.data?.accessToken ||
+          data?.data?.token ||
+          data?.token ||
+          data?.access_token;
         if (token) {
           window.localStorage.setItem("token", token);
           window.localStorage.setItem("username", formData.username);
-          navigate('/dashboard');
+          navigate("/dashboard");
         } else {
           setApiError("Xatolik: Token topilmadi.");
         }
@@ -71,12 +79,12 @@ export default function Login() {
   return (
     <div className="flex min-h-screen">
       {/* Left side with illustration */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-b from-[#0b0314] via-[#12071f] to-[#1d0a2d] border-r border-[#2d124d] shadow-[inset_-10px_0_30px_rgba(0,0,0,0.8)] items-center justify-center p-12">
-        <div className="w-full max-w-lg mx-auto flex justify-center items-center">
-          <img 
-            src={studentSvg} 
-            alt="Student Illustration" 
-            className="w-full h-auto object-contain drop-shadow-[0_0_30px_rgba(57,255,20,0.15)] filter"
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#17275b]">
+        <div className="w-full h-full p-12 flex items-center justify-center">
+          <img
+            src={studentCopyImage}
+            alt="Study Illustration"
+            className="w-full h-full max-w-[92%] max-h-[92%] object-contain"
           />
         </div>
       </div>
@@ -84,20 +92,23 @@ export default function Login() {
       {/* Right side with login form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 sm:p-12 md:p-16 lg:p-24 bg-white relative">
         <div className="flex-grow flex flex-col justify-center max-w-md mx-auto w-full">
-          
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-[10px] sm:text-xs font-semibold text-gray-800 tracking-wider mb-6 leading-relaxed">
-              MUHAMMAD AL-XORAZMIY NOMIDAGI<br />
-              TOSHKENT AXBOROT TEXNOLOGIYALARI<br />
+              MUHAMMAD AL-XORAZMIY NOMIDAGI
+              <br />
+              TOSHKENT AXBOROT TEXNOLOGIYALARI
+              <br />
               UNIVERSITETI
             </h1>
-            
+
             {/* Logo placeholder - using a styled div with a border to represent the seal */}
             <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-[#7B2CBF] rounded-full mx-auto mb-6 flex items-center justify-center bg-purple-50 shadow-[0_0_15px_rgba(123,44,191,0.2)]">
-              <span className="text-[#7B2CBF] font-extrabold text-2xl tracking-wider">TUIT</span>
+              <span className="text-[#7B2CBF] font-extrabold text-2xl tracking-wider">
+                TUIT
+              </span>
             </div>
-            
+
             <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-8">
               LEARNING MANAGEMENT SYSTEM
             </h2>
@@ -115,7 +126,9 @@ export default function Login() {
                 Telefon raqam
               </label>
               {errors.username && (
-                <p className="text-red-500 text-xs mb-1 animate-pulse">{errors.username}</p>
+                <p className="text-red-500 text-xs mb-1 animate-pulse">
+                  {errors.username}
+                </p>
               )}
               <input
                 type="text"
@@ -123,7 +136,7 @@ export default function Login() {
                 value={formData.username}
                 onChange={handleInputChange}
                 placeholder="90 123 45 67"
-                className={`w-full px-4 py-3 border ${errors.username ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#7B2CBF] focus:border-transparent transition-colors`}
+                className={`w-full px-4 py-3 border ${errors.username ? "border-red-500" : "border-gray-300"} rounded focus:outline-none focus:ring-2 focus:ring-[#7B2CBF] focus:border-transparent transition-colors`}
               />
             </div>
 
@@ -132,7 +145,9 @@ export default function Login() {
                 Parol
               </label>
               {errors.password && (
-                <p className="text-red-500 text-xs mb-1 animate-pulse">{errors.password}</p>
+                <p className="text-red-500 text-xs mb-1 animate-pulse">
+                  {errors.password}
+                </p>
               )}
               <div className="relative">
                 <input
@@ -141,21 +156,39 @@ export default function Login() {
                   value={formData.password}
                   onChange={handleInputChange}
                   placeholder="Parolni kiriting"
-                  className={`w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-2 focus:ring-[#7B2CBF] focus:border-transparent transition-colors`}
+                  className={`w-full px-4 py-3 border ${errors.password ? "border-red-500" : "border-gray-300"} rounded focus:outline-none focus:ring-2 focus:ring-[#1d4ed8] focus:border-transparent transition-colors`}
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
                 >
                   {showPassword ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
                       <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                      <path
+                        fillRule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-5 w-5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z"
+                        clipRule="evenodd"
+                      />
                       <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.741L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.065 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
                     </svg>
                   )}
@@ -166,17 +199,35 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full bg-[#7B2CBF] text-white py-3 px-4 rounded hover:bg-[#5a189a] hover:shadow-[0_0_20px_rgba(123,44,191,0.4)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7B2CBF] font-semibold flex items-center justify-center ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full bg-[#0f172a] text-white py-3 px-4 rounded-lg hover:bg-[#1e293b] hover:shadow-[0_8px_24px_rgba(15,23,42,0.18)] transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#2563eb] font-semibold flex items-center justify-center ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Yuklanmoqda...
                 </>
-              ) : "Kirish"}
+              ) : (
+                "Kirish"
+              )}
             </button>
           </form>
         </div>
@@ -189,4 +240,3 @@ export default function Login() {
     </div>
   );
 }
-
