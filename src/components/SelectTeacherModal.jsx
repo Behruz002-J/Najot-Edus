@@ -1,13 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axiosClient from '../api/axios';
 
-export default function SelectTeacherModal({ isOpen, onClose, onSelect }) {
+export default function SelectTeacherModal({ isOpen, onClose, selectedIds = [], onSelect }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTeachers, setSelectedTeachers] = useState([]);
 
-  const teachers = [
-    { id: 1, name: 'Mohirbek' },
-    { id: 2, name: 'Javohir' },
-  ];
+  useEffect(() => {
+    if (isOpen && selectedIds) {
+      setSelectedTeachers(selectedIds);
+    }
+  }, [isOpen, selectedIds]);
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTeachers = async () => {
+      try {
+        setLoading(true);
+        const res = await axiosClient.get('/teachers');
+        const data = res?.data;
+        if (Array.isArray(data)) {
+          setTeachers(data);
+        } else if (Array.isArray(data?.data)) {
+          setTeachers(data.data);
+        } else if (data?.success && Array.isArray(data?.data)) {
+          setTeachers(data.data);
+        }
+      } catch (err) {
+        console.error('Fetch teachers error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchTeachers();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -51,20 +80,26 @@ export default function SelectTeacherModal({ isOpen, onClose, onSelect }) {
 
         {/* List */}
         <div className="px-6 space-y-3 mb-6 max-h-[250px] overflow-y-auto no-scrollbar">
-          {teachers.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())).map((teacher) => (
-            <label 
-              key={teacher.id} 
-              className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors border border-gray-200 dark:border-gray-700 rounded-xl"
-            >
-              <input 
-                type="checkbox" 
-                checked={selectedTeachers.includes(teacher.id)}
-                onChange={() => toggleTeacher(teacher.id)}
-                className="w-4 h-4 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]" 
-              />
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{teacher.name}</span>
-            </label>
-          ))}
+          {loading ? (
+            <div className="text-center py-8 text-gray-400 text-sm font-semibold">Yuklanmoqda...</div>
+          ) : teachers.filter(t => (t.full_name || t.name || '').toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm font-semibold">O'qituvchilar topilmadi</div>
+          ) : (
+            teachers.filter(t => (t.full_name || t.name || '').toLowerCase().includes(searchTerm.toLowerCase())).map((teacher) => (
+              <label 
+                key={teacher.id} 
+                className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors border border-gray-200 dark:border-gray-700 rounded-xl"
+              >
+                <input 
+                  type="checkbox" 
+                  checked={selectedTeachers.includes(teacher.id)}
+                  onChange={() => toggleTeacher(teacher.id)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]" 
+                />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{teacher.full_name || teacher.name}</span>
+              </label>
+            ))
+          )}
         </div>
 
         {/* Footer */}

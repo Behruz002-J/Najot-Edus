@@ -1,63 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import AddGroupModal from '../components/AddGroupModal';
+import axiosClient from '../api/axios';
+
+const MAP_DAYS = {
+  MONDAY: 'Du',
+  TUESDAY: 'Se',
+  WEDNESDAY: 'Chor',
+  THURSDAY: 'Pay',
+  FRIDAY: 'Ju',
+  SATURDAY: 'Shan',
+  SUNDAY: 'Yak'
+};
 
 export default function Groups() {
   const [activeTab, setActiveTab] = useState('groups');
   const { isGroupModalOpen, setIsGroupModalOpen } = useOutletContext();
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchGroups = async () => {
+    try {
+      setLoading(true);
+      const endpoint = activeTab === 'groups' ? '/groups/all' : '/groups/archive';
+      const res = await axiosClient.get(endpoint);
+      const data = res?.data;
+      let groupsData = [];
+
+      if (Array.isArray(data)) {
+        groupsData = data;
+      } else if (Array.isArray(data?.data)) {
+        groupsData = data.data;
+      } else if (data?.success && Array.isArray(data?.data)) {
+        groupsData = data.data;
+      }
+
+      const mapped = groupsData.map(item => {
+        const daysStr = Array.isArray(item.week_day) 
+          ? item.week_day.map(d => MAP_DAYS[d] || d).join(', ') 
+          : '—';
+        
+        const teacherStr = Array.isArray(item.teachers) && item.teachers.length > 0
+          ? item.teachers.map(t => t.full_name).join(', ')
+          : '—';
+
+        // Support both active API (course, room) and archive API (courses, rooms) properties
+        const courseName = item.courses?.name || item.course?.name || '—';
+        const durationMonth = item.courses?.duration_month || item.course?.duration_month;
+        const roomName = item.rooms?.name || item.room || '—';
+
+        return {
+          id: item.id,
+          status: activeTab === 'archive' || item.is_active === false ? 'FAOL EMAS' : 'FAOL',
+          name: item.name || '—',
+          course: courseName,
+          duration: durationMonth ? `${durationMonth} oy` : '—',
+          time: item.start_time || '—',
+          days: daysStr,
+          room: roomName,
+          teacher: teacherStr,
+          students: item.student_count || item.students?.length || 0
+        };
+      });
+
+      setGroups(mapped);
+    } catch (err) {
+      console.error('Fetch groups error:', err?.response?.data || err.message);
+      setGroups([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGroups();
+  }, [activeTab]);
+
+  const toggleStatus = async (id, currentStatus) => {
+    const newStatus = currentStatus === 'FAOL' ? 'FAOL EMAS' : 'FAOL';
+    try {
+      setGroups(prev => prev.map(group => 
+        group.id === id ? { ...group, status: newStatus } : group
+      ));
+      
+      await axiosClient.patch(`/groups/${id}`, {
+        is_active: newStatus === 'FAOL'
+      });
+      
+      // Refresh list to reflect state changes
+      fetchGroups();
+    } catch (err) {
+      console.error('Toggle status error:', err?.response?.data || err.message);
+      setGroups(prev => prev.map(group => 
+        group.id === id ? { ...group, status: currentStatus } : group
+      ));
+      alert("Statusni o'zgartirishda xatolik yuz berdi!");
+    }
+  };
+
+  const totalTeachers = [...new Set(groups.flatMap(g => g.teacher ? g.teacher.split(', ') : []))].filter(t => t && t !== '—').length;
+  const totalStudents = groups.reduce((acc, curr) => acc + (curr.students || 0), 0);
+  const filteredGroups = groups;
 
   const stats = [
-    { label: 'Jami guruhlar', value: '2', icon: (
+    { label: 'Jami guruhlar', value: loading ? '...' : String(groups.length), icon: (
       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     )},
-    { label: "O'qituvchilar", value: '0', icon: (
+    { label: "O'qituvchilar", value: loading ? '...' : String(totalTeachers), icon: (
       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     )},
-    { label: "O'quvchilar", value: '0', icon: (
+    { label: "O'quvchilar", value: loading ? '...' : String(totalStudents), icon: (
       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7zM12 7a4 4 0 100-8 4 4 0 000 8z" />
       </svg>
     )},
   ];
-
-  const [groups, setGroups] = useState([
-    {
-      id: 1,
-      status: 'FAOL',
-      name: 'N26',
-      course: 'Backend',
-      duration: '6 oy',
-      time: '09:30',
-      days: 'Du, Se, Chor, Pay, Ju',
-      room: 'Autodesk',
-      teacher: 'Mohirbek',
-      students: 1
-    },
-    {
-      id: 2,
-      status: 'FAOL',
-      name: 'n105',
-      course: 'Backend',
-      duration: '6 oy',
-      time: '16:00',
-      days: 'Se, Pay, Shan',
-      room: 'Autodesk',
-      teacher: 'Mohirbek',
-      students: 4
-    }
-  ]);
-
-  const toggleStatus = (id) => {
-    setGroups(prev => prev.map(group => 
-      group.id === id 
-        ? { ...group, status: group.status === 'FAOL' ? 'FAOL EMAS' : 'FAOL' } 
-        : group
-    ));
-  };
 
   return (
     <div className="space-y-6">
@@ -140,68 +201,94 @@ export default function Groups() {
                 <th className="px-6 py-4">O'qituvchi</th>
                 <th className="px-6 py-4 text-center">Talabalar</th>
                 <th className="px-6 py-4 text-right">
-                  <svg className="w-4 h-4 ml-auto cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg 
+                    onClick={fetchGroups}
+                    className={`w-4 h-4 ml-auto cursor-pointer hover:text-[#7C3AED] transition-colors ${loading ? 'animate-spin' : ''}`} 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-              {groups.map((group) => (
-                <tr key={group.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={group.status === 'FAOL'} 
-                          onChange={() => toggleStatus(group.id)}
-                          className="sr-only peer" 
-                        />
-                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#7C3AED]"></div>
-                      </label>
-                      <span className={`text-[10px] font-bold tracking-wider ${group.status === 'FAOL' ? 'text-green-500' : 'text-red-500'}`}>
-                        {group.status}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link to={`/dashboard/groups/${group.id}`} className="text-sm font-bold text-gray-800 dark:text-white hover:text-[#7C3AED] dark:hover:text-purple-400 transition-colors">
-                      {group.name}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg text-[10px] font-bold uppercase tracking-tight">
-                      {group.course}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.duration}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-800 dark:text-white">{group.time}</span>
-                      <span className="text-[9px] text-gray-400 font-medium">{group.days}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.room}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-xs font-semibold text-gray-800 dark:text-white">{group.teacher}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="text-sm font-bold text-gray-800 dark:text-white">{group.students}</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="p-1 text-gray-300 hover:text-gray-500 transition-colors">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              {loading ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-16 text-gray-400 font-semibold text-sm">
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="animate-spin w-5 h-5 text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                    </button>
+                      Guruhlar yuklanmoqda...
+                    </div>
                   </td>
                 </tr>
-              ))}
+              ) : filteredGroups.length === 0 ? (
+                <tr>
+                  <td colSpan="9" className="text-center py-16 text-gray-400 font-semibold text-sm">
+                    {activeTab === 'groups' ? 'Guruhlar topilmadi.' : 'Arxivlangan guruhlar topilmadi.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredGroups.map((group) => (
+                  <tr key={group.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input 
+                            type="checkbox" 
+                            checked={group.status === 'FAOL'} 
+                            onChange={() => toggleStatus(group.id, group.status)}
+                            className="sr-only peer" 
+                          />
+                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#7C3AED]"></div>
+                        </label>
+                        <span className={`text-[10px] font-bold tracking-wider ${group.status === 'FAOL' ? 'text-green-500' : 'text-red-500'}`}>
+                          {group.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Link to={`/dashboard/groups/${group.id}`} className="text-sm font-bold text-gray-800 dark:text-white hover:text-[#7C3AED] dark:hover:text-purple-400 transition-colors">
+                        {group.name}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg text-[10px] font-bold uppercase tracking-tight">
+                        {group.course}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.duration}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-gray-800 dark:text-white">{group.time}</span>
+                        <span className="text-[9px] text-gray-400 font-medium">{group.days}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.room}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-xs font-semibold text-gray-800 dark:text-white">{group.teacher}</span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-sm font-bold text-gray-800 dark:text-white">{group.students}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button className="p-1 text-gray-300 hover:text-gray-500 transition-colors">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -210,6 +297,7 @@ export default function Groups() {
       <AddGroupModal 
         isOpen={isGroupModalOpen} 
         onClose={() => setIsGroupModalOpen(false)} 
+        onAddSuccess={fetchGroups}
       />
     </div>
   );

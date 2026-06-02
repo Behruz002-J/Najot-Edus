@@ -1,7 +1,10 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AssignGroupModal from './AssignGroupModal';
+import { getValidToken } from '../api/tokenUtils';
 
 export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
+  const navigate = useNavigate();
   const [isAssignGroupModalOpen, setIsAssignGroupModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -46,9 +49,14 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
     }
 
     try {
-      // Use the token provided by the user from localStorage or fallback if not present
-      const userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYmR1a2hvc2hpbTk5QGdtYWlsLmNvbSIsInJvbGUiOiJTVVBFUkFETUlOIiwiaWF0IjoxNzc5MTkyNzI4LCJleHAiOjE3NzkxOTYzMjh9.YyO_aL5pnD0t7bfRavMXoKlEbpNbJ5TDJGmIqPteb-4";
-      const token = window.localStorage.getItem("token") || userToken;
+      let token;
+      try {
+        token = await getValidToken();
+      } catch (tokenErr) {
+        alert(tokenErr.message + "\n\nLogin sahifasiga o'tilmoqda...");
+        navigate("/");
+        return;
+      }
 
       // Extract raw phone number (only digits) and ensure it has +998 prefix as expected by global validators
       let rawPhone = formData.phone.replace(/\D/g, '');
@@ -96,6 +104,14 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
         },
         body: postData
       });
+
+      // Handle 401 Unauthorized — token expired, redirect to login
+      if (response.status === 401) {
+        window.localStorage.removeItem("token");
+        alert("Sessiya muddati tugadi! Iltimos, qayta login qiling.");
+        navigate("/");
+        return;
+      }
 
       // Handle non-JSON response gracefully (e.g. 500 server error, HTML pages)
       const contentType = response.headers.get("content-type");

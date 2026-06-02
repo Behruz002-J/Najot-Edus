@@ -1,42 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import Sidebar from '../components/Sidebar/Sidebar';
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import Sidebar from "../components/Sidebar/Sidebar";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function DashboardLayout() {
+  const { language, setLanguage, t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  
+  const [profileName, setProfileName] = useState("");
+
   const [teachers, setTeachers] = useState([]);
+
+  const resolveName = (obj) => {
+    if (!obj || typeof obj !== "object") return undefined;
+    return (
+      obj.full_name ||
+      obj.fullName ||
+      obj.name ||
+      (obj.first_name && obj.last_name
+        ? `${obj.first_name} ${obj.last_name}`
+        : undefined) ||
+      (obj.firstName && obj.lastName
+        ? `${obj.firstName} ${obj.lastName}`
+        : undefined) ||
+      obj.first_name ||
+      obj.firstName
+    );
+  };
 
   useEffect(() => {
     const fetchTeachers = async () => {
       try {
-        const userToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYmR1a2hvc2hpbTk5QGdtYWlsLmNvbSIsInJvbGUiOiJTVVBFUkFETUlOIiwiaWF0IjoxNzc5MTkyNzI4LCJleHAiOjE3NzkxOTYzMjh9.YyO_aL5pnD0t7bfRavMXoKlEbpNbJ5TDJGmIqPteb-4";
+        const userToken =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYmR1a2hvc2hpbTk5QGdtYWlsLmNvbSIsInJvbGUiOiJTVVBFUkFETUlOIiwiaWF0IjoxNzc5MTkyNzI4LCJleHAiOjE3NzkxOTYzMjh9.YyO_aL5pnD0t7bfRavMXoKlEbpNbJ5TDJGmIqPteb-4";
         if (!window.localStorage.getItem("token")) {
           window.localStorage.setItem("token", userToken);
         }
         const token = window.localStorage.getItem("token") || userToken;
 
-        const response = await fetch("https://najot-edu.softwareengineer.uz/api/v1/teachers", {
-          headers: {
-            "Authorization": `Bearer ${token}`
-          }
-        });
+        const response = await fetch(
+          "https://najot-edu.softwareengineer.uz/api/v1/teachers",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
 
         if (response.ok) {
           const resData = await response.json();
           if (resData.success && Array.isArray(resData.data)) {
-            const formatted = resData.data.map(item => ({
+            const formatted = resData.data.map((item) => ({
               id: item.id,
               name: item.full_name || item.name || "Noma'lum",
               group: item.groups || [],
-              phone: item.phone || '',
-              email: item.email || '',
-              address: item.address || '',
-              createdDate: item.created_at ? new Date(item.created_at).toLocaleDateString('ru-RU') : ''
+              phone: item.phone || "",
+              email: item.email || "",
+              address: item.address || "",
+              createdDate: item.created_at
+                ? new Date(item.created_at).toLocaleDateString("ru-RU")
+                : "",
             }));
             setTeachers(formatted);
           }
@@ -49,15 +75,51 @@ export default function DashboardLayout() {
     fetchTeachers();
   }, []);
 
+  useEffect(() => {
+    const fetchProfileName = async () => {
+      const token = window.localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const response = await fetch(
+          "https://najot-edu.softwareengineer.uz/api/v1/auth/me",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const name =
+          resolveName(data?.data?.user) ||
+          resolveName(data?.data) ||
+          resolveName(data?.user);
+
+        if (name) {
+          setProfileName(name);
+          window.localStorage.setItem("username", name);
+        }
+      } catch (err) {
+        console.warn("Fetch profile name error:", err);
+      }
+    };
+
+    fetchProfileName();
+  }, []);
+
   const location = useLocation();
-  const username = window.localStorage.getItem("username") || "Admin";
+  const username = window.localStorage.getItem("username") || "";
+  const displayName = profileName || username || "Admin";
 
   // Apply dark class to <html> when isDark changes
   useEffect(() => {
     if (isDark) {
-      document.documentElement.classList.add('dark');
+      document.documentElement.classList.add("dark");
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove("dark");
     }
   }, [isDark]);
 
@@ -72,37 +134,81 @@ export default function DashboardLayout() {
           <div className="flex items-center gap-6 flex-1">
             <div className="flex items-center gap-2">
               <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
               </button>
-              <button 
+              <button
                 onClick={() => {
-                  if (location.pathname === '/dashboard/students') {
+                  if (location.pathname === "/dashboard/students") {
                     setIsStudentModalOpen(true);
-                  } else if (location.pathname === '/dashboard/teacher') {
+                  } else if (location.pathname === "/dashboard/teacher") {
                     setIsTeacherModalOpen(true);
-                  } else if (location.pathname === '/dashboard/groups') {
+                  } else if (location.pathname === "/dashboard/groups") {
                     setIsGroupModalOpen(true);
                   }
                 }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-[#7C3AED] text-white rounded-lg text-xs font-bold hover:bg-[#6D28D9] transition-colors shadow-sm ml-1"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
-                Qo'shish
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                {t("header.add")}
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
             </div>
 
             <div className="relative max-w-md w-full">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
               </span>
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t("header.search")}
                 className="w-full bg-white dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 border-none rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-800 transition-colors duration-300 shadow-sm"
               />
             </div>
@@ -112,15 +218,55 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-2">
               <div className="relative group">
                 <button className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-1 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                  O'zbekcha <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  {language === "uz" ? "O'zbekcha" : language === "ru" ? "Русский" : "English"}{" "}
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
                 </button>
-                
+
                 {/* Dropdown Menu */}
                 <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="p-1">
-                    <button className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">O'zbekcha</button>
-                    <button className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Rus tili</button>
-                    <button className="w-full text-left px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Ingliz tili</button>
+                    <button
+                      onClick={() => setLanguage("uz")}
+                      className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        language === "uz"
+                          ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
+                          : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      O'zbekcha
+                    </button>
+                    <button
+                      onClick={() => setLanguage("ru")}
+                      className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        language === "ru"
+                          ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
+                          : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      Русский
+                    </button>
+                    <button
+                      onClick={() => setLanguage("en")}
+                      className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                        language === "en"
+                          ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
+                          : "text-gray-600 dark:text-gray-300"
+                      }`}
+                    >
+                      English
+                    </button>
                   </div>
                 </div>
               </div>
@@ -128,25 +274,60 @@ export default function DashboardLayout() {
 
             <div className="flex items-center gap-1 px-2 border-l border-gray-100 dark:border-gray-700 ml-2">
               <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
               </button>
 
               {/* Dark / Light Mode Toggle */}
               <button
                 onClick={() => setIsDark(!isDark)}
                 className="p-2 rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                title={isDark ? 'Kunduzgi rejim' : 'Tungi rejim'}
+                title={isDark ? "Kunduzgi rejim" : "Tungi rejim"}
               >
-                <span className="block transition-transform duration-500" style={{ transform: isDark ? 'rotate(360deg)' : 'rotate(0deg)' }}>
+                <span
+                  className="block transition-transform duration-500"
+                  style={{
+                    transform: isDark ? "rotate(360deg)" : "rotate(0deg)",
+                  }}
+                >
                   {isDark ? (
-                    <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M12 3v1m0 16v1m8.66-9H21M3 12H2m15.36-6.36l-.71.71M6.34 17.66l-.71.71M17.66 17.66l.71.71M6.34 6.34l.71.71M12 5a7 7 0 110 14A7 7 0 0112 5z" />
+                    <svg
+                      className="w-5 h-5 text-yellow-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 3v1m0 16v1m8.66-9H21M3 12H2m15.36-6.36l-.71.71M6.34 17.66l-.71.71M17.66 17.66l.71.71M6.34 6.34l.71.71M12 5a7 7 0 110 14A7 7 0 0112 5z"
+                      />
                     </svg>
                   ) : (
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    <svg
+                      className="w-5 h-5 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                      />
                     </svg>
                   )}
                 </span>
@@ -155,7 +336,7 @@ export default function DashboardLayout() {
 
             <div className="flex items-center gap-3 ml-2">
               <img
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin"
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName || "Admin")}`}
                 alt="Profile"
                 className="w-9 h-9 rounded-full border border-gray-200 dark:border-gray-600"
               />
@@ -168,58 +349,110 @@ export default function DashboardLayout() {
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                {location.pathname === '/dashboard/teacher' ? 'O\'qituvchilar' :
-                  location.pathname === '/dashboard/students' ? 'Talabalar' :
-                  location.pathname === '/dashboard/groups' ? 'Guruhlar' :
-                  location.pathname === '/dashboard' ? <>Salom, <span className="text-blue-500">{username}</span></> :
-                    'Boshqaruv paneli'}
+                {location.pathname === "/dashboard/teacher" ? (
+                  t("title.teachers")
+                ) : location.pathname === "/dashboard/students" ? (
+                  t("title.students")
+                ) : location.pathname === "/dashboard/groups" ? (
+                  t("title.groups")
+                ) : location.pathname === "/dashboard" ? (
+                  <>
+                    {t("title.welcome")}, <span className="text-blue-500">{displayName}</span>
+                  </>
+                ) : location.pathname.includes("/homework/create") ? (
+                  t("title.createHomework")
+                ) : (
+                  t("title.dashboard")
+                )}
               </h1>
-              {location.pathname === '/dashboard/teacher' ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Ushbu sahifada siz o'qituvchilar ro'yxatini va ularning ma'lumotlarini topasiz.</p>
-              ) : location.pathname === '/dashboard/students' ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Ushbu sahifada siz Talabalar ro'yxatini va ularning ma'lumotlarini topasiz. Har bir Talaba ismi, fanlari va aloqa ma'lumotlari keltirilgan.</p>
-              ) : location.pathname === '/dashboard/groups' ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">Ushbu sahifada siz o'quv markazidagi barcha guruhlar va ularning dars jadvalini ko'rishingiz mumkin.</p>
-              ) : location.pathname === '/dashboard' ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">EduCoin platformasiga xush kelibsiz</p>
+              {location.pathname === "/dashboard/teacher" ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                  {t("subtitle.teachers")}
+                </p>
+              ) : location.pathname === "/dashboard/students" ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                  {t("subtitle.students")}
+                </p>
+              ) : location.pathname === "/dashboard/groups" ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                  {t("subtitle.groups")}
+                </p>
+              ) : location.pathname === "/dashboard" ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                  {t("subtitle.welcome")}
+                </p>
               ) : null}
             </div>
 
-            {(location.pathname === '/dashboard/teacher' || 
-              location.pathname === '/dashboard/students' || 
-              location.pathname === '/dashboard/groups') && (
+            {(location.pathname === "/dashboard/teacher" ||
+              location.pathname === "/dashboard/students" ||
+              location.pathname === "/dashboard/groups") && (
               <div className="flex items-center gap-3">
-                {(location.pathname === '/dashboard/teacher' || location.pathname === '/dashboard/groups') && (
+                {(location.pathname === "/dashboard/teacher" ||
+                  location.pathname === "/dashboard/groups") && (
                   <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm transition-all">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    Export
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                      />
+                    </svg>
+                    {t("btn.export")}
                   </button>
                 )}
-                <button 
+                <button
                   onClick={() => {
-                    if (location.pathname === '/dashboard/students') {
+                    if (location.pathname === "/dashboard/students") {
                       setIsStudentModalOpen(true);
-                    } else if (location.pathname === '/dashboard/teacher') {
+                    } else if (location.pathname === "/dashboard/teacher") {
                       setIsTeacherModalOpen(true);
-                    } else if (location.pathname === '/dashboard/groups') {
+                    } else if (location.pathname === "/dashboard/groups") {
                       setIsGroupModalOpen(true);
                     }
                   }}
                   className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-[#6D28D9] shadow-sm transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  {location.pathname === '/dashboard/teacher' ? "O'qituvchi qo'shish" : 
-                   location.pathname === '/dashboard/groups' ? "Guruh qo'shish" : "Talaba qo'shish"}
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  {location.pathname === "/dashboard/teacher"
+                    ? t("btn.addTeacher")
+                    : location.pathname === "/dashboard/groups"
+                      ? t("btn.addGroup")
+                      : t("btn.addStudent")}
                 </button>
               </div>
             )}
           </div>
-          <Outlet context={{ 
-            isStudentModalOpen, setIsStudentModalOpen, 
-            isTeacherModalOpen, setIsTeacherModalOpen, 
-            isGroupModalOpen, setIsGroupModalOpen,
-            teachers, setTeachers
-          }} />
+          <Outlet
+            context={{
+              isStudentModalOpen,
+              setIsStudentModalOpen,
+              isTeacherModalOpen,
+              setIsTeacherModalOpen,
+              isGroupModalOpen,
+              setIsGroupModalOpen,
+              teachers,
+              setTeachers,
+            }}
+          />
         </main>
       </div>
     </div>

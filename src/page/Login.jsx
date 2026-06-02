@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import studentCopyImage from "../assets/images/student copy.svg";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,6 +14,9 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [errorOpen, setErrorOpen] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -58,18 +63,86 @@ export default function Login() {
           data?.data?.token ||
           data?.token ||
           data?.access_token;
+
+        const resolveName = (obj) => {
+          if (!obj || typeof obj !== "object") return undefined;
+          return (
+            obj.full_name ||
+            obj.fullName ||
+            obj.name ||
+            (obj.first_name && obj.last_name
+              ? `${obj.first_name} ${obj.last_name}`
+              : undefined) ||
+            (obj.firstName && obj.lastName
+              ? `${obj.firstName} ${obj.lastName}`
+              : undefined) ||
+            obj.first_name ||
+            obj.firstName
+          );
+        };
+
+        let apiUsername =
+          resolveName(data?.data?.user) ||
+          resolveName(data?.data) ||
+          resolveName(data?.user) ||
+          formData.username;
+
+        const isPhoneValue = (value) =>
+          typeof value === "string" && /^\+?[0-9\s\-()]+$/.test(value);
+
+        if (token && isPhoneValue(apiUsername)) {
+          try {
+            const profileResp = await fetch(
+              "https://najot-edu.softwareengineer.uz/api/v1/auth/me",
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            );
+            const profileData = await profileResp.json();
+            const profileName =
+              resolveName(profileData?.data?.user) ||
+              resolveName(profileData?.data) ||
+              resolveName(profileData?.user);
+            if (profileName) {
+              apiUsername = profileName;
+            }
+          } catch (profileErr) {
+            // If profile endpoint is unavailable, we still proceed with login.
+            console.warn("Unable to fetch profile name:", profileErr);
+          }
+        }
+
         if (token) {
           window.localStorage.setItem("token", token);
-          window.localStorage.setItem("username", formData.username);
-          navigate("/dashboard");
+          window.localStorage.setItem("username", apiUsername);
+          // Save credentials for auto-refresh when token expires
+          window.localStorage.setItem("_creds", JSON.stringify({
+            phone: formData.username.replace(/\D/g, ""),
+            password: formData.password,
+          }));
+          setSuccessOpen(true);
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 2000);
         } else {
-          setApiError("Xatolik: Token topilmadi.");
+          const msg = "Xatolik: Token topilmadi.";
+          setApiError(msg);
+          setErrorMsg(msg);
+          setErrorOpen(true);
         }
       } else {
-        setApiError(data?.message || "Login yoki parol xato!");
+        const msg = data?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
+        setApiError(msg);
+        setErrorMsg(msg);
+        setErrorOpen(true);
       }
     } catch (err) {
-      setApiError("Xatolik yuz berdi.");
+      const msg = "Xatolik yuz berdi! Server bilan bog'lanish o'rnatilmadi.";
+      setApiError(msg);
+      setErrorMsg(msg);
+      setErrorOpen(true);
       console.error("Login error:", err);
     } finally {
       setLoading(false);
@@ -236,6 +309,40 @@ export default function Login() {
         <div className="text-center mt-12 text-xs text-gray-500">
           Copyright © 2021 of Tashkent University of Information Technologies
         </div>
+
+        {/* Success Snackbar */}
+        <Snackbar
+          open={successOpen}
+          autoHideDuration={2000}
+          onClose={() => setSuccessOpen(false)}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setSuccessOpen(false)}
+            severity="success"
+            variant="filled"
+            sx={{ width: "100%", fontSize: "1rem", fontWeight: "bold" }}
+          >
+            Muvaffaqiyatli kirdingiz! Tizimga xush kelibsiz.
+          </Alert>
+        </Snackbar>
+
+        {/* Error Snackbar */}
+        <Snackbar
+          open={errorOpen}
+          autoHideDuration={4000}
+          onClose={() => setErrorOpen(false)}
+          anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        >
+          <Alert
+            onClose={() => setErrorOpen(false)}
+            severity="error"
+            variant="filled"
+            sx={{ width: "100%", fontSize: "1rem", fontWeight: "bold" }}
+          >
+            {errorMsg}
+          </Alert>
+        </Snackbar>
       </div>
     </div>
   );

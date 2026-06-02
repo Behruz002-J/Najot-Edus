@@ -151,6 +151,8 @@ export default function Courses() {
     price: "",
   });
   const [toasts, setToasts] = useState([]);
+  const [courseToDelete, setCourseToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // ── Toast helpers ─────────────────────────────────────────────────────────
   const addToast = useCallback((type, title, desc = "") => {
@@ -171,8 +173,16 @@ export default function Courses() {
     setLoading(true);
     try {
       const res = await axiosClient.get("/courses");
-      if (res.data?.success && Array.isArray(res.data?.data)) {
-        setCourses(res.data.data);
+      const data = res.data;
+      // API turli formatda qaytarishi mumkin
+      if (Array.isArray(data)) {
+        setCourses(data);
+      } else if (Array.isArray(data?.data)) {
+        setCourses(data.data);
+      } else if (data?.success && Array.isArray(data?.data)) {
+        setCourses(data.data);
+      } else {
+        setCourses([]);
       }
     } catch (err) {
       addToast(
@@ -204,13 +214,33 @@ export default function Courses() {
     );
   };
 
-  // ── Delete: not supported by backend ─────────────────────────────────────
-  const handleDelete = () => {
-    addToast(
-      "warning",
-      "O'chirish mumkin emas",
-      "Hozircha backend API kursni o'chirishni qo'llab-quvvatlamaydi.",
-    );
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  const handleDelete = (course) => {
+    setCourseToDelete(course);
+  };
+
+  const confirmDeleteCourse = async () => {
+    if (!courseToDelete) return;
+    setIsDeleting(true);
+    try {
+      await axiosClient.delete(`/courses/${courseToDelete.id}`);
+      setCourses((prev) => prev.filter((c) => c.id !== courseToDelete.id));
+      addToast("success", "Kurs o'chirildi!", `"${courseToDelete.name}" muvaffaqiyatli o'chirildi.`);
+      setCourseToDelete(null);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        `Server xatosi: ${err?.response?.status || "Noma'lum"}`;
+      addToast("error", "O'chirishda xatolik", msg);
+      setCourseToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDeleteCourse = () => {
+    setCourseToDelete(null);
   };
 
   // ── Save (POST) new course ────────────────────────────────────────────────
@@ -218,26 +248,36 @@ export default function Courses() {
     if (!form.name || !form.price || !form.duration || !form.months) return;
     setSaving(true);
     try {
-      await axiosClient.post("/courses", {
-        name: form.name,
-        description: form.description,
+      const payload = {
+        name: form.name.trim(),
+        description: form.description.trim(),
         price: Number(form.price),
         duration_hours: Number(form.duration),
         duration_month: Number(form.months),
-      });
-      addToast(
-        "success",
-        "Kurs muvaffaqiyatli qo'shildi!",
-        `"${form.name}" kursi bazaga saqlandi.`,
-      );
-      setShowModal(false);
-      await fetchCourses(); // Refresh list
+      };
+      const res = await axiosClient.post("/courses", payload);
+      if (res.status === 200 || res.status === 201) {
+        addToast(
+          "success",
+          "Kurs muvaffaqiyatli qo'shildi!",
+          `"${form.name}" kursi bazaga saqlandi.`,
+        );
+        setShowModal(false);
+        setForm({
+          name: "",
+          description: "",
+          duration: "",
+          months: "",
+          price: "",
+        });
+        await fetchCourses();
+      }
     } catch (err) {
-      addToast(
-        "error",
-        "Saqlashda xatolik",
-        err?.response?.data?.message || `Qayta urinib ko'ring.`,
-      );
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        `Server xatosi: ${err?.response?.status || "Noma'lum"}. Qayta urinib ko'ring.`;
+      addToast("error", "Saqlashda xatolik", msg);
     } finally {
       setSaving(false);
     }
@@ -325,29 +365,29 @@ export default function Courses() {
               key={course.id}
               className="bg-[#EEF4FF] dark:bg-gray-700 rounded-[32px] p-8 flex flex-col gap-6 relative group border border-blue-50/50 dark:border-gray-600 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
             >
-              {/* Status badge */}
-              {course.status === "active" && (
-                <span className="absolute top-5 right-20 flex items-center gap-1 text-[11px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2.5 py-1 rounded-full border border-green-100 dark:border-green-800">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
-                  Faol
-                </span>
-              )}
-
-              {/* Header: Title and Actions */}
-              <div className="flex justify-between items-start">
-                <div className="space-y-1 pr-2 flex-1">
-                  <h3 className="text-[22px] font-bold text-gray-900 dark:text-white leading-none line-clamp-1">
-                    {course.name || (
-                      <span className="italic text-gray-400">Nomsiz</span>
+              {/* Header: Title with status and Actions */}
+              <div className="flex justify-between items-start gap-4">
+                <div className="space-y-2 pr-2 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-[20px] font-bold text-gray-900 dark:text-white leading-none line-clamp-1">
+                      {course.name || (
+                        <span className="italic text-gray-400">Nomsiz</span>
+                      )}
+                    </h3>
+                    {course.status === "active" && (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-2.5 py-1 rounded-full border border-green-100 dark:border-green-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block animate-pulse" />
+                        Faol
+                      </span>
                     )}
-                  </h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-base font-medium line-clamp-2">
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium line-clamp-2">
                     {course.description || "—"}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
-                    onClick={handleDelete}
+                    onClick={() => handleDelete(course)}
                     className="p-1.5 text-gray-400 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                     title="O'chirish (hozircha qo'llab-quvvatlanmaydi)"
                   >
@@ -511,38 +551,16 @@ export default function Courses() {
                     Dars davomiyligi (soat){" "}
                     <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <select
-                      value={form.duration}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, duration: e.target.value }))
-                      }
-                      className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl px-4 py-3 text-[14px] appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
-                    >
-                      <option value="" disabled hidden>
-                        Tanlang...
-                      </option>
-                      <option value="50">50 soat</option>
-                      <option value="60">60 soat</option>
-                      <option value="90">90 soat</option>
-                      <option value="120">120 soat</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Masalan: 2"
+                    value={form.duration}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, duration: e.target.value }))
+                    }
+                    className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all placeholder:text-gray-400"
+                  />
                 </div>
 
                 {/* Duration months */}
@@ -551,39 +569,17 @@ export default function Courses() {
                     Kurs davomiyligi (oylarda){" "}
                     <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <select
-                      value={form.months}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, months: e.target.value }))
-                      }
-                      className="w-full border border-blue-500 dark:border-blue-500 dark:bg-gray-700 dark:text-white rounded-xl px-4 py-3 text-[14px] appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    >
-                      <option value="" disabled hidden>
-                        Tanlang...
-                      </option>
-                      <option value="1">1 oy</option>
-                      <option value="3">3 oy</option>
-                      <option value="6">6 oy</option>
-                      <option value="9">9 oy</option>
-                      <option value="12">12 oy</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="36"
+                    placeholder="Masalan: 8"
+                    value={form.months}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, months: e.target.value }))
+                    }
+                    className="w-full border border-blue-500 dark:border-blue-500 dark:bg-gray-700 dark:text-white rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-gray-400"
+                  />
                 </div>
 
                 {/* Price */}
@@ -666,6 +662,50 @@ export default function Courses() {
                 ) : (
                   "Saqlash"
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {courseToDelete && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={cancelDeleteCourse}
+          />
+          <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              Kursni o'chirish
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              Rostdan ham o'chirishni hohlaysizmi?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelDeleteCourse}
+                disabled={isDeleting}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteCourse}
+                disabled={isDeleting}
+                className="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-60 flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    O'chirilmoqda...
+                  </>
+                ) : "Ha"}
               </button>
             </div>
           </div>

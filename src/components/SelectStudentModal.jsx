@@ -1,15 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axiosClient from '../api/axios';
 
-export default function SelectStudentModal({ isOpen, onClose, onSelect }) {
+export default function SelectStudentModal({ isOpen, onClose, selectedIds = [], onSelect }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStudents, setSelectedStudents] = useState([]);
 
-  const students = [
-    { id: 1, name: 'Ali Valiyev' },
-    { id: 2, name: 'Salim Qodirov' },
-    { id: 3, name: 'Bobur' },
-    { id: 4, name: 'Qodir Salimov' },
-  ];
+  useEffect(() => {
+    if (isOpen && selectedIds) {
+      setSelectedStudents(selectedIds);
+    }
+  }, [isOpen, selectedIds]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setLoading(true);
+        const res = await axiosClient.get('/students');
+        const data = res?.data;
+        if (Array.isArray(data)) {
+          setStudents(data);
+        } else if (Array.isArray(data?.data)) {
+          setStudents(data.data);
+        } else if (data?.success && Array.isArray(data?.data)) {
+          setStudents(data.data);
+        }
+      } catch (err) {
+        console.error('Fetch students error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchStudents();
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -55,20 +82,26 @@ export default function SelectStudentModal({ isOpen, onClose, onSelect }) {
 
         {/* List */}
         <div className="px-5 space-y-px border-t border-b border-gray-50 dark:border-gray-700 max-h-[300px] overflow-y-auto no-scrollbar">
-          {students.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase())).map((student) => (
-            <label 
-              key={student.id} 
-              className="flex items-center gap-3 py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors border-b border-gray-50 last:border-0 dark:border-gray-700/50"
-            >
-              <input 
-                type="checkbox" 
-                checked={selectedStudents.includes(student.id)}
-                onChange={() => toggleStudent(student.id)}
-                className="w-4 h-4 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]" 
-              />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{student.name}</span>
-            </label>
-          ))}
+          {loading ? (
+            <div className="text-center py-8 text-gray-400 text-sm font-semibold">Yuklanmoqda...</div>
+          ) : students.filter(s => (s.full_name || s.name || '').toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm font-semibold">Talabalar topilmadi</div>
+          ) : (
+            students.filter(s => (s.full_name || s.name || '').toLowerCase().includes(searchTerm.toLowerCase())).map((student) => (
+              <label 
+                key={student.id} 
+                className="flex items-center gap-3 py-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors border-b border-gray-50 last:border-0 dark:border-gray-700/50"
+              >
+                <input 
+                  type="checkbox" 
+                  checked={selectedStudents.includes(student.id)}
+                  onChange={() => toggleStudent(student.id)}
+                  className="w-4 h-4 rounded border-gray-300 text-[#7C3AED] focus:ring-[#7C3AED]" 
+                />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{student.full_name || student.name}</span>
+              </label>
+            ))
+          )}
         </div>
 
         {/* Footer */}

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import axiosClient from '../api/axios';
+import CreateHomeworkModal from '../components/CreateHomeworkModal';
+import ExamsTab from '../components/ExamsTab';
 
 export default function GroupDetails() {
   const { id } = useParams();
@@ -9,6 +12,41 @@ export default function GroupDetails() {
   // Active tab state
   const [activeTab, setActiveTab] = useState('info');
   const [alertMessage, setAlertMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [groupInfo, setGroupInfo] = useState(null);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isHomeworkModalOpen, setIsHomeworkModalOpen] = useState(false);
+  const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [videosList, setVideosList] = useState([]);
+  const [videosLoading, setVideosLoading] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [selectedLesson, setSelectedLesson] = useState('');
+  const [customVideoName, setCustomVideoName] = useState('');
+
+  // Schedules states
+  const [schedules, setSchedules] = useState([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+
+  // Real Lessons states
+  const [groupLessons, setGroupLessons] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+
+  // Imtihonlar state
+  const [exams, setExams] = useState([]);
+  const [examsLoading, setExamsLoading] = useState(false);
+  const [isExamModalOpen, setIsExamModalOpen] = useState(false);
+  const [examSaving, setExamSaving] = useState(false);
+  const [examForm, setExamForm] = useState({
+    name: '',
+    start_time: '',
+    duration: 60,
+  });
+
+  // Homeworks state
+  const [homeworks, setHomeworks] = useState([]);
+  const [homeworksLoading, setHomeworksLoading] = useState(false);
 
   const triggerAlert = (msg) => {
     setAlertMessage(msg);
@@ -17,42 +55,458 @@ export default function GroupDetails() {
     }, 3000);
   };
 
-  // Hardcoded or dynamically fallback group data
-  const defaultGroups = {
-    '1': {
-      name: 'Bootcamp Full Stack N26',
-      status: 'FAOL',
-      course: 'Backend',
-      duration: '6.0',
-      teacher: 'Mohirbek',
-      studentsCount: 4,
-      room: 'Autodesk',
-      avgAge: 15,
-      capacity: 20,
-      monthlyLessons: 20,
-      totalLessons: 20
-    },
-    '2': {
-      name: 'Bootcamp Full Stack n105',
-      status: 'FAOL',
-      course: 'Backend',
-      duration: '6.0',
-      teacher: 'Mohirbek',
-      studentsCount: 4,
-      room: 'Autodesk',
-      avgAge: 16,
-      capacity: 20,
-      monthlyLessons: 20,
-      totalLessons: 20
-    }
-  };
-
-  const currentGroup = defaultGroups[id] || defaultGroups['1'];
-
-  // Tab content visibility
+  // Tab content visibility (useEffect dan oldin e'lon qilinishi shart)
   const [isMentorsVisible, setIsMentorsVisible] = useState(true);
   const [isParamsVisible, setIsParamsVisible] = useState(true);
   const [subTab, setSubTab] = useState('homework');
+
+  // Sana formatlash — { date, time } qaytaradi (2 qatorda ko'rsatish uchun)
+  const formatDT = (isoStr) => {
+    if (!isoStr) return { date: '—', time: '' };
+    try {
+      const d = new Date(isoStr);
+      const day = d.getDate();
+      const monthNames = ['Yan','Fev','Mart','Apr','May','Iyun','Iyul','Avg','Sen','Okt','Noy','Dek'];
+      const month = monthNames[d.getMonth()];
+      const year = d.getFullYear();
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return { date: `${day} ${month}, ${year}`, time: `${hh}:${mm}` };
+    } catch {
+      return { date: isoStr, time: '' };
+    }
+  };
+
+  // Mock imtihonlar (API ishlamasa ko'rsatiladi)
+  const mockExams = [
+    { id: 7, name: 'Examination', student_count: 12, failed_count: 0, status: 'active',   start_time: '2026-05-22T09:30:00', given_at: '2026-05-22T09:28:00', announced_at: null },
+    { id: 6, name: 'Examination', student_count: 12, failed_count: 0, status: 'finished', start_time: '2026-04-24T09:30:00', given_at: '2026-04-24T09:25:00', announced_at: '2026-04-27T10:30:00' },
+    { id: 5, name: 'Examination', student_count: 14, failed_count: 0, status: 'finished', start_time: '2026-03-26T09:30:00', given_at: '2026-03-26T09:23:00', announced_at: '2026-03-30T14:34:00' },
+    { id: 4, name: 'Examination', student_count: 16, failed_count: 0, status: 'finished', start_time: '2026-02-26T09:30:00', given_at: '2026-02-26T09:28:00', announced_at: '2026-03-02T13:32:00' },
+  ];
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      setCustomVideoName(file.name);
+    }
+  };
+
+  const getMockSchedules = () => {
+    const mock = [];
+    
+    // 1-oy: May 2026
+    const m1Days = [2, 5, 7, 9, 12, 14, 16, 19, 21, 23, 26, 28, 30];
+    m1Days.forEach(day => {
+      mock.push({
+        id: `mock-1-${day}`,
+        date: `2026-05-${String(day).padStart(2, '0')}T00:00:00.000Z`,
+        topic: 'Html asoslari'
+      });
+    });
+
+    // 2-oy: Iyun 2026
+    const m2Days = [2, 4, 6, 9, 11, 13, 16, 18, 20, 23, 25, 27];
+    m2Days.forEach(day => {
+      mock.push({
+        id: `mock-2-${day}`,
+        date: `2026-06-${String(day).padStart(2, '0')}T00:00:00.000Z`,
+        topic: 'JavaScript asoslari'
+      });
+    });
+
+    // 3-oy: Iyul 2026
+    const m3Days = [2, 4, 6, 9, 11, 13, 16, 18, 20, 23, 25, 27, 30];
+    m3Days.forEach(day => {
+      mock.push({
+        id: `mock-3-${day}`,
+        date: `2026-07-${String(day).padStart(2, '0')}T00:00:00.000Z`,
+        topic: 'React kirish'
+      });
+    });
+
+    return mock;
+  };
+
+  const getUzbekMonthName = (monthNum) => {
+    const months = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 
+      'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
+    ];
+    return months[monthNum] || '';
+  };
+
+  const getGroupedMonths = () => {
+    const listToGroup = Array.isArray(schedules) && schedules.length > 0 
+      ? schedules 
+      : getMockSchedules();
+
+    const groups = {};
+    listToGroup.forEach(item => {
+      const dateVal = item.date || item.lesson_date || item.lessonDate || item.start_time || item.day || item.created_at;
+      if (!dateVal) return;
+      
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return;
+      
+      const year = d.getFullYear();
+      const month = d.getMonth();
+      const key = `${year}-${month}`;
+      
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          year,
+          month,
+          monthName: getUzbekMonthName(month),
+          lessons: []
+        };
+      }
+      groups[key].lessons.push({
+        ...item,
+        date: dateVal
+      });
+    });
+    
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      const [yearA, monthA] = a.split('-').map(Number);
+      const [yearB, monthB] = b.split('-').map(Number);
+      return yearA !== yearB ? yearA - yearB : monthA - monthB;
+    });
+    
+    return sortedKeys.map((key, index) => ({
+      ...groups[key],
+      index: index + 1,
+      lessons: groups[key].lessons.sort((a, b) => new Date(a.date) - new Date(b.date))
+    }));
+  };
+
+  const isLessonActive = (lessonDateStr) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lessonDate = new Date(lessonDateStr);
+    lessonDate.setHours(0, 0, 0, 0);
+    return lessonDate <= today;
+  };
+
+  const fetchSchedules = async () => {
+    try {
+      setSchedulesLoading(true);
+      const res = await axiosClient.get(`/groups/${id}/schedules`);
+      let list = [];
+      if (res?.data?.success && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      } else if (Array.isArray(res?.data)) {
+        list = res.data;
+      } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      }
+      setSchedules(list);
+      setActiveMonthIndex(0);
+    } catch (err) {
+      console.error('Fetch schedules error:', err?.response?.data || err.message);
+      setSchedules([]);
+    } finally {
+      setSchedulesLoading(false);
+    }
+  };
+
+  const handlePrevMonth = () => {
+    if (activeMonthIndex > 0) {
+      setActiveMonthIndex(activeMonthIndex - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    const grouped = getGroupedMonths();
+    if (activeMonthIndex < grouped.length - 1) {
+      setActiveMonthIndex(activeMonthIndex + 1);
+    }
+  };
+
+  const transformVideo = (item) => {
+    const formatted = formatDT(item.created_at || item.createdAt);
+    
+    let sizeStr = '0.00 MB';
+    if (typeof item.size_mb === 'number') {
+      sizeStr = `${item.size_mb.toFixed(2)} MB`;
+    } else if (item.size) {
+      if (typeof item.size === 'number') {
+        sizeStr = `${(item.size / (1024 * 1024)).toFixed(2)} MB`;
+      } else {
+        sizeStr = String(item.size);
+      }
+    }
+    
+    let vUrl = null;
+    const fileUrlOrPath = item.video_url || item.url || item.path || '';
+    if (fileUrlOrPath) {
+      if (fileUrlOrPath.startsWith('http')) {
+        vUrl = fileUrlOrPath;
+      } else if (fileUrlOrPath.startsWith('/')) {
+        vUrl = `https://najot-edu.softwareengineer.uz${fileUrlOrPath}`;
+      } else {
+        // If it's a raw filename, construct the correct download path
+        vUrl = `https://najot-edu.softwareengineer.uz/api/v1/files/${fileUrlOrPath}`;
+      }
+    }
+
+    let topicName = 'Mavzu';
+    if (item.lesson && typeof item.lesson === 'object') {
+      topicName = item.lesson.topic || item.lesson.title || item.lesson.name || 'Mavzu';
+    } else if (item.topic) {
+      topicName = typeof item.topic === 'object' ? (item.topic.topic || item.topic.title || item.topic.name || 'Mavzu') : item.topic;
+    } else if (item.lesson) {
+      topicName = String(item.lesson);
+    }
+
+    return {
+      id: item.id || Math.random(),
+      videoName: item.originalname || item.title || item.name || item.filename || item.original_name || 'Bitiruv.mp4',
+      topic: topicName,
+      status: item.status || 'Tayyor',
+      lessonDate: formatted.date || '29 May, 2026',
+      size: sizeStr,
+      addedTime: formatted.date ? `${formatted.date} ${formatted.time}` : '29 May, 2026',
+      videoUrl: vUrl || `https://najot-edu.softwareengineer.uz/api/v1/files/${item.id}`,
+      src: vUrl || `https://najot-edu.softwareengineer.uz/api/v1/files/${item.id}`
+    };
+  };
+
+  const fetchVideos = async () => {
+    try {
+      setVideosLoading(true);
+      const res = await axiosClient.get(`/files/${id}`);
+      let list = [];
+      if (res?.data?.success && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      } else if (Array.isArray(res?.data)) {
+        list = res.data;
+      } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      }
+      setVideosList(list.map(transformVideo));
+    } catch (err) {
+      console.error('Fetch videos error:', err?.response?.data || err.message);
+      setVideosList([]);
+    } finally {
+      setVideosLoading(false);
+    }
+  };
+
+  const fetchLessons = async () => {
+    try {
+      setLessonsLoading(true);
+      const res = await axiosClient.get('/lessons');
+      let list = [];
+      if (res?.data?.success && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      } else if (res?.data?.sucess && Array.isArray(res?.data?.data)) {
+        // Handle backend typos
+        list = res.data.data;
+      } else if (Array.isArray(res?.data)) {
+        list = res.data;
+      } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      }
+      // Filter lessons belonging to the current group
+      const filtered = list.filter(l => Number(l.group_id) === Number(id));
+      setGroupLessons(filtered);
+    } catch (err) {
+      console.error('Fetch lessons error:', err?.response?.data || err.message);
+      setGroupLessons([]);
+    } finally {
+      setLessonsLoading(false);
+    }
+  };
+
+  const handleUploadVideos = async () => {
+    if (!selectedLesson) {
+      triggerAlert("Iltimos, darsni tanlang");
+      return;
+    }
+    if (!customVideoName) {
+      triggerAlert("Iltimos, video nomini kiriting");
+      return;
+    }
+    if (!uploadedFile || !(uploadedFile instanceof File)) {
+      triggerAlert("Iltimos, haqiqiy video faylini tanlab yuklang!");
+      return;
+    }
+
+    try {
+      setVideosLoading(true);
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+      formData.append("title", customVideoName);
+
+      // Call POST /files/group/${id}/upload?lessonId=${selectedLesson}
+      await axiosClient.post(`/files/group/${id}/upload?lessonId=${selectedLesson}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      triggerAlert("Video muvaffaqiyatli yuklandi!");
+      setIsVideoModalOpen(false);
+      setUploadedFile(null);
+      setSelectedLesson('');
+      setCustomVideoName('');
+      fetchVideos();
+    } catch (err) {
+      console.error('Upload video error:', err?.response?.data || err.message);
+      triggerAlert(err?.response?.data?.message || "Videoni yuklashda xatolik yuz berdi");
+    } finally {
+      setVideosLoading(false);
+    }
+  };
+
+  // Imtihonlarni API dan olish
+  const fetchExams = async () => {
+    try {
+      setExamsLoading(true);
+      const res = await axiosClient.get(`/exams/group/${id}`);
+      if (res?.data?.success && Array.isArray(res?.data?.data)) {
+        setExams(res.data.data);
+      } else if (Array.isArray(res?.data)) {
+        setExams(res.data);
+      } else {
+        setExams([]);
+      }
+    } catch (err) {
+      console.error('Fetch exams error:', err?.response?.data || err.message);
+      setExams([]);
+    } finally {
+      setExamsLoading(false);
+    }
+  };
+
+  // Homeworklarni API dan olish
+  const fetchHomeworks = async () => {
+    try {
+      setHomeworksLoading(true);
+      let list = [];
+      try {
+        const res = await axiosClient.get(`/homework/group/${id}`);
+        if (res?.data?.success && Array.isArray(res?.data?.data)) {
+          list = res.data.data;
+        } else if (Array.isArray(res?.data)) {
+          list = res.data;
+        } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+          list = res.data.data;
+        }
+      } catch (grpErr) {
+        console.warn('Fetch group homeworks failed, falling back to /homework/all:', grpErr.message);
+        const res = await axiosClient.get('/homework/all');
+        let allList = [];
+        if (res?.data?.success && Array.isArray(res?.data?.data)) {
+          allList = res.data.data;
+        } else if (Array.isArray(res?.data)) {
+          allList = res.data;
+        } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+          allList = res.data.data;
+        }
+        list = allList.filter(hw => Number(hw.group_id) === Number(id));
+      }
+      setHomeworks(list);
+    } catch (err) {
+      console.error('Fetch homeworks error:', err?.response?.data || err.message);
+      setHomeworks([]);
+    } finally {
+      setHomeworksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const fetchGroupDetails = async () => {
+      try {
+        setLoading(true);
+        const res = await axiosClient.get(`/groups/one/${id}`);
+        if (res?.data?.success && res?.data?.data) {
+          const item = res.data.data;
+          
+          const teacherStr = Array.isArray(item.teachers) && item.teachers.length > 0
+            ? item.teachers.map(t => t.full_name).join(', ')
+            : '—';
+
+          setGroupInfo({
+            name: item.name || '—',
+            status: 'FAOL',
+            course: item.course?.name || '—',
+            duration: item.course?.duration_month ? String(item.course.duration_month) : '6.0',
+            teacher: teacherStr,
+            studentsCount: item.student_count || item.students?.length || 0,
+            room: item.room || '—',
+            avgAge: 16,
+            capacity: 20,
+            monthlyLessons: 20,
+            totalLessons: 20,
+            students: item.students || [],
+            teachers: item.teachers || []
+          });
+        }
+      } catch (err) {
+        console.error('Fetch group details error:', err?.response?.data || err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroupDetails();
+    fetchSchedules();
+  }, [id]);
+
+  // Imtihonlar tabiga o'tilganda fetch
+  useEffect(() => {
+    if (activeTab === 'syllabus' && subTab === 'exams') {
+      fetchExams();
+    }
+  }, [activeTab, subTab, id]);
+
+  // Uyga vazifalar tabiga o'tilganda fetch
+  useEffect(() => {
+    if (activeTab === 'syllabus' && subTab === 'homework') {
+      fetchHomeworks();
+    }
+  }, [activeTab, subTab, id]);
+
+  // Videolar tabiga o'tilganda fetch
+  useEffect(() => {
+    if (activeTab === 'syllabus' && subTab === 'videos') {
+      fetchVideos();
+      fetchLessons();
+    }
+  }, [activeTab, subTab, id]);
+
+  const defaultGroup = {
+    name: 'Bootcamp Full Stack N26',
+    status: 'FAOL',
+    course: 'Backend',
+    duration: '6.0',
+    teacher: 'Mohirbek',
+    studentsCount: 4,
+    room: 'Autodesk',
+    avgAge: 15,
+    capacity: 20,
+    monthlyLessons: 20,
+    totalLessons: 20,
+    teachers: [
+      { id: 1, full_name: 'Mohirbek' }
+    ],
+    students: [
+      { id: 1, full_name: 'Ali Valiyev' },
+      { id: 2, full_name: 'Salim Qodirov' },
+      { id: 3, full_name: 'Bobur' },
+      { id: 4, full_name: 'Qodir Salimov' }
+    ]
+  };
+
+  const currentGroup = groupInfo || defaultGroup;
+
+  const groupedMonths = getGroupedMonths();
+  const currentMonthData = groupedMonths[activeMonthIndex] || null;
+  const currentLessons = currentMonthData ? currentMonthData.lessons : [];
 
   return (
     <div className="space-y-6 relative">
@@ -151,20 +605,38 @@ export default function GroupDetails() {
                 </button>
               </div>
               {isMentorsVisible && (
-                <div className="p-6 animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="flex items-center gap-4">
-                    <img 
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentGroup.teacher}`} 
-                      alt={currentGroup.teacher} 
-                      className="w-14 h-14 rounded-full bg-blue-50 dark:bg-gray-700 border border-blue-100 dark:border-gray-600 object-cover" 
-                    />
-                    <div>
-                      <span className="inline-block px-2.5 py-0.5 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1">
-                        Teacher
-                      </span>
-                      <h4 className="text-base font-bold text-gray-800 dark:text-white">{currentGroup.teacher}</h4>
+                <div className="p-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-4">
+                  {Array.isArray(currentGroup.teachers) && currentGroup.teachers.length > 0 ? (
+                    currentGroup.teachers.map((teacher, idx) => (
+                      <div key={teacher.id || idx} className="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0 dark:border-gray-700/50">
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${teacher.full_name || 'Teacher'}`} 
+                          alt={teacher.full_name || 'Teacher'} 
+                          className="w-14 h-14 rounded-full bg-blue-50 dark:bg-gray-700 border border-blue-100 dark:border-gray-600 object-cover shadow-sm" 
+                        />
+                        <div>
+                          <span className="inline-block px-2.5 py-0.5 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1">
+                            Teacher
+                          </span>
+                          <h4 className="text-base font-bold text-gray-800 dark:text-white">{teacher.full_name}</h4>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <img 
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentGroup.teacher}`} 
+                        alt={currentGroup.teacher} 
+                        className="w-14 h-14 rounded-full bg-blue-50 dark:bg-gray-700 border border-blue-100 dark:border-gray-600 object-cover" 
+                      />
+                      <div>
+                        <span className="inline-block px-2.5 py-0.5 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-wider mb-1">
+                          Teacher
+                        </span>
+                        <h4 className="text-base font-bold text-gray-800 dark:text-white">{currentGroup.teacher}</h4>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -282,13 +754,23 @@ export default function GroupDetails() {
             {/* O'quv oyi & Kunlar Carousel */}
             <div className="col-span-1 md:col-span-2 mt-8 border-t border-gray-100 dark:border-gray-800 pt-8 space-y-6 z-10 relative">
               <div className="flex items-center gap-3">
-                <button className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <button 
+                  onClick={handlePrevMonth}
+                  disabled={activeMonthIndex === 0}
+                  className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${activeMonthIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
                   <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <span className="text-sm font-bold text-gray-800 dark:text-white">1-o'quv oyi</span>
-                <button className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
+                <span className="text-sm font-bold text-gray-800 dark:text-white">
+                  {currentMonthData ? `${currentMonthData.index}-o'quv oyi (${currentMonthData.monthName})` : "O'quv oyi"}
+                </span>
+                <button 
+                  onClick={handleNextMonth}
+                  disabled={activeMonthIndex === groupedMonths.length - 1}
+                  className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${activeMonthIndex === groupedMonths.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
                   <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                   </svg>
@@ -297,40 +779,48 @@ export default function GroupDetails() {
 
               {/* Horizontal Date carousel */}
               <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-2">
-                {[
-                  { month: 'May', day: '2', active: true },
-                  { month: 'May', day: '5', active: true },
-                  { month: 'May', day: '7', active: true },
-                  { month: 'May', day: '9', active: true },
-                  { month: 'May', day: '12', active: true },
-                  { month: 'May', day: '14', active: false },
-                  { month: 'May', day: '16', active: false },
-                  { month: 'May', day: '19', active: false },
-                  { month: 'May', day: '21', active: false },
-                  { month: 'May', day: '23', active: false },
-                  { month: 'May', day: '26', active: false },
-                  { month: 'May', day: '28', active: false },
-                  { month: 'May', day: '30', active: false },
-                ].map((item, index) => (
-                  <div 
-                    key={index} 
-                    onClick={() => {
-                      if (item.active) {
-                        navigate(`/dashboard/groups/${id || '1'}/lesson/${item.day}`);
-                      } else {
-                        triggerAlert("Dars vaqti hali kelmagan");
-                      }
-                    }}
-                    className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
-                      item.active 
-                        ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
-                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
-                    }`}
-                  >
-                    <span className="text-[10px] font-bold uppercase tracking-wider">{item.month}</span>
-                    <span className="text-lg font-black mt-0.5">{item.day}</span>
+                {schedulesLoading ? (
+                  <div className="py-4 text-gray-400 font-semibold text-xs flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Schedules yuklanmoqda...</span>
                   </div>
-                ))}
+                ) : currentLessons.length === 0 ? (
+                  <div className="py-4 text-gray-400 dark:text-gray-500 font-semibold text-xs">
+                    Ushbu oyda darslar rejalashtirilmagan.
+                  </div>
+                ) : (
+                  currentLessons.map((lesson, index) => {
+                    const lDate = new Date(lesson.date);
+                    const dayNum = lDate.getDate();
+                    const active = isLessonActive(lesson.date);
+                    const monthShort = currentMonthData.monthName.substring(0, 3);
+                    const dateUrlParam = String(dayNum); // exact day number string for LessonAttendance.jsx
+
+                    return (
+                      <div 
+                        key={lesson.id || index} 
+                        onClick={() => {
+                          if (active) {
+                            navigate(`/dashboard/groups/${id || '1'}/lesson/${dateUrlParam}`);
+                          } else {
+                            triggerAlert("Dars vaqti hali kelmagan");
+                          }
+                        }}
+                        className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
+                          active 
+                            ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
+                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
+                        }`}
+                      >
+                        <span className="text-[10px] font-bold uppercase tracking-wider">{monthShort}</span>
+                        <span className="text-lg font-black mt-0.5">{dayNum}</span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
 
               {/* Barchasini ko'rish Button */}
@@ -352,41 +842,72 @@ export default function GroupDetails() {
         )}
 
         {activeTab === 'syllabus' && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm overflow-hidden animate-in fade-in duration-300">
-            {/* Header row */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-6 flex-wrap">
-                <h3 className="text-lg font-black text-gray-800 dark:text-white">Guruh darsliklari</h3>
-                
-                {/* Pill sub-tabs */}
-                <div className="flex items-center bg-gray-50 dark:bg-gray-700/50 p-1.5 rounded-xl border border-gray-100 dark:border-gray-700">
-                  {[
-                    { id: 'homework', label: 'Uyga vazifa' },
-                    { id: 'videos', label: 'Videolar' },
-                    { id: 'exams', label: 'Imtihonlar' },
-                    { id: 'journal', label: 'Jurnal' },
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setSubTab(tab.id)}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        subTab === tab.id
-                          ? 'bg-white dark:bg-gray-800 text-gray-800 dark:text-white shadow-sm'
-                          : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in duration-300">
+
+            {/* ===== HEADER: sarlavha + tablar + tugma ===== */}
+            <div className="px-6 pt-5 pb-0">
+              {/* Sarlavha + "Yangi imtihon" tugmasi */}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[15px] font-bold text-gray-800 dark:text-white">Guruh darsliklari</h3>
+                {subTab === 'exams' && (
+                  <button
+                    onClick={() => navigate(`/dashboard/groups/${id}/exam/create`)}
+                    className="px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-semibold text-sm transition-colors cursor-pointer"
+                  >
+                    Yangi imtihon
+                  </button>
+                )}
+                {subTab === 'homework' && (
+                  <button
+                    onClick={() => navigate(`/dashboard/groups/${id}/homework/create`)}
+                    className="px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-semibold text-sm transition-colors cursor-pointer"
+                  >
+                    Qo'shish
+                  </button>
+                )}
+                {subTab === 'videos' && (
+                  <button
+                    onClick={() => {
+                      setUploadedFile(null);
+                      setCustomVideoName('');
+                      setSelectedLesson('');
+                      setIsVideoModalOpen(true);
+                    }}
+                    className="px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-semibold text-sm transition-colors cursor-pointer"
+                  >
+                    Qo'shish
+                  </button>
+                )}
               </div>
 
-              {/* Add Homework button */}
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl font-bold text-sm shadow-md shadow-emerald-100/50 dark:shadow-none transition-colors cursor-pointer">
-                Uyga vazifa qo'shish
-              </button>
+              {/* Border-bottom style sub-tabs — rasmga mos */}
+              <div className="flex items-center border-b border-gray-100 dark:border-gray-700">
+                {[
+                  { id: 'homework', label: 'Uyga vazifa' },
+                  { id: 'videos',   label: 'Videolar' },
+                  { id: 'exams',    label: 'Imtihonlar' },
+                  { id: 'journal',  label: 'Jurnal' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setSubTab(tab.id)}
+                    className={`px-4 py-2.5 text-sm transition-all cursor-pointer relative whitespace-nowrap ${
+                      subTab === tab.id
+                        ? 'font-bold text-gray-800 dark:text-white'
+                        : 'font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                    }`}
+                  >
+                    {tab.label}
+                    {subTab === tab.id && (
+                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800 dark:bg-white rounded-t-full" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
 
+            {/* ===== CONTENT ===== */}
+            <div className="p-6 pt-4">
             {/* Table or Placeholder based on subTab */}
             {subTab === 'homework' ? (
               <div className="overflow-x-auto no-scrollbar border border-gray-100 dark:border-gray-700/50 rounded-2xl">
@@ -411,37 +932,158 @@ export default function GroupDetails() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
-                    {[
-                      { id: 1, topic: 'Html asoslari', students: 4, pending: 0, completed: 0, givenTime: '13 May, 2026 10:00', endTime: '14 May, 2026 06:00', lessonDate: '12 May, 2026' },
-                      { id: 2, topic: 'Kirish', students: 4, pending: 0, completed: 0, givenTime: '13 May, 2026 11:52', endTime: '14 May, 2026 07:52', lessonDate: '9 May, 2026' },
-                      { id: 3, topic: 'Nodejs', students: 4, pending: 2, completed: 0, givenTime: '14 May, 2026 09:47', endTime: '15 May, 2026 05:47', lessonDate: '14 May, 2026' }
-                    ].map((hw) => (
-                      <tr key={hw.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors">
-                        <td className="py-4 px-4 text-center font-bold text-gray-400 dark:text-gray-500 text-xs">{hw.id}</td>
-                        <td className="py-4 px-4 font-bold text-gray-800 dark:text-white text-sm">{hw.topic}</td>
-                        <td className="py-4 px-4 text-center font-bold text-gray-700 dark:text-gray-300 text-sm">{hw.students}</td>
-                        <td className={`py-4 px-4 text-center font-bold text-sm ${hw.pending > 0 ? 'text-amber-500 font-extrabold' : 'text-gray-400 dark:text-gray-600'}`}>{hw.pending}</td>
-                        <td className={`py-4 px-4 text-center font-bold text-sm ${hw.completed > 0 ? 'text-emerald-500 font-extrabold' : 'text-gray-400 dark:text-gray-600'}`}>{hw.completed}</td>
-                        <td className="py-4 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{hw.givenTime}</td>
-                        <td className="py-4 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{hw.endTime}</td>
-                        <td className="py-4 px-4 text-xs font-bold text-gray-700 dark:text-gray-300">{hw.lessonDate}</td>
-                        <td className="py-4 px-4 text-center">
-                          <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    {homeworksLoading ? (
+                      <tr>
+                        <td colSpan="9" className="text-center py-8 text-gray-400 font-semibold text-sm">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <svg className="w-8 h-8 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                          </button>
+                            <span>Yuklanmoqda...</span>
+                          </div>
                         </td>
                       </tr>
-                    ))}
+                    ) : homeworks.length === 0 ? (
+                      <tr>
+                        <td colSpan="9" className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm">
+                          Ushbu guruhda hali uyga vazifalar mavjud emas.
+                        </td>
+                      </tr>
+                    ) : (
+                      homeworks.map((hw) => {
+                        const gt = formatDT(hw.created_at);
+                        const givenText = `${gt.date} ${gt.time}`;
+
+                        const createdDate = new Date(hw.created_at || Date.now());
+                        createdDate.setDate(createdDate.getDate() + 1);
+                        const et = formatDT(createdDate.toISOString());
+                        const endText = `${et.date} ${et.time}`;
+
+                        return (
+                          <tr key={hw.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors">
+                            <td className="py-4 px-4 text-center font-bold text-gray-400 dark:text-gray-500 text-xs">{hw.id}</td>
+                            <td className="py-4 px-4 font-bold text-gray-800 dark:text-white text-sm">
+                              {hw.topic || (typeof hw.title === 'object' ? hw.title?.topic || hw.title?.title || hw.title?.name || '—' : hw.title || '—')}
+                            </td>
+                            <td className="py-4 px-4 text-center font-bold text-gray-700 dark:text-gray-300 text-sm">
+                              {hw.existStudentsIngroup ?? currentGroup.studentsCount}
+                            </td>
+                            <td className="py-4 px-4 text-center font-bold text-sm text-gray-800 dark:text-white">{hw.homeworkPending ?? 0}</td>
+                            <td className="py-4 px-4 text-center font-bold text-sm text-gray-800 dark:text-white">{hw.homeworkAccept ?? 0}</td>
+                            <td className="py-4 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{givenText}</td>
+                            <td className="py-4 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{endText}</td>
+                            <td className="py-4 px-4 text-xs font-bold text-gray-700 dark:text-gray-300">{gt.date}</td>
+                            <td className="py-4 px-4 text-center">
+                              <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
+              </div>
+            ) : subTab === 'videos' ? (
+              <div className="overflow-x-auto no-scrollbar border border-gray-100 dark:border-gray-700/50 rounded-2xl">
+                <table className="w-full text-left border-collapse min-w-[800px]">
+                  <thead>
+                    <tr className="border-b border-gray-100 dark:border-gray-700 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/50 dark:bg-gray-700/10">
+                      <th className="py-4 px-6 text-center w-16">#</th>
+                      <th className="py-4 px-6">Video nomi</th>
+                      <th className="py-4 px-6">Dars nomi</th>
+                      <th className="py-4 px-6">Status</th>
+                      <th className="py-4 px-6">Dars sanasi</th>
+                      <th className="py-4 px-6">Hajmi</th>
+                      <th className="py-4 px-6">Qo'shilgan vaqti</th>
+                      <th className="py-4 px-6 text-center w-16"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                    {videosLoading ? (
+                      <tr>
+                        <td colSpan="8" className="text-center py-8 text-gray-400 font-semibold text-sm">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <svg className="w-8 h-8 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            <span>Yuklanmoqda...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : videosList.length === 0 ? (
+                      <tr>
+                        <td colSpan="8" className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm">
+                          Ushbu guruhda hali videolar yuklanmagan.
+                        </td>
+                      </tr>
+                    ) : (
+                      videosList.map((video) => (
+                        <tr key={video.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors">
+                          <td className="py-4 px-6 text-center font-bold text-gray-400 dark:text-gray-500 text-xs">{video.id}</td>
+                          <td className="py-4 px-6 text-sm font-bold">
+                             <button 
+                              type="button"
+                               onClick={() => {
+                                 setSelectedVideo(video);
+                                 setIsVideoPlayerOpen(true);
+                               }}
+                              className="inline-flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0"
+                            >
+                               <svg className="w-4.5 h-4.5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                               </svg>
+                               {video.videoName}
+                             </button>
+                          </td>
+                          <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-300 font-semibold">{video.topic}</td>
+                          <td className="py-4 px-6">
+                            <span className="px-3 py-1 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                              {video.status}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-xs font-bold text-gray-700 dark:text-gray-300">{video.lessonDate}</td>
+                          <td className="py-4 px-6 text-xs font-semibold text-gray-500 dark:text-gray-400">{video.size}</td>
+                          <td className="py-4 px-6 text-xs font-semibold text-gray-500 dark:text-gray-400">{video.addedTime}</td>
+                          <td className="py-4 px-6 text-center">
+                            <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                               </svg>
+                             </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            ) : subTab === 'exams' ? (
+              <ExamsTab
+                exams={exams}
+                examsLoading={examsLoading}
+                mockExams={mockExams}
+                formatDT={formatDT}
+                navigate={navigate}
+                id={id}
+                setIsExamModalOpen={setIsExamModalOpen}
+              />
+            ) : subTab === 'journal' ? (
+              <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-semibold text-sm">
+                Jurnal bo'limi hozircha mavjud emas
               </div>
             ) : (
               <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-semibold text-sm">
                 Ushbu bo'lim hozircha bo'sh
               </div>
             )}
+            </div>
           </div>
         )}
 
@@ -459,41 +1101,455 @@ export default function GroupDetails() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {[
-                    { name: 'Ali Valiyev', attendance: [true, true, false, true, true, true] },
-                    { name: 'Salim Qodirov', attendance: [true, false, true, true, false, true] },
-                    { name: 'Bobur', attendance: [true, true, true, true, true, true] },
-                    { name: 'Qodir Salimov', attendance: [false, true, false, true, true, false] },
-                  ].map((student, sIdx) => (
-                    <tr key={sIdx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
-                      <td className="py-4 pr-4 font-semibold text-sm text-gray-800 dark:text-white">{student.name}</td>
-                      {student.attendance.map((present, aIdx) => (
-                        <td key={aIdx} className="py-4 px-3 text-center">
-                          <span className={`inline-flex p-1.5 rounded-full ${
-                            present 
-                              ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400' 
-                              : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
-                          }`}>
-                            {present ? (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            )}
-                          </span>
-                        </td>
-                      ))}
+                  {loading ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-gray-400 font-semibold text-sm">
+                        Talabalar yuklanmoqda...
+                      </td>
                     </tr>
-                  ))}
+                  ) : (currentGroup.students || []).length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="text-center py-8 text-gray-400 font-semibold text-sm">
+                        Talabalar mavjud emas.
+                      </td>
+                    </tr>
+                  ) : (currentGroup.students || []).map((student, sIdx) => {
+                    const mockAttendance = [
+                      sIdx % 3 !== 0,
+                      sIdx % 4 !== 0,
+                      sIdx % 2 === 0,
+                      true,
+                      sIdx % 5 !== 0,
+                      true
+                    ];
+                    return (
+                      <tr key={student.id || sIdx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
+                        <td className="py-4 pr-4 font-semibold text-sm text-gray-800 dark:text-white">{student.full_name || student.name}</td>
+                        {mockAttendance.map((present, aIdx) => (
+                          <td key={aIdx} className="py-4 px-3 text-center">
+                            <span className={`inline-flex p-1.5 rounded-full ${
+                              present 
+                                ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400' 
+                                : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                            }`}>
+                              {present ? (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              )}
+                            </span>
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
         )}
       </div>
+
+      {/* Homework Create Modal */}
+      <CreateHomeworkModal
+        isOpen={isHomeworkModalOpen}
+        onClose={() => setIsHomeworkModalOpen(false)}
+        onSave={(data) => {
+          console.log('Yangi uyga vazifa:', data);
+          setIsHomeworkModalOpen(false);
+        }}
+      />
+
+      {/* Video Upload Modal */}
+      {isVideoModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          {/* Backdrop / Background overlay */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
+            onClick={() => {
+              setIsVideoModalOpen(false);
+              setUploadedFile(null);
+              setSelectedLesson('');
+              setCustomVideoName('');
+            }}
+          />
+
+          {/* Modal Container */}
+          <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-zoom-in">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-[17px] font-black text-gray-850 dark:text-white">Qo'shish</h2>
+              <button 
+                onClick={() => {
+                  setIsVideoModalOpen(false);
+                  setUploadedFile(null);
+                  setSelectedLesson('');
+                  setCustomVideoName('');
+                }}
+                className="p-1.5 text-gray-400 hover:text-gray-650 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Dropzone Body */}
+            <div className="p-8 space-y-6">
+              {/* Hidden file input */}
+              <input 
+                type="file" 
+                id="video-file-input" 
+                className="hidden" 
+                accept="video/*" 
+                onChange={handleFileChange} 
+              />
+
+              <div 
+                onClick={() => document.getElementById('video-file-input').click()}
+                className="border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/5 rounded-2xl p-10 flex flex-col items-center justify-center text-center transition-all cursor-pointer group"
+              >
+                <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-105 transition-transform duration-350">
+                  {/* Briefcase/case with plus icon matching the screenshot */}
+                  <svg className="w-10 h-10 text-[#10B981]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <rect x="3" y="9" width="18" height="11" rx="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M16 9V5.5a2 2 0 00-2-2h-4a2 2 0 00-2 2V9" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d="M12 12.5v4M14 14.5H10" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                
+                <p className="text-[14px] font-black text-gray-800 dark:text-white mb-2 leading-relaxed max-w-lg">
+                  Videofaylni yuklash uchun ushbu hudud ustiga bosing yoki faylni shu yerga olib keling
+                </p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold max-w-md">
+                  Videofayl: .mp4, .webm, .mpeg, .avi, .mkv, .m4v, .ogm, .mov formatlaridan birida bo'lishi kerak
+                </p>
+              </div>
+
+              {/* Uploaded File Row form (Shows ONLY when file selected) */}
+              {uploadedFile && (
+                <div className="border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden bg-white dark:bg-gray-900 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                        <th className="p-4 font-bold text-[10px]">File name</th>
+                        <th className="p-4 w-[220px] font-bold text-[10px]"><span className="text-red-500 mr-1">*</span>Dars</th>
+                        <th className="p-4 w-[220px] font-bold text-[10px]"><span className="text-red-500 mr-1">*</span>Video nomi</th>
+                        <th className="p-4 text-center w-20 font-bold text-[10px]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="bg-white dark:bg-gray-900">
+                        <td className="p-4 font-bold text-gray-800 dark:text-white max-w-[120px] truncate" title={uploadedFile.name}>
+                          {uploadedFile.name}
+                        </td>
+                        <td className="p-4">
+                          <div className="relative">
+                            <select 
+                              value={selectedLesson} 
+                              onChange={(e) => setSelectedLesson(e.target.value)}
+                              className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 dark:text-white border border-gray-250 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-xs font-semibold appearance-none cursor-pointer text-gray-650"
+                            >
+                              <option value="">Darsni tanlang</option>
+                              {Array.isArray(groupLessons) && groupLessons.length > 0 ? (
+                                groupLessons.map((lesson, idx) => (
+                                  <option key={lesson.id || idx} value={lesson.id}>
+                                    {idx + 1}-dars: {lesson.topic || 'Dars'}
+                                  </option>
+                                ))
+                              ) : (
+                                <>
+                                  <option value="4">TypeScript (ID: 4)</option>
+                                  <option value="1">HTML (ID: 1)</option>
+                                  <option value="2">CRM (ID: 2)</option>
+                                </>
+                              )}
+                            </select>
+                            <div className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none text-gray-400">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <input 
+                            type="text" 
+                            value={customVideoName}
+                            onChange={(e) => setCustomVideoName(e.target.value)}
+                            placeholder="Video nomi"
+                            className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 dark:text-white border border-gray-250 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-xs font-semibold text-gray-700"
+                          />
+                        </td>
+                        <td className="p-4 text-center">
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setUploadedFile(null);
+                              setSelectedLesson('');
+                              setCustomVideoName('');
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-xl transition-all cursor-pointer"
+                            title="O'chirish"
+                          >
+                            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-6 border-t border-gray-150/10 dark:border-gray-700 flex justify-end gap-3 bg-white dark:bg-gray-800">
+              <button
+                onClick={() => {
+                  setIsVideoModalOpen(false);
+                  setUploadedFile(null);
+                  setSelectedLesson('');
+                  setCustomVideoName('');
+                }}
+                className="px-6 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 transition-colors"
+              >
+                Bekor qilish
+              </button>
+              {uploadedFile && (
+                <button
+                  onClick={handleUploadVideos}
+                  className="px-6 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-100/30 dark:shadow-none transition-colors cursor-pointer"
+                >
+                  Fayllarni yuklash
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+      {/* Yangi Imtihon Modal */}
+      {isExamModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => {
+              setIsExamModalOpen(false);
+              setExamForm({ name: '', start_time: '', duration: 60 });
+            }}
+          />
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#10B981]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                  </svg>
+                </div>
+                <h2 className="text-[17px] font-black text-gray-800 dark:text-white">Yangi imtihon</h2>
+              </div>
+              <button
+                onClick={() => {
+                  setIsExamModalOpen(false);
+                  setExamForm({ name: '', start_time: '', duration: 60 });
+                }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5">
+              {/* Mavzu nomi */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <span className="text-red-500 mr-1">*</span>Imtihon nomi
+                </label>
+                <input
+                  type="text"
+                  placeholder="Masalan: Examination"
+                  value={examForm.name}
+                  onChange={(e) => setExamForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                />
+              </div>
+
+              {/* Boshlanish vaqti */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <span className="text-red-500 mr-1">*</span>Boshlanish vaqti
+                </label>
+                <input
+                  type="datetime-local"
+                  value={examForm.start_time}
+                  onChange={(e) => setExamForm(prev => ({ ...prev, start_time: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                />
+              </div>
+
+              {/* Davomiyligi */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Davomiyligi (daqiqa)
+                </label>
+                <input
+                  type="number"
+                  min={10}
+                  max={300}
+                  placeholder="60"
+                  value={examForm.duration}
+                  onChange={(e) => setExamForm(prev => ({ ...prev, duration: Number(e.target.value) }))}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm font-semibold text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-5 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsExamModalOpen(false);
+                  setExamForm({ name: '', start_time: '', duration: 60 });
+                }}
+                className="px-5 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              >
+                Bekor qilish
+              </button>
+              <button
+                disabled={examSaving}
+                onClick={async () => {
+                  if (!examForm.name.trim()) {
+                    triggerAlert('Imtihon nomini kiriting');
+                    return;
+                  }
+                  if (!examForm.start_time) {
+                    triggerAlert('Boshlanish vaqtini kiriting');
+                    return;
+                  }
+                  try {
+                    setExamSaving(true);
+                    await axiosClient.post('/exams', {
+                      name: examForm.name.trim(),
+                      group_id: id,
+                      start_time: new Date(examForm.start_time).toISOString(),
+                      duration: examForm.duration,
+                    });
+                    triggerAlert('Imtihon muvaffaqiyatli qo\'shildi!');
+                    setIsExamModalOpen(false);
+                    setExamForm({ name: '', start_time: '', duration: 60 });
+                    fetchExams();
+                  } catch (err) {
+                    const msg = err?.response?.data?.message || 'Xatolik yuz berdi';
+                    triggerAlert(msg);
+                  } finally {
+                    setExamSaving(false);
+                  }
+                }}
+                className="flex items-center gap-2 px-6 py-2.5 bg-[#10B981] hover:bg-[#059669] disabled:opacity-60 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-100/40 dark:shadow-none transition-colors cursor-pointer"
+              >
+                {examSaving ? (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+                Saqlash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Player Modal */}
+      {isVideoPlayerOpen && selectedVideo && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => {
+              setIsVideoPlayerOpen(false);
+              setSelectedVideo(null);
+            }}
+          />
+
+          {/* Player Container */}
+          <div className="relative w-full max-w-5xl bg-gray-900 rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/20 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-sm">{selectedVideo.videoName}</h3>
+                  <p className="text-white/50 text-xs font-medium">{selectedVideo.topic} &bull; {selectedVideo.lessonDate}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setIsVideoPlayerOpen(false);
+                  setSelectedVideo(null);
+                }}
+                className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Video Player Area */}
+            <div className="relative bg-black w-full aspect-video flex items-center justify-center">
+              <video
+                src={selectedVideo.videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
+                controls
+                autoPlay
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            {/* Footer Info */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+              <div className="flex items-center gap-4 text-white/50 text-xs font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {selectedVideo.lessonDate}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
+                  </svg>
+                  {selectedVideo.size}
+                </span>
+              </div>
+              <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                {selectedVideo.status}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

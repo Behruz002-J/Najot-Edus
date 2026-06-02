@@ -1,11 +1,37 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import AddTeacherModal from '../components/AddTeacherModal';
+import axiosClient from '../api/axios';
 
 export default function Teacher() {
-  const { isTeacherModalOpen, setIsTeacherModalOpen, teachers } = useOutletContext();
+  const { isTeacherModalOpen, setIsTeacherModalOpen, teachers, setTeachers } = useOutletContext();
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 10;
+  const [deleting, setDeleting] = useState(false);
+  const [teacherToDelete, setTeacherToDelete] = useState(null);
+
+  const handleDeleteTeacher = (teacher) => {
+    setTeacherToDelete(teacher);
+  };
+
+  const confirmDeleteTeacher = async () => {
+    if (!teacherToDelete) return;
+    setDeleting(true);
+    try {
+      await axiosClient.delete(`/teachers/${teacherToDelete.id}`);
+      setTeachers((prev) => prev.filter((t) => t.id !== teacherToDelete.id));
+      setTeacherToDelete(null);
+    } catch (err) {
+      const msg = err?.response?.data?.message || err.message || "Xatolik yuz berdi";
+      alert(`O'qituvchini o'chirishda xatolik:\n${msg}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const cancelDeleteTeacher = () => {
+    setTeacherToDelete(null);
+  };
 
   const handlePrevious = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
@@ -101,7 +127,11 @@ export default function Teacher() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       </button>
-                      <button className="hover:text-red-500 transition-colors">
+                      <button 
+                        onClick={() => handleDeleteTeacher(teacher)}
+                        className="hover:text-red-500 transition-colors"
+                        title="O'chirish"
+                      >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -151,8 +181,49 @@ export default function Teacher() {
       <AddTeacherModal 
         isOpen={isTeacherModalOpen} 
         onClose={() => setIsTeacherModalOpen(false)} 
-        setTeachers={useOutletContext().setTeachers}
+        setTeachers={setTeachers}
       />
+
+      {/* Delete Confirmation Modal */}
+      {teacherToDelete && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={cancelDeleteTeacher}
+          />
+          <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              O'qituvchini o'chirish
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
+              Rostdan ham o'chirishni hohlaysizmi?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelDeleteTeacher}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTeacher}
+                disabled={deleting}
+                className="px-5 py-2 rounded-lg text-sm font-semibold text-white bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                {deleting && (
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                )}
+                {deleting ? "O'chirilmoqda..." : "Ha"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

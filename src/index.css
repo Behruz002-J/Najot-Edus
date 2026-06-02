@@ -1,2 +1,79 @@
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
+
+/* Smooth theme transition for color, background-color, border-color, box-shadow, and opacity */
+*,
+*::before,
+*::after {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, opacity;
+  transition-duration: 300ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom premium scrollbar for both dark and light modes */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.4);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.6);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Improve text selection look in dark mode */
+::selection {
+  background-color: rgba(124, 58, 237, 0.2);
+  color: inherit;
+}
+
+.dark ::selection {
+  background-color: rgba(124, 58, 237, 0.4);
+  color: #fff;
+}
+
+/* Smooth input focus styles */
+input, select, textarea {
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Premium shadows for dark mode cards */
+.dark .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dark .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 10px 10px -5px rgba(0, 0, 0, 0.5) !important;
+}
