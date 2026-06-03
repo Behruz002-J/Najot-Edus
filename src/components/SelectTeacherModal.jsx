@@ -23,8 +23,6 @@ export default function SelectTeacherModal({ isOpen, onClose, selectedIds = [], 
           setTeachers(data);
         } else if (Array.isArray(data?.data)) {
           setTeachers(data.data);
-        } else if (data?.success && Array.isArray(data?.data)) {
-          setTeachers(data.data);
         }
       } catch (err) {
         console.error('Fetch teachers error:', err);

@@ -179,8 +179,6 @@ export default function Courses() {
         setCourses(data);
       } else if (Array.isArray(data?.data)) {
         setCourses(data.data);
-      } else if (data?.success && Array.isArray(data?.data)) {
-        setCourses(data.data);
       } else {
         setCourses([]);
       }
@@ -363,7 +361,7 @@ export default function Courses() {
           {courses.map((course, idx) => (
             <div
               key={course.id}
-              className="bg-[#EEF4FF] dark:bg-gray-700 rounded-[32px] p-8 flex flex-col gap-6 relative group border border-blue-50/50 dark:border-gray-600 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+              className="bg-[#EEF4FF] dark:bg-gray-700 rounded-[20px] p-5 flex flex-col gap-4 relative group border border-blue-50/50 dark:border-gray-600 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
             >
               {/* Header: Title with status and Actions */}
               <div className="flex justify-between items-start gap-4">
@@ -428,10 +426,10 @@ export default function Courses() {
               </div>
 
               {/* Badges */}
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl text-[13px] font-bold text-gray-900 dark:text-white shadow-sm border border-gray-50/50 dark:border-gray-600 flex items-center gap-1.5">
+              <div className="flex items-center justify-between gap-1.5 mt-2 w-full">
+                <div className="bg-white dark:bg-gray-800 px-2 py-1 rounded-lg text-[11px] font-bold text-gray-900 dark:text-white shadow-sm border border-gray-50/50 dark:border-gray-600 flex items-center gap-1 shrink-0">
                   <svg
-                    className="w-3.5 h-3.5 text-[#7C3AED]"
+                    className="w-3 h-3 text-[#7C3AED]"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -445,9 +443,9 @@ export default function Courses() {
                   </svg>
                   {course.duration_hours} soat
                 </div>
-                <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl text-[13px] font-bold text-gray-900 dark:text-white shadow-sm border border-gray-50/50 dark:border-gray-600 flex items-center gap-1.5">
+                <div className="bg-white dark:bg-gray-800 px-2 py-1 rounded-lg text-[11px] font-bold text-gray-900 dark:text-white shadow-sm border border-gray-50/50 dark:border-gray-600 flex items-center gap-1 shrink-0">
                   <svg
-                    className="w-3.5 h-3.5 text-blue-500"
+                    className="w-3 h-3 text-blue-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -461,9 +459,9 @@ export default function Courses() {
                   </svg>
                   {course.duration_month} oy
                 </div>
-                <div className="bg-white dark:bg-gray-800 px-4 py-2 rounded-xl text-[13px] font-bold text-green-700 dark:text-green-400 shadow-sm border border-gray-50/50 dark:border-gray-600 flex items-center gap-1.5">
+                <div className="bg-white dark:bg-gray-800 px-2 py-1 rounded-lg text-[11px] font-bold text-green-700 dark:text-green-400 shadow-sm border border-gray-50/50 dark:border-gray-600 flex items-center gap-1 shrink-0">
                   <svg
-                    className="w-3.5 h-3.5"
+                    className="w-3 h-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

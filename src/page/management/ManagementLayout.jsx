@@ -5,6 +5,7 @@ const tabs = [
   { name: 'Kurslar',        path: '/dashboard/management/courses' },
   { name: 'Xonalar',        path: '/dashboard/management/rooms' },
   { name: 'Xodimlar',       path: '/dashboard/management/staff' },
+  { name: 'Arxiv',          path: '/dashboard/management/archive' },
 ];
 
 export default function ManagementLayout() {

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 const translations = {
@@ -12,6 +13,7 @@ const translations = {
     "nav.courses": "Kurslar",
     "nav.rooms": "Xonalar",
     "nav.staff": "Hodimlar",
+    "nav.archive": "Arxiv",
     "nav.coin": "Coin",
     "nav.sendMessage": "Xabar Yuborish",
 
@@ -60,6 +62,7 @@ const translations = {
     "nav.courses": "Курсы",
     "nav.rooms": "Комнаты",
     "nav.staff": "Сотрудники",
+    "nav.archive": "Архив",
     "nav.coin": "Коин",
     "nav.sendMessage": "Отправить сообщение",
 
@@ -108,6 +111,7 @@ const translations = {
     "nav.courses": "Courses",
     "nav.rooms": "Rooms",
     "nav.staff": "Staff",
+    "nav.archive": "Archive",
     "nav.coin": "Coin",
     "nav.sendMessage": "Send Message",
 

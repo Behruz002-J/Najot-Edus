@@ -1,4 +1,4 @@
-import Main from "../components/Central/Main"
+import Main from "../../components/Central/Main"
 
 function Central() {
   return (

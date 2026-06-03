@@ -50,8 +50,6 @@ export default function Staff() {
         adminsData = data;
       } else if (Array.isArray(data?.data)) {
         adminsData = data.data;
-      } else if (data?.success && Array.isArray(data?.data)) {
-        adminsData = data.data;
       }
 
       setAdmins(

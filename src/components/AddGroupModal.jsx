@@ -52,22 +52,18 @@ export default function AddGroupModal({ isOpen, onClose, onAddSuccess }) {
         let coursesData = [];
         if (Array.isArray(coursesRes?.data)) coursesData = coursesRes.data;
         else if (Array.isArray(coursesRes?.data?.data)) coursesData = coursesRes.data.data;
-        else if (coursesRes?.data?.success && Array.isArray(coursesRes?.data?.data)) coursesData = coursesRes.data.data;
         
         let roomsData = [];
         if (Array.isArray(roomsRes?.data)) roomsData = roomsRes.data;
         else if (Array.isArray(roomsRes?.data?.data)) roomsData = roomsRes.data.data;
-        else if (roomsRes?.data?.success && Array.isArray(roomsRes?.data?.data)) roomsData = roomsRes.data.data;
 
         let teachersData = [];
         if (Array.isArray(teachersRes?.data)) teachersData = teachersRes.data;
         else if (Array.isArray(teachersRes?.data?.data)) teachersData = teachersRes.data.data;
-        else if (teachersRes?.data?.success && Array.isArray(teachersRes?.data?.data)) teachersData = teachersRes.data.data;
         
         let studentsData = [];
         if (Array.isArray(studentsRes?.data)) studentsData = studentsRes.data;
         else if (Array.isArray(studentsRes?.data?.data)) studentsData = studentsRes.data.data;
-        else if (studentsRes?.data?.success && Array.isArray(studentsRes?.data?.data)) studentsData = studentsRes.data.data;
 
         setCoursesList(coursesData);
         setRoomsList(roomsData);

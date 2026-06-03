@@ -1,0 +1,373 @@
+
+> 2-practice@0.0.0 lint
+> eslint .
+
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AddGroupModal.jsx
+   1:8   error  'React' is defined but never used                                                                                      no-unused-vars
+  55:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain  no-dupe-else-if
+  60:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain  no-dupe-else-if
+  65:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain  no-dupe-else-if
+  70:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain  no-dupe-else-if
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AddStudentModal.jsx
+   3:8  error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  40:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  38 |   useEffect(() => {
+  39 |     if (studentData) {
+> 40 |       setFormData({
+     |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  41 |         name: studentData.name || "",
+  42 |         phone: (studentData.phone && studentData.phone !== "—")
+  43 |           ? studentData.phone.replace(/\D/g, "").replace(/^998/, "")  react-hooks/set-state-in-effect
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AddTeacherModal.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AssignGroupModal.jsx
+   1:8  error    'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+  18:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  16 |   useEffect(() => {
+  17 |     if (!isOpen) return;
+> 18 |     setTempSelected(selectedGroups);
+     |     ^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  19 |     setLoadingGroups(true);
+  20 |     axiosClient
+  21 |       .get("/groups/all")  react-hooks/set-state-in-effect
+  36:6  warning  React Hook useEffect has a missing dependency: 'selectedGroups'. Either include it or remove the dependency array. If 'setTempSelected' needs the current value of 'selectedGroups', you can also switch to useReducer instead of useState and read 'selectedGroups' in the reducer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Central\Main.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\CreateHomeworkModal.jsx
+   1:8   error  'React' is defined but never used                 no-unused-vars
+  20:10  error  'description' is assigned a value but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\ExamsTab.jsx
+  1:8   error  'React' is defined but never used               no-unused-vars
+  3:92  error  'setIsExamModalOpen' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\SelectStudentModal.jsx
+   1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  10:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   8 |   useEffect(() => {
+   9 |     if (isOpen && selectedIds) {
+> 10 |       setSelectedStudents(selectedIds);
+     |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  11 |     }
+  12 |   }, [isOpen, selectedIds]);
+  13 |   const [students, setStudents] = useState([]);  react-hooks/set-state-in-effect
+  26:20  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-dupe-else-if
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\SelectTeacherModal.jsx
+   1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+  10:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   8 |   useEffect(() => {
+   9 |     if (isOpen && selectedIds) {
+> 10 |       setSelectedTeachers(selectedIds);
+     |       ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  11 |     }
+  12 |   }, [isOpen, selectedIds]);
+  13 |   const [teachers, setTeachers] = useState([]);  react-hooks/set-state-in-effect
+  26:20  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-dupe-else-if
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\ManagementFlyout.jsx
+  1:8  error  'React' is defined but never used                no-unused-vars
+  9:3  error  'setIsManagementOpen' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\Sidebar.jsx
+   1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+  36:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  34 |
+  35 |   useEffect(() => {
+> 36 |     setIsManagementOpen(false);
+     |     ^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  37 |   }, [location.pathname]);
+  38 |
+  39 |   // fetch rooms count for Management -> Xonalar  react-hooks/set-state-in-effect
+  53:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           no-dupe-else-if
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\SidebarFooter.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\SidebarHeader.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\SidebarNav.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\context\LanguageContext.jsx
+    1:8   error  'React' is defined but never used                                                                                               no-unused-vars
+  172:17  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\layouts\DashboardLayout.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\CreateExam.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\CreateHomework.jsx
+  1:8  error  'React' is defined but never used            no-unused-vars
+  5:7  error  'TOPICS' is assigned a value but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Dashboard.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\ExamDetail.jsx
+   1:8   error    'React' is defined but never used                                                                                   no-unused-vars
+  73:6   warning  React Hook useEffect has a missing dependency: 'passed.examData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  81:14  error    'err' is defined but never used                                                                                     no-unused-vars
+  87:9   error    'NavArrow' is assigned a value but never used                                                                       no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\GroupDetails.jsx
+     1:8   error    'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+    10:9   error    'location' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+    35:10  error    'lessonsLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+   564:6   warning  React Hook useEffect has a missing dependency: 'fetchSchedules'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+   569:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  567 |   useEffect(() => {
+  568 |     if (activeTab === 'syllabus' && subTab === 'exams') {
+> 569 |       fetchExams();
+      |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  570 |     }
+  571 |   }, [activeTab, subTab, id]);
+  572 |                           react-hooks/set-state-in-effect
+   571:6   warning  React Hook useEffect has a missing dependency: 'fetchExams'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+   576:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  574 |   useEffect(() => {
+  575 |     if (activeTab === 'syllabus' && subTab === 'homework') {
+> 576 |       fetchHomeworks();
+      |       ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  577 |     }
+  578 |   }, [activeTab, subTab, id]);
+  579 |                react-hooks/set-state-in-effect
+   578:6   warning  React Hook useEffect has a missing dependency: 'fetchHomeworks'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+   583:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  581 |   useEffect(() => {
+  582 |     if (activeTab === 'syllabus' && subTab === 'videos') {
+> 583 |       fetchVideos();
+      |       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  584 |       fetchLessons();
+  585 |     }
+  586 |   }, [activeTab, subTab, id]);  react-hooks/set-state-in-effect
+   586:6   warning  React Hook useEffect has missing dependencies: 'fetchLessons' and 'fetchVideos'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+  1136:71  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  1134 |                         const givenText = `${gt.date} ${gt.time}`;
+  1135 |
+> 1136 |                         const createdDate = new Date(hw.created_at || Date.now());
+       |                                                                       ^^^^^^^^^^ Cannot call impure function
+  1137 |                         createdDate.setDate(createdDate.getDate() + 1);
+  1138 |                         const et = formatDT(createdDate.toISOString());
+  1139 |                         const endText = `${et.date} ${et.time}`;                                                                                                                               react-hooks/purity
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Groups.jsx
+   1:8   error    'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-unused-vars
+  34:18  error    This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-dupe-else-if
+  76:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  74 |
+  75 |   useEffect(() => {
+> 76 |     fetchGroups();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  77 |   }, [activeTab]);
+  78 |
+  79 |   const toggleStatus = async (id, currentStatus) => {  react-hooks/set-state-in-effect
+  77:6   warning  React Hook useEffect has a missing dependency: 'fetchGroups'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\LessonAttendance.jsx
+  78:5  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  76 |   React.useEffect(() => {
+  77 |     const freshLesson = pastLessons[date] || { topic: "Nodejs", desc: "" };
+> 78 |     setTopicName(freshLesson.topic);
+     |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  79 |     setDescription(freshLesson.desc);
+  80 |     setTopicType(pastLessons[date] ? "syllabus" : "other");
+  81 |   }, [date]);  react-hooks/set-state-in-effect
+  81:6  warning  React Hook React.useEffect has a missing dependency: 'pastLessons'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Login.jsx
+  1:8  error  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Student.jsx
+   1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          no-unused-vars
+  48:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-dupe-else-if
+  92:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  90 |
+  91 |   useEffect(() => {
+> 92 |     fetchStudents(page);
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  93 |   }, [page, fetchStudents]);
+  94 |
+  95 |   // Reset editingStudent when modal closes             react-hooks/set-state-in-effect
+  98:7   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   96 |   useEffect(() => {
+   97 |     if (!isStudentModalOpen) {
+>  98 |       setEditingStudent(null);
+      |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+   99 |     }
+  100 |   }, [isStudentModalOpen]);
+  101 |  react-hooks/set-state-in-effect
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Teacher.jsx
+   1:8   error    'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+  29:18  error    This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-dupe-else-if
+  54:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  52 |
+  53 |   useEffect(() => {
+> 54 |     fetchTeachers();
+     |     ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  55 |   }, [activeTab]);
+  56 |
+  57 |   const handleDeleteTeacher = (teacher) => {  react-hooks/set-state-in-effect
+  55:6   warning  React Hook useEffect has a missing dependency: 'fetchTeachers'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\VideoPlayer.jsx
+  1:8   error  'React' is defined but never used        no-unused-vars
+  6:11  error  'id' is assigned a value but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\Courses.jsx
+    1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+  182:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-dupe-else-if
+  199:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  197 |
+  198 |   useEffect(() => {
+> 199 |     fetchCourses();
+      |     ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  200 |   }, [fetchCourses]);
+  201 |
+  202 |   // ── Open Add modal ────────────────────────────────────────────────────────  react-hooks/set-state-in-effect
+  363:33  error  'idx' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\ManagementLayout.jsx
+  1:8   error  'React' is defined but never used        no-unused-vars
+  2:27  error  'useNavigate' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\Rooms.jsx
+    1:8   error  'React' is defined but never used                                                                                      no-unused-vars
+   75:7   error  'branches' is assigned a value but never used                                                                          no-unused-vars
+   89:24  error  'setActiveBranch' is assigned a value but never used                                                                   no-unused-vars
+  103:9   error  'filtered' is assigned a value but never used                                                                          no-unused-vars
+  178:20  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain  no-dupe-else-if
+  180:18  error  'e' is defined but never used                                                                                          no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\Staff.jsx
+   1:8   error  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  53:18  error  This branch can never execute. Its condition is a duplicate or covered by previous conditions in the if-else-if chain                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no-dupe-else-if
+  83:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  81 |
+  82 |   useEffect(() => {
+> 83 |     fetchAdmins();
+     |     ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  84 |   }, [fetchAdmins]);
+  85 |
+  86 |   const handleInputChange = (e) => {  react-hooks/set-state-in-effect
+
+✖ 84 problems (75 errors, 9 warnings)
+

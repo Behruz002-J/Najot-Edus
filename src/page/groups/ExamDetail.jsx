@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import axiosClient from '../api/axios';
+import axiosClient from '../../api/axios';
 
 // Mock talabalar (API ishlamasa)
 const MOCK_STUDENTS = [

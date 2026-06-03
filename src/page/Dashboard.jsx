@@ -60,9 +60,9 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center justify-between hover:shadow-[0_0_20px_rgba(57,255,20,0.12)] hover:border-[#39FF14]/30 transition-all duration-300 group cursor-default">
+          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center justify-between hover:shadow-[0_0_20px_rgba(124,58,237,0.12)] hover:border-[#7C3AED]/30 transition-all duration-300 group cursor-default">
             <div className="mb-3">
-              <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center text-[#7B2CBF] group-hover:bg-[#39FF14] group-hover:text-black transition-all duration-300">
+              <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center text-[#7B2CBF] group-hover:bg-[#7C3AED] group-hover:text-white transition-all duration-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
                 </svg>

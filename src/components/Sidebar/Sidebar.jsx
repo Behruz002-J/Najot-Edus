@@ -50,8 +50,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
         let count = 0;
         if (Array.isArray(data)) count = data.length;
         else if (Array.isArray(data?.data)) count = data.data.length;
-        else if (data?.success && Array.isArray(data?.data))
-          count = data.data.length;
         setRoomsCount(count);
       } catch (err) {
         console.error("Fetch rooms error:", err?.response?.data || err.message);

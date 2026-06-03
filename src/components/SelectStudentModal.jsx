@@ -23,8 +23,6 @@ export default function SelectStudentModal({ isOpen, onClose, selectedIds = [], 
           setStudents(data);
         } else if (Array.isArray(data?.data)) {
           setStudents(data.data);
-        } else if (data?.success && Array.isArray(data?.data)) {
-          setStudents(data.data);
         }
       } catch (err) {
         console.error('Fetch students error:', err);

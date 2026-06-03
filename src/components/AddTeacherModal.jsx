@@ -1,27 +1,46 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AssignGroupModal from './AssignGroupModal';
 import { getValidToken } from '../api/tokenUtils';
+import axiosClient from '../api/axios';
 
 export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
   const navigate = useNavigate();
   const [isAssignGroupModalOpen, setIsAssignGroupModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [allGroups, setAllGroups] = useState([]);
   const fileInputRef = useRef(null);
 
   const [formData, setFormData] = useState({
-    phone: '+998',
+    phone: '',
     email: '',
     fullName: '',
     address: '',
     password: ''
   });
 
+  // Fetch groups for badge name display
+  useEffect(() => {
+    if (!isOpen) return;
+    axiosClient.get("/groups/all").then((res) => {
+      const data = res?.data;
+      let list = [];
+      if (Array.isArray(data)) list = data;
+      else if (Array.isArray(data?.data)) list = data.data;
+      setAllGroups(list.map((g) => ({ id: g.id, name: g.name || `Guruh #${g.id}` })));
+    }).catch(() => {});
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    if (name === "phone") {
+      const digits = value.replace(/\D/g, '').slice(0, 9);
+      setFormData(prev => ({ ...prev, phone: digits }));
+      return;
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -37,8 +56,8 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
   };
 
   const handleSave = async () => {
-    if (!formData.fullName || !formData.phone || !formData.email || !formData.address) {
-      alert("Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam, Mail, Manzil) to'ldiring!");
+    if (!formData.fullName || !formData.phone || !formData.email || !formData.address || !formData.password) {
+      alert("Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam, Mail, Manzil, Parol) to'ldiring!");
       return;
     }
 
@@ -58,31 +77,16 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
         return;
       }
 
-      // Extract raw phone number (only digits) and ensure it has +998 prefix as expected by global validators
-      let rawPhone = formData.phone.replace(/\D/g, '');
-      if (rawPhone.length === 9) {
-        rawPhone = '998' + rawPhone;
-      }
-      const formattedPhone = '+' + rawPhone;
-
-      // Map group names to their corresponding database numbers as array<number> from Swagger
-      const groupIds = selectedGroups.map(name => {
-        if (name === 'N26') return 1;
-        if (name === 'n105') return 2;
-        return 1;
-      });
-
       // Construct multipart FormData as required by the backend schema
       const postData = new FormData();
       postData.append('full_name', formData.fullName);
-      postData.append('phone', formattedPhone);
+      postData.append('phone', formData.phone);
       
-      // Do not append empty string for optional fields (like email and address) to prevent backend validation errors
       if (formData.email) {
         postData.append('email', formData.email);
       }
       
-      postData.append('password', formData.password || "Password123!");
+      postData.append('password', formData.password);
       
       if (formData.address) {
         postData.append('address', formData.address);
@@ -93,7 +97,7 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
       }
 
       // Append array items for 'groups' individually
-      groupIds.forEach(id => {
+      selectedGroups.forEach(id => {
         postData.append('groups', id);
       });
 
@@ -127,12 +131,15 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
 
       console.log("API Response:", resData);
 
-      if (response.ok && resData.success) {
+      if (response.ok && (resData.success || resData.message === "Teacher created")) {
         const newTeacher = {
-          id: resData.data?.id || Date.now(),
+          id: resData.data?.id || resData.id || Date.now(),
           name: formData.fullName,
-          group: selectedGroups,
-          phone: formData.phone,
+          group: selectedGroups.map(id => {
+            const grp = allGroups.find(g => g.id === id);
+            return grp ? grp.name : `Guruh #${id}`;
+          }),
+          phone: '+998 ' + formData.phone,
           email: formData.email,
           address: formData.address,
           createdDate: new Date().toLocaleDateString('ru-RU')
@@ -143,7 +150,7 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
         
         // Reset form
         setFormData({
-          phone: '+998',
+          phone: '',
           email: '',
           fullName: '',
           address: '',
@@ -161,7 +168,7 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
           : JSON.stringify(resData, null, 2);
         
         console.error("Server validation failed:", resData);
-        alert(`O'qituvchini saqlashda xatolik yuz berdi!\n\nServer xabari:\n${errorMsg}\n\nYuborilgan ma'lumotlar:\n- Ism: ${formData.fullName}\n- Telefon: ${formattedPhone}\n- Email: ${formData.email}\n- Guruhlar: ${JSON.stringify(groupIds)}`);
+        alert(`O'qituvchini saqlashda xatolik yuz berdi!\n\nServer xabari:\n${errorMsg}\n\nYuborilgan ma'lumotlar:\n- Ism: ${formData.fullName}\n- Telefon: ${formData.phone}\n- Email: ${formData.email}\n- Guruhlar: ${JSON.stringify(selectedGroups)}`);
       }
     } catch (err) {
       console.error("Save teacher error:", err);
@@ -200,13 +207,18 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
           {/* Telefon raqam */}
           <div>
             <label className="block text-base font-semibold text-gray-900 dark:text-gray-200 mb-3">Telefon raqam</label>
-            <div className="relative">
+            <div className="flex">
+              <span className="inline-flex items-center px-5 py-3.5 bg-gray-100 dark:bg-gray-800 border border-r-0 border-gray-200 dark:border-gray-700 rounded-l-xl text-base font-semibold text-gray-500 dark:text-gray-400 select-none">
+                +998
+              </span>
               <input
                 type="text"
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
+                placeholder="901234567"
+                maxLength={9}
+                className="flex-1 px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
               />
             </div>
           </div>
@@ -243,16 +255,19 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
             <div className="space-y-3">
               {selectedGroups.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {selectedGroups.map((group, index) => (
-                    <span key={index} className="px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-[#7B2CBF] dark:text-purple-300 rounded-full text-sm font-bold border border-purple-100 dark:border-purple-800 flex items-center gap-2">
-                      {group}
-                      <button onClick={() => setSelectedGroups(selectedGroups.filter(g => g !== group))}>
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    </span>
-                  ))}
+                  {selectedGroups.map((groupId, index) => {
+                    const group = allGroups.find(g => g.id === groupId);
+                    return (
+                      <span key={index} className="px-3 py-1.5 bg-purple-50 dark:bg-purple-900/30 text-[#7B2CBF] dark:text-purple-300 rounded-full text-sm font-bold border border-purple-100 dark:border-purple-800 flex items-center gap-2">
+                        {group?.name || groupId}
+                        <button onClick={() => setSelectedGroups(selectedGroups.filter(g => g !== groupId))}>
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
               )}
               <button 

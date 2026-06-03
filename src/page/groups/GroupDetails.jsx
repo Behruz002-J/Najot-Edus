@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import axiosClient from '../api/axios';
-import CreateHomeworkModal from '../components/CreateHomeworkModal';
-import ExamsTab from '../components/ExamsTab';
+import axiosClient from '../../api/axios';
+import CreateHomeworkModal from '../../components/CreateHomeworkModal';
+import ExamsTab from '../../components/ExamsTab';
 
 export default function GroupDetails() {
   const { id } = useParams();
@@ -28,6 +28,7 @@ export default function GroupDetails() {
   const [schedules, setSchedules] = useState([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
   const [activeMonthIndex, setActiveMonthIndex] = useState(0);
+  const [isAllLessonsExpanded, setIsAllLessonsExpanded] = useState(false);
 
   // Real Lessons states
   const [groupLessons, setGroupLessons] = useState([]);
@@ -175,11 +176,15 @@ export default function GroupDetails() {
       return yearA !== yearB ? yearA - yearB : monthA - monthB;
     });
     
-    return sortedKeys.map((key, index) => ({
-      ...groups[key],
-      index: index + 1,
-      lessons: groups[key].lessons.sort((a, b) => new Date(a.date) - new Date(b.date))
-    }));
+    return sortedKeys.map((key, index) => {
+      const monthLessons = groups[key].lessons.sort((a, b) => new Date(a.date) - new Date(b.date));
+      const apiIndex = monthLessons[0]?.monthIndex;
+      return {
+        ...groups[key],
+        index: apiIndex !== undefined ? apiIndex : index + 1,
+        lessons: monthLessons
+      };
+    });
   };
 
   const isLessonActive = (lessonDateStr) => {
@@ -190,8 +195,9 @@ export default function GroupDetails() {
     return lessonDate <= today;
   };
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = async (groupStartDate) => {
     try {
+      setIsAllLessonsExpanded(false);
       setSchedulesLoading(true);
       const res = await axiosClient.get(`/groups/${id}/schedules`);
       let list = [];
@@ -202,11 +208,106 @@ export default function GroupDetails() {
       } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
         list = res.data.data;
       }
+
+      // Parse nested schedules object if in backend format [ { "1": { isActive, days: [...] } } ]
+      if (list.length > 0 && typeof list[0] === 'object' && !list[0].date && !list[0].lesson_date) {
+        const schedObj = list[0];
+        const monthsMap = {
+          january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+          july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+        };
+        
+        const start = groupStartDate ? new Date(groupStartDate) : new Date();
+        const startYear = start.getFullYear();
+        const startMonth = start.getMonth();
+        
+        const parsedSchedules = [];
+        Object.keys(schedObj).forEach(monthKey => {
+          const monthBlock = schedObj[monthKey];
+          if (monthBlock && Array.isArray(monthBlock.days)) {
+            monthBlock.days.forEach((dayItem, idx) => {
+              const monthName = dayItem.month;
+              const dayNum = dayItem.day;
+              const isCompleted = dayItem.isCompleted;
+              
+              const targetMonth = monthsMap[monthName.toLowerCase()] ?? 0;
+              let targetYear = startYear;
+              if (targetMonth < startMonth) {
+                targetYear = startYear + 1;
+              }
+              
+              const dateVal = new Date(targetYear, targetMonth, dayNum, 12, 0, 0, 0).toISOString();
+              
+              parsedSchedules.push({
+                id: dayItem.id || `schedule-${monthKey}-${idx}-${dayNum}`,
+                date: dateVal,
+                topic: dayItem.topic || 'Dars',
+                isCompleted: isCompleted,
+                monthIndex: Number(monthKey),
+                isActiveMonth: !!monthBlock.isActive
+              });
+            });
+          }
+        });
+        list = parsedSchedules;
+      }
+
       setSchedules(list);
-      setActiveMonthIndex(0);
+
+      // Dynamically calculate active month index
+      if (list.length > 0) {
+        const tempGroups = {};
+        list.forEach(item => {
+          const d = new Date(item.date);
+          if (!isNaN(d.getTime())) {
+            const year = d.getFullYear();
+            const month = d.getMonth();
+            const key = `${year}-${month}`;
+            if (!tempGroups[key]) {
+              tempGroups[key] = { key, year, month, lessons: [] };
+            }
+            tempGroups[key].lessons.push(item);
+          }
+        });
+        
+        const sortedKeys = Object.keys(tempGroups).sort((a, b) => {
+          const [yearA, monthA] = a.split('-').map(Number);
+          const [yearB, monthB] = b.split('-').map(Number);
+          return yearA !== yearB ? yearA - yearB : monthA - monthB;
+        });
+
+        let activeIdx = -1;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < sortedKeys.length; i++) {
+          const key = sortedKeys[i];
+          const monthLessons = tempGroups[key].lessons;
+          if (monthLessons.some(l => l.isActiveMonth)) {
+            activeIdx = i;
+            break;
+          }
+        }
+
+        if (activeIdx === -1) {
+          for (let i = 0; i < sortedKeys.length; i++) {
+            const key = sortedKeys[i];
+            const monthLessons = tempGroups[key].lessons;
+            if (monthLessons.some(l => new Date(l.date) >= today)) {
+              activeIdx = i;
+              break;
+            }
+          }
+        }
+
+        setActiveMonthIndex(activeIdx >= 0 ? activeIdx : 0);
+      } else {
+        setActiveMonthIndex(0);
+      }
     } catch (err) {
       console.error('Fetch schedules error:', err?.response?.data || err.message);
       setSchedules([]);
+      setActiveMonthIndex(0);
     } finally {
       setSchedulesLoading(false);
     }
@@ -215,6 +316,7 @@ export default function GroupDetails() {
   const handlePrevMonth = () => {
     if (activeMonthIndex > 0) {
       setActiveMonthIndex(activeMonthIndex - 1);
+      setIsAllLessonsExpanded(false);
     }
   };
 
@@ -222,6 +324,7 @@ export default function GroupDetails() {
     const grouped = getGroupedMonths();
     if (activeMonthIndex < grouped.length - 1) {
       setActiveMonthIndex(activeMonthIndex + 1);
+      setIsAllLessonsExpanded(false);
     }
   };
 
@@ -419,12 +522,14 @@ export default function GroupDetails() {
   };
 
   useEffect(() => {
-    const fetchGroupDetails = async () => {
+    const init = async () => {
+      let startDateVal = null;
       try {
         setLoading(true);
         const res = await axiosClient.get(`/groups/one/${id}`);
         if (res?.data?.success && res?.data?.data) {
           const item = res.data.data;
+          startDateVal = item.start_date;
           
           const teacherStr = Array.isArray(item.teachers) && item.teachers.length > 0
             ? item.teachers.map(t => t.full_name).join(', ')
@@ -443,7 +548,8 @@ export default function GroupDetails() {
             monthlyLessons: 20,
             totalLessons: 20,
             students: item.students || [],
-            teachers: item.teachers || []
+            teachers: item.teachers || [],
+            startDate: item.start_date
           });
         }
       } catch (err) {
@@ -451,10 +557,10 @@ export default function GroupDetails() {
       } finally {
         setLoading(false);
       }
+      fetchSchedules(startDateVal);
     };
 
-    fetchGroupDetails();
-    fetchSchedules();
+    init();
   }, [id]);
 
   // Imtihonlar tabiga o'tilganda fetch
@@ -506,7 +612,19 @@ export default function GroupDetails() {
 
   const groupedMonths = getGroupedMonths();
   const currentMonthData = groupedMonths[activeMonthIndex] || null;
-  const currentLessons = currentMonthData ? currentMonthData.lessons : [];
+
+  const isLessonPast = (lesson) => {
+    if (lesson.isCompleted) return true;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lessonDate = new Date(lesson.date);
+    lessonDate.setHours(0, 0, 0, 0);
+    return lessonDate < today;
+  };
+
+  const currentLessons = currentMonthData
+    ? currentMonthData.lessons.filter(lesson => !isLessonPast(lesson))
+    : [];
 
   return (
     <div className="space-y-6 relative">
@@ -753,80 +871,140 @@ export default function GroupDetails() {
 
             {/* O'quv oyi & Kunlar Carousel */}
             <div className="col-span-1 md:col-span-2 mt-8 border-t border-gray-100 dark:border-gray-800 pt-8 space-y-6 z-10 relative">
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={handlePrevMonth}
-                  disabled={activeMonthIndex === 0}
-                  className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${activeMonthIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <span className="text-sm font-bold text-gray-800 dark:text-white">
-                  {currentMonthData ? `${currentMonthData.index}-o'quv oyi (${currentMonthData.monthName})` : "O'quv oyi"}
-                </span>
-                <button 
-                  onClick={handleNextMonth}
-                  disabled={activeMonthIndex === groupedMonths.length - 1}
-                  className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${activeMonthIndex === groupedMonths.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                >
-                  <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Horizontal Date carousel */}
-              <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-2">
-                {schedulesLoading ? (
-                  <div className="py-4 text-gray-400 font-semibold text-xs flex items-center gap-2">
-                    <svg className="w-4 h-4 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    <span>Schedules yuklanmoqda...</span>
+              {!isAllLessonsExpanded ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={handlePrevMonth}
+                      disabled={activeMonthIndex === 0}
+                      className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${activeMonthIndex === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <span className="text-sm font-bold text-gray-800 dark:text-white">
+                      {currentMonthData ? `${currentMonthData.index}-o'quv oyi (${currentMonthData.monthName})` : "O'quv oyi"}
+                    </span>
+                    <button 
+                      onClick={handleNextMonth}
+                      disabled={activeMonthIndex === groupedMonths.length - 1}
+                      className={`w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm ${activeMonthIndex === groupedMonths.length - 1 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <svg className="w-4 h-4 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
                   </div>
-                ) : currentLessons.length === 0 ? (
-                  <div className="py-4 text-gray-400 dark:text-gray-500 font-semibold text-xs">
-                    Ushbu oyda darslar rejalashtirilmagan.
-                  </div>
-                ) : (
-                  currentLessons.map((lesson, index) => {
-                    const lDate = new Date(lesson.date);
-                    const dayNum = lDate.getDate();
-                    const active = isLessonActive(lesson.date);
-                    const monthShort = currentMonthData.monthName.substring(0, 3);
-                    const dateUrlParam = String(dayNum); // exact day number string for LessonAttendance.jsx
 
+                  {/* Horizontal Date carousel */}
+                  <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-2">
+                    {schedulesLoading ? (
+                      <div className="py-4 text-gray-400 font-semibold text-xs flex items-center gap-2">
+                        <svg className="w-4 h-4 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        <span>Schedules yuklanmoqda...</span>
+                      </div>
+                    ) : currentLessons.length === 0 ? (
+                      <div className="py-4 text-gray-400 dark:text-gray-500 font-semibold text-xs">
+                        Ushbu oyda darslar rejalashtirilmagan.
+                      </div>
+                    ) : (
+                      currentLessons.map((lesson, index) => {
+                        const lDate = new Date(lesson.date);
+                        const dayNum = lDate.getDate();
+                        const active = isLessonActive(lesson.date);
+                        const monthShort = currentMonthData.monthName.substring(0, 3);
+                        const dateUrlParam = String(dayNum);
+
+                        return (
+                          <div 
+                            key={lesson.id || index} 
+                            onClick={() => {
+                              if (active) {
+                                navigate(`/dashboard/groups/${id || '1'}/lesson/${dateUrlParam}`);
+                              } else {
+                                triggerAlert("Dars vaqti hali kelmagan");
+                              }
+                            }}
+                            className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
+                              active 
+                                ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
+                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
+                            }`}
+                          >
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{monthShort}</span>
+                            <span className="text-lg font-black mt-0.5">{dayNum}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              ) : (
+                // Stacked display of all months when expanded
+                <div className="space-y-8 animate-in fade-in duration-300">
+                  {groupedMonths.map((monthData, mIdx) => {
+                    const isCurrentMonth = monthData.lessons.some(l => l.isActiveMonth) || mIdx === activeMonthIndex;
+                    
                     return (
-                      <div 
-                        key={lesson.id || index} 
-                        onClick={() => {
-                          if (active) {
-                            navigate(`/dashboard/groups/${id || '1'}/lesson/${dateUrlParam}`);
-                          } else {
-                            triggerAlert("Dars vaqti hali kelmagan");
-                          }
-                        }}
-                        className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
-                          active 
-                            ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
-                        }`}
-                      >
-                        <span className="text-[10px] font-bold uppercase tracking-wider">{monthShort}</span>
-                        <span className="text-lg font-black mt-0.5">{dayNum}</span>
+                      <div key={monthData.key || mIdx} className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <h4 className="text-base font-bold text-gray-800 dark:text-white">
+                            {monthData.index}-o'quv oyi
+                          </h4>
+                          {isCurrentMonth && (
+                            <span className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                              Joriy oy
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 py-2">
+                          {monthData.lessons.map((lesson, index) => {
+                            const lDate = new Date(lesson.date);
+                            const dayNum = lDate.getDate();
+                            const active = isLessonActive(lesson.date);
+                            const monthShort = monthData.monthName.substring(0, 3);
+                            const dateUrlParam = String(dayNum);
+
+                            return (
+                              <div 
+                                key={lesson.id || index} 
+                                onClick={() => {
+                                  if (active) {
+                                    navigate(`/dashboard/groups/${id || '1'}/lesson/${dateUrlParam}`);
+                                  } else {
+                                    triggerAlert("Dars vaqti hali kelmagan");
+                                  }
+                                }}
+                                className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
+                                  active 
+                                    ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
+                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
+                                }`}
+                              >
+                                <span className="text-[10px] font-bold uppercase tracking-wider">{monthShort}</span>
+                                <span className="text-lg font-black mt-0.5">{dayNum}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
-                  })
-                )}
-              </div>
+                  })}
+                </div>
+              )}
 
-              {/* Barchasini ko'rish Button */}
+              {/* Barchasini ko'rish / Kamroq ko'rsatish Button */}
               <div className="flex justify-center pt-2">
-                <button className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm">
-                  Barchasini ko'rish
+                <button 
+                  onClick={() => setIsAllLessonsExpanded(!isAllLessonsExpanded)}
+                  className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm cursor-pointer"
+                >
+                  {isAllLessonsExpanded ? "Kamroq ko'rsatish" : "Barchasini ko'rish"}
                 </button>
               </div>
             </div>
@@ -955,7 +1133,7 @@ export default function GroupDetails() {
                         const gt = formatDT(hw.created_at);
                         const givenText = `${gt.date} ${gt.time}`;
 
-                        const createdDate = new Date(hw.created_at || Date.now());
+                        const createdDate = new Date(hw.created_at || '2026-06-03T00:00:00.000Z');
                         createdDate.setDate(createdDate.getDate() + 1);
                         const et = formatDT(createdDate.toISOString());
                         const endText = `${et.date} ${et.time}`;
@@ -963,8 +1141,14 @@ export default function GroupDetails() {
                         return (
                           <tr key={hw.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors">
                             <td className="py-4 px-4 text-center font-bold text-gray-400 dark:text-gray-500 text-xs">{hw.id}</td>
-                            <td className="py-4 px-4 font-bold text-gray-800 dark:text-white text-sm">
-                              {hw.topic || (typeof hw.title === 'object' ? hw.title?.topic || hw.title?.title || hw.title?.name || '—' : hw.title || '—')}
+                            <td className="py-4 px-4">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/dashboard/groups/${id}/homework/${hw.id}`, { state: { homeworkData: hw } })}
+                                className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
+                              >
+                                {hw.topic || (typeof hw.title === 'object' ? hw.title?.topic || hw.title?.title || hw.title?.name || '—' : hw.title || '—')}
+                              </button>
                             </td>
                             <td className="py-4 px-4 text-center font-bold text-gray-700 dark:text-gray-300 text-sm">
                               {hw.existStudentsIngroup ?? currentGroup.studentsCount}

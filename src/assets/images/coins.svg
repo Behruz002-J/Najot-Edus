@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <!-- Radial gradient for the coin face -->
+    <radialGradient id="coinGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="#FFE082" />
+      <stop offset="70%" stop-color="#FFB300" />
+      <stop offset="100%" stop-color="#FF8F00" />
+    </radialGradient>
+    
+    <!-- Linear gradient for the rim -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF9C4" />
+      <stop offset="50%" stop-color="#FFC107" />
+      <stop offset="100%" stop-color="#FF6F00" />
+    </linearGradient>
+
+    <!-- Shadow filter for 3D effect -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Outer rim -->
+  <circle cx="50" cy="50" r="46" fill="url(#rimGrad)" filter="url(#dropShadow)" />
+  
+  <!-- Outer border ridge -->
+  <circle cx="50" cy="50" r="44" fill="none" stroke="#FFA000" stroke-width="1" />
+  
+  <!-- Inner coin face -->
+  <circle cx="50" cy="50" r="38" fill="url(#coinGrad)" />
+  
+  <!-- Inner circular groove -->
+  <circle cx="50" cy="50" r="32" fill="none" stroke="#FF8F00" stroke-width="1.5" opacity="0.6" />
+
+  <!-- Graduation Cap Icon in Center (representing NajotEdu) -->
+  <g fill="#FFF" opacity="0.95">
+    <!-- Cap Diamond -->
+    <path d="M 50,30 L 72,39 L 50,48 L 28,39 Z" />
+    <!-- Cap Base -->
+    <path d="M 37,44.5 L 37,51 C 37,55 63,55 63,51 L 63,44.5" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round" />
+    <!-- Tassel -->
+    <path d="M 61,39.5 L 70,45 L 70,55" fill="none" stroke="#FFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Small tassel circle/bead -->
+    <circle cx="70" cy="56" r="1.5" fill="#FFF" />
+  </g>
+</svg>

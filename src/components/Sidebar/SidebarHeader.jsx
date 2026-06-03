@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import coinsImg from '../../assets/images/coins.webp';
+import coinsImg from '../../assets/images/coins.svg';
 
 export default function SidebarHeader({ isCollapsed, setIsCollapsed }) {
   return (

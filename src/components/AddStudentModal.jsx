@@ -36,13 +36,14 @@ export default function AddStudentModal({
   }, []);
 
   useEffect(() => {
+    setEmailError("");
     if (studentData) {
       setFormData({
         name: studentData.name || "",
         phone: (studentData.phone && studentData.phone !== "—")
           ? studentData.phone.replace(/\D/g, "").replace(/^998/, "")
           : "",
-        email: (studentData.email && studentData.email !== "—") ? studentData.email : "",
+        email: (studentData.email && studentData.email !== "—" && !/^\+?\d+$/.test(studentData.email)) ? studentData.email : "",
         birthDate: studentData.birthDate || "",
         address: (studentData.address && studentData.address !== "—") ? studentData.address : "",
         password: studentData.password || "",
@@ -69,7 +70,7 @@ export default function AddStudentModal({
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === "email") {
+    if (name === "email" || name === "student_email") {
       const cleaned = value.replace(/[^a-zA-Z0-9@.\-_+]/g, "");
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       setEmailError(cleaned && !emailRegex.test(cleaned) ? "To'g'ri email kiriting (masalan: user@gmail.com)" : "");
@@ -127,6 +128,9 @@ export default function AddStudentModal({
           onSubmit={handleSubmit}
           className="relative w-full max-w-md bg-white dark:bg-gray-800 h-full shadow-2xl flex flex-col animate-slide-in-right"
         >
+          {/* Fake inputs to prevent browser autofill */}
+          <input type="text" name="chrome-autofill-dummy-username" className="absolute opacity-0 -z-50 w-0 h-0 pointer-events-none" tabIndex={-1} autoComplete="off" />
+          <input type="password" name="chrome-autofill-dummy-password" className="absolute opacity-0 -z-50 w-0 h-0 pointer-events-none" tabIndex={-1} autoComplete="off" />
           {/* Header */}
           <div className="p-6 pb-2 border-b border-gray-50 dark:border-gray-700">
             <div className="flex items-center justify-between">
@@ -193,11 +197,11 @@ export default function AddStudentModal({
               </label>
               <input
                 type="email"
-                name="email"
+                name="student_email"
                 placeholder="example@gmail.com"
                 value={formData.email}
                 onChange={handleChange}
-                autoComplete="off"
+                autoComplete="new-email"
                 inputMode="email"
                 className={`w-full px-4 py-2.5 bg-white dark:bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 transition-all dark:text-white text-sm ${
                   emailError
@@ -283,6 +287,7 @@ export default function AddStudentModal({
                 placeholder="Parolni kiriting"
                 value={formData.password}
                 onChange={handleChange}
+                autoComplete="new-password"
                 className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all dark:text-white text-sm"
               />
             </div>

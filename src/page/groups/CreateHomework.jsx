@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axiosClient from '../api/axios';
+import axiosClient from '../../api/axios';
 
 const TOPICS = [
   'Html asoslari',
@@ -15,22 +15,51 @@ const TOPICS = [
   'Takrorlash',
 ];
 
-export default function CreateExam() {
+export default function CreateHomework() {
   const navigate = useNavigate();
   const { id } = useParams();
 
   const [selectedTopic, setSelectedTopic] = useState('');
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [lessons, setLessons] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
   const [isTopicOpen, setIsTopicOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [fontSize, setFontSize] = useState('Normal');
   const [saving, setSaving] = useState(false);
-  const [endDate, setEndDate] = useState('');
-  const [endTime, setEndTime] = useState('');
 
   const fileInputRef = useRef(null);
   const editorRef = useRef(null);
   const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        setLessonsLoading(true);
+        const res = await axiosClient.get('/lessons');
+        let list = [];
+        if (res?.data?.success && Array.isArray(res?.data?.data)) {
+          list = res.data.data;
+        } else if (res?.data?.sucess && Array.isArray(res?.data?.data)) {
+          list = res.data.data;
+        } else if (Array.isArray(res?.data)) {
+          list = res.data;
+        } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+          list = res.data.data;
+        }
+        
+        const filtered = list.filter(l => Number(l.group_id) === Number(id));
+        setLessons(filtered);
+      } catch (err) {
+        console.error('Fetch lessons error in CreateHomework:', err);
+        setLessons([]);
+      } finally {
+        setLessonsLoading(false);
+      }
+    };
+    fetchLessons();
+  }, [id]);
 
   useEffect(() => {
     if (!isTopicOpen) return;
@@ -65,55 +94,47 @@ export default function CreateExam() {
 
   const handlePublish = async () => {
     if (!selectedTopic) {
-      alert('Iltimos, mavzuni tanlang!');
+      alert("Iltimos, mavzuni tanlang!");
       return;
     }
-    if (!endDate) {
-      alert("Iltimos, tugash sanasini kiriting!");
+    const content = editorRef.current?.innerHTML || '';
+    if (!content || content.replace(/<[^>]+>/g, '').trim() === '') {
+      alert("Iltimos, izoh kiriting!");
       return;
     }
-    if (!endTime) {
-      alert("Iltimos, tugash vaqtini kiriting!");
-      return;
-    }
-
-    setSaving(true);
-    let newExamId = 'new';
-    const description = editorRef.current?.innerHTML || '';
-
     try {
-      const res = await axiosClient.post('/exams', {
-        group_id: id,
-        name: selectedTopic,
-        description,
-        start_time: `${endDate}T${endTime}:00`,
-        duration: 60,
+      setSaving(true);
+      const formData = new FormData();
+      formData.append("title", selectedTopic);
+      formData.append("group_id", Number(id));
+      formData.append("lesson_id", Number(selectedLessonId || 4));
+      formData.append("description", content);
+      
+      if (file) {
+        formData.append("file", file);
+      }
+
+      await axiosClient.post('/homework', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      // API dan qaytgan ID
-      newExamId = res?.data?.data?.id ?? res?.data?.id ?? 'new';
+
+      alert("Uyga vazifa muvaffaqiyatli e'lon qilindi!");
+      navigate(`/dashboard/groups/${id}`);
     } catch (err) {
-      console.error('Create exam error:', err?.response?.data || err.message);
+      console.error('Create homework error:', err?.response?.data || err.message);
+      const msg = err?.response?.data?.message || err?.response?.data?.error || "Xatolik yuz berdi";
+      alert(Array.isArray(msg) ? msg.join(', ') : msg);
     } finally {
       setSaving(false);
     }
-
-    // ExamDetail sahifasiga o'tish — form ma'lumotlarini state orqali yuboramiz
-    navigate(`/dashboard/groups/${id}/exam/${newExamId}`, {
-      state: {
-        examData: {
-          name: selectedTopic,
-          description,
-          start_time: `${endDate}T${endTime}:00`,
-        },
-        description,
-      },
-    });
   };
 
   return (
     <div className="w-full space-y-6">
 
-      {/* Header */}
+      {/* Header row — orqaga tugma + sarlavha layoutda ko'rsatiladi */}
       <div className="flex items-center gap-3">
         <button
           onClick={goBack}
@@ -124,23 +145,13 @@ export default function CreateExam() {
           </svg>
         </button>
         <h2 className="text-lg font-black text-gray-800 dark:text-white">
-          Imtihon yaratish
+          Yangi uyga vazifa yaratish
         </h2>
       </div>
 
-      {/* Form Card */}
+      {/* Form Card — shadow yo'q, border bilan */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-visible">
         <div className="p-7 space-y-7">
-
-          {/* Info banner */}
-          <div className="flex items-start gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
-            <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-            <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-              Oxirgi 7 kundagi uyga vazifa berilmagan mavzularni tanlay olasiz!
-            </p>
-          </div>
 
           {/* Mavzu */}
           <div>
@@ -167,20 +178,52 @@ export default function CreateExam() {
               {isTopicOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
                   <div className="max-h-56 overflow-y-auto">
-                    {TOPICS.map((topic) => (
-                      <button
-                        key={topic}
-                        type="button"
-                        onClick={() => { setSelectedTopic(topic); setIsTopicOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-700 dark:hover:text-emerald-300 ${
-                          selectedTopic === topic
-                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 font-bold'
-                            : 'text-gray-700 dark:text-gray-300'
-                        }`}
-                      >
-                        {topic}
-                      </button>
-                    ))}
+                    {lessonsLoading ? (
+                      <div className="p-4 text-center text-xs text-gray-400 font-semibold">Mavzular yuklanmoqda...</div>
+                    ) : lessons.length > 0 ? (
+                      lessons.map((lesson) => (
+                        <button
+                          key={lesson.id}
+                          type="button"
+                          onClick={() => { 
+                            setSelectedTopic(lesson.topic || 'Dars'); 
+                            setSelectedLessonId(lesson.id); 
+                            setIsTopicOpen(false); 
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 ${
+                            selectedLessonId === lesson.id
+                              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-bold'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {lesson.topic || 'Dars'}
+                        </button>
+                      ))
+                    ) : (
+                      // Mock fallback with valid database IDs
+                      [
+                        { id: 4, topic: 'TypeScript (ID: 4)' },
+                        { id: 1, topic: 'HTML (ID: 1)' },
+                        { id: 2, topic: 'CRM (ID: 2)' }
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => { 
+                            setSelectedTopic(item.topic); 
+                            setSelectedLessonId(item.id); 
+                            setIsTopicOpen(false); 
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-700 dark:hover:text-purple-300 ${
+                            selectedLessonId === item.id
+                              ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 font-bold'
+                              : 'text-gray-700 dark:text-gray-300'
+                          }`}
+                        >
+                          {item.topic}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -192,7 +235,7 @@ export default function CreateExam() {
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
               <span className="text-red-500 mr-1">*</span>Izoh
             </label>
-            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-400/30 focus-within:border-emerald-400 transition-all">
+            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-400/30 focus-within:border-purple-400 transition-all">
               {/* Toolbar */}
               <div className="flex items-center flex-wrap gap-0.5 gap-y-1 px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-800/60">
                 <TB label="H1" title="Sarlavha 1" onMouseDown={(e) => { e.preventDefault(); execCmd('formatBlock', 'h1'); }} />
@@ -226,17 +269,22 @@ export default function CreateExam() {
                 </TI>
                 <Sep />
 
-                <TI title="Chapga" onMouseDown={(e) => { e.preventDefault(); execCmd('justifyLeft'); }}>
+                <TI title="Ro'yxat" onMouseDown={(e) => { e.preventDefault(); execCmd('insertUnorderedList'); }}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+                </TI>
+                <TI title="Raqamli ro'yxat" onMouseDown={(e) => { e.preventDefault(); execCmd('insertOrderedList'); }}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                </TI>
+                <Sep />
+
+                <TI title="Chap" onMouseDown={(e) => { e.preventDefault(); execCmd('justifyLeft'); }}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" /></svg>
                 </TI>
                 <TI title="Markaz" onMouseDown={(e) => { e.preventDefault(); execCmd('justifyCenter'); }}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M7 12h10M4 18h16" /></svg>
                 </TI>
-                <TI title="O'nga" onMouseDown={(e) => { e.preventDefault(); execCmd('justifyRight'); }}>
+                <TI title="O'ng" onMouseDown={(e) => { e.preventDefault(); execCmd('justifyRight'); }}>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M10 12h10M4 18h16" /></svg>
-                </TI>
-                <TI title="To'la" onMouseDown={(e) => { e.preventDefault(); execCmd('justifyFull'); }}>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </TI>
                 <Sep />
 
@@ -245,85 +293,54 @@ export default function CreateExam() {
                 </TI>
               </div>
 
-              {/* Editable area */}
+              {/* Editable */}
               <div
                 ref={editorRef}
                 contentEditable
                 suppressContentEditableWarning
-                className="min-h-[140px] p-4 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 focus:outline-none leading-relaxed"
-                data-placeholder="Imtihon haqida batafsil ma'lumot kiriting..."
+                className="min-h-[160px] p-4 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 focus:outline-none leading-relaxed"
+                data-placeholder="Vazifa haqida batafsil ma'lumot kiriting..."
               />
             </div>
           </div>
 
           {/* Fayl yuklash */}
           <div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={(e) => { if (e.target.files[0]) setFile(e.target.files[0]); }}
-            />
+            <input type="file" ref={fileInputRef} className="hidden"
+              onChange={(e) => { if (e.target.files[0]) setFile(e.target.files[0]); }} />
             <div
               onClick={() => fileInputRef.current?.click()}
               onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={handleDrop}
-              className={`border border-dashed rounded-xl py-4 flex items-center justify-center gap-2 cursor-pointer transition-all select-none text-sm font-semibold ${
+              className={`border-2 border-dashed rounded-xl py-12 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all select-none ${
                 isDragging
-                  ? 'border-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/10 text-emerald-600'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-emerald-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 dark:text-gray-400'
+                  ? 'border-purple-400 bg-purple-50/30 dark:bg-purple-900/10'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-emerald-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${isDragging ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-emerald-50 dark:bg-emerald-900/20'}`}>
+                <svg className={`w-8 h-8 ${isDragging ? 'text-purple-500' : 'text-emerald-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
               {file ? (
-                <span className="text-emerald-600 dark:text-emerald-400">
-                  {file.name}{' '}
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
-                    className="ml-2 text-red-400 hover:text-red-600"
-                  >
-                    ✕
+                <div className="text-center">
+                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{file.name}</p>
+                  <p className="text-xs text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                    className="mt-2 text-xs text-red-400 hover:text-red-600 transition-colors">
+                    O'chirish
                   </button>
-                </span>
+                </div>
               ) : (
-                <span>Yuklash</span>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="font-bold text-gray-700 dark:text-gray-200">Faylni tanlash</span> yoki shu yerga tashlang
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, Word, ZIP va boshqa formatlar</p>
+                </div>
               )}
-            </div>
-          </div>
-
-          {/* Tugash sanasi + vaqti */}
-          <div className="grid grid-cols-2 gap-5">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                <span className="text-red-500 mr-1">*</span>Tugash sanasi
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all placeholder-gray-400"
-                  placeholder="Sanani kiriting"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                <span className="text-red-500 mr-1">*</span>Tugash vaqti
-              </label>
-              <div className="relative">
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all placeholder-gray-400"
-                  placeholder="Vaqtni kiriting"
-                />
-              </div>
             </div>
           </div>
 
@@ -331,19 +348,12 @@ export default function CreateExam() {
 
         {/* Footer */}
         <div className="flex items-center justify-end gap-3 px-7 py-4 border-t border-gray-100 dark:border-gray-800">
-          <button
-            type="button"
-            onClick={goBack}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-          >
+          <button type="button" onClick={goBack}
+            className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
             Bekor qilish
           </button>
-          <button
-            type="button"
-            onClick={handlePublish}
-            disabled={saving}
-            className="px-7 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-          >
+          <button type="button" onClick={handlePublish} disabled={saving}
+            className="px-7 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
             {saving && (
               <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />

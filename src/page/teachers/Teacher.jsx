@@ -1,14 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import AddTeacherModal from '../components/AddTeacherModal';
-import axiosClient from '../api/axios';
+import AddTeacherModal from '../../components/AddTeacherModal';
+import axiosClient from '../../api/axios';
 
 export default function Teacher() {
-  const { isTeacherModalOpen, setIsTeacherModalOpen, teachers, setTeachers } = useOutletContext();
+  const { isTeacherModalOpen, setIsTeacherModalOpen } = useOutletContext();
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('active'); // 'active' or 'archive'
+  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 10;
   const [deleting, setDeleting] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
+
+  const fetchTeachers = async () => {
+    try {
+      setLoading(true);
+      const endpoint = activeTab === 'active' ? '/teachers' : '/teachers/archive';
+      const res = await axiosClient.get(endpoint);
+      const data = res?.data;
+      let teachersData = [];
+
+      if (Array.isArray(data)) {
+        teachersData = data;
+      } else if (Array.isArray(data?.data)) {
+        teachersData = data.data;
+      }
+
+      const formatted = teachersData.map((item) => ({
+        id: item.id,
+        name: item.full_name || item.name || "Noma'lum",
+        group: item.groups || [],
+        phone: item.phone || "",
+        email: item.email || "",
+        address: item.address || "",
+        createdDate: item.created_at
+          ? new Date(item.created_at).toLocaleDateString("ru-RU")
+          : "",
+      }));
+      setTeachers(formatted);
+    } catch (err) {
+      console.error("Fetch teachers error:", err?.response?.data || err.message);
+      setTeachers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTeachers();
+  }, [activeTab]);
 
   const handleDeleteTeacher = (teacher) => {
     setTeacherToDelete(teacher);
@@ -45,19 +87,34 @@ export default function Teacher() {
     if (typeof page === 'number') setCurrentPage(page);
   };
 
+  const filteredTeachers = teachers.filter((t) =>
+    t.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <>
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {/* Table Header / Filters */}
         <div className="p-4 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 hover:bg-gray-50 transition-colors">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-              </svg>
-              Filters
+            <button 
+              onClick={() => setActiveTab('active')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                activeTab === 'active'
+                  ? 'bg-purple-50 dark:bg-purple-900/20 text-[#7C3AED] dark:text-purple-400 border-purple-200 dark:border-purple-800'
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Faollar
             </button>
-            <button className="px-4 py-2 bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-600 hover:bg-gray-50 transition-colors">
+            <button 
+              onClick={() => setActiveTab('archive')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                activeTab === 'archive'
+                  ? 'bg-purple-50 dark:bg-purple-900/20 text-[#7C3AED] dark:text-purple-400 border-purple-200 dark:border-purple-800'
+                  : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
+              }`}
+            >
               Arxiv
             </button>
           </div>
@@ -66,7 +123,9 @@ export default function Teacher() {
             <div className="relative">
               <input 
                 type="text" 
-                placeholder="Search" 
+                placeholder="Qidirish..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-[#F9FAFB] dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg py-2 px-4 text-sm focus:ring-1 focus:ring-purple-500 focus:outline-none dark:text-white"
               />
             </div>
@@ -91,7 +150,26 @@ export default function Teacher() {
               </tr>
             </thead>
             <tbody className="text-[14px] divide-y divide-gray-50 dark:divide-gray-700">
-              {teachers.map((teacher) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-16 text-gray-400 font-semibold text-sm">
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="animate-spin w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Yuklanmoqda...
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredTeachers.length === 0 ? (
+                <tr>
+                  <td colSpan="8" className="text-center py-16 text-gray-400 font-semibold text-sm">
+                    O'qituvchilar topilmadi.
+                  </td>
+                </tr>
+              ) : (
+                filteredTeachers.map((teacher) => (
                 <tr key={teacher.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors group">
                   <td className="px-6 py-4">
                     <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 w-4 h-4" />
@@ -144,7 +222,7 @@ export default function Teacher() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

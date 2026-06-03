@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
-import AddStudentModal from "../components/AddStudentModal";
-import axiosClient from "../api/axios";
+import AddStudentModal from "../../components/AddStudentModal";
+import axiosClient from "../../api/axios";
 
-const LIMIT = 5;
+const LIMIT = 10;
 
 const AVATAR_COLORS = [
   "bg-purple-100 text-purple-600",
@@ -44,8 +44,6 @@ export default function Student() {
       if (Array.isArray(data)) {
         studentsData = data;
       } else if (Array.isArray(data?.data)) {
-        studentsData = data.data;
-      } else if (data?.success && Array.isArray(data?.data)) {
         studentsData = data.data;
       }
 
@@ -108,8 +106,8 @@ export default function Student() {
       formData.append("email", newStudent.email);
       formData.append("password", newStudent.password);
 
-      // phone: faqat raqamlar, masalan: 900501232 (+998 siz)
-      const phone = (newStudent.phone || "").replace(/\D/g, "").replace(/^998/, "");
+      // phone: faqat raqamlar, masalan: 998900501232 (998 bilan birga)
+      const phone = "998" + (newStudent.phone || "").replace(/\D/g, "").replace(/^998/, "");
       formData.append("phone", phone);
 
       formData.append("address", newStudent.address || "");
@@ -155,7 +153,7 @@ export default function Student() {
         formData.append("password", updatedStudent.password);
       }
 
-      const phone = (updatedStudent.phone || "").replace(/\D/g, "").replace(/^998/, "");
+      const phone = "998" + (updatedStudent.phone || "").replace(/\D/g, "").replace(/^998/, "");
       formData.append("phone", phone);
       formData.append("address", updatedStudent.address || "");
 
@@ -240,6 +238,19 @@ export default function Student() {
     if (hasMore) setPage((p) => p + 1);
   };
 
+  const getPaginationRange = (current, total = 10) => {
+    if (total <= 6) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+    if (current <= 3) {
+      return [1, 2, 3, "...", 8, 9, 10];
+    }
+    if (current >= 8) {
+      return [1, 2, 3, "...", 8, 9, 10];
+    }
+    return [1, "...", current - 1, current, current + 1, "...", 10];
+  };
+
   const filtered = students.filter((s) =>
     s.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
@@ -271,7 +282,7 @@ export default function Student() {
                 placeholder="Talaba qidirish..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-gray-50 dark:bg-gray-700 border-none rounded-lg py-2 pl-10 pr-4 text-sm w-72 focus:ring-1 focus:ring-[#7C3AED] dark:text-white outline-none"
+                className="bg-white dark:bg-gray-700 border border-gray-200/60 dark:border-gray-600 rounded-lg py-2 pl-10 pr-4 text-sm w-72 focus:ring-1 focus:ring-[#7C3AED] dark:text-white outline-none shadow-sm hover:shadow-md transition-all"
               />
             </div>
           </div>
@@ -394,12 +405,12 @@ export default function Student() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 flex-wrap max-w-[160px]">
+                      <div className="flex items-center gap-1 overflow-x-auto max-w-[160px] flex-nowrap no-scrollbar scroll-smooth">
                         {student.groups.length > 0 ? (
                           student.groups.map((group, i) => (
                             <span
                               key={i}
-                              className="px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded text-[11px] font-medium border border-purple-100 dark:border-purple-800"
+                              className="px-2 py-0.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded text-[11px] font-medium border border-purple-100 dark:border-purple-800 shrink-0"
                             >
                               {group}
                             </span>
@@ -521,16 +532,38 @@ export default function Student() {
             Previous
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
-              Sahifa
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium mr-2">
+              Sahifa:
             </span>
-            <span className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold bg-[#7C3AED] text-white shadow-sm">
-              {page}
-            </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
-              · Har sahifada {LIMIT} ta
-            </span>
+            {getPaginationRange(page).map((item, idx) => {
+              if (item === "...") {
+                return (
+                  <span
+                    key={`dots-${idx}`}
+                    className="w-8 h-8 flex items-center justify-center text-xs font-bold text-gray-400 dark:text-gray-500"
+                  >
+                    ...
+                  </span>
+                );
+              }
+
+              const isActive = page === item;
+              return (
+                <button
+                  key={`page-${item}`}
+                  onClick={() => setPage(item)}
+                  disabled={loading}
+                  className={`w-8 h-8 flex items-center justify-center rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? "bg-[#7C3AED] text-white shadow-sm shadow-[#7C3AED]/20 cursor-default"
+                      : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                  }`}
+                >
+                  {item}
+                </button>
+              );
+            })}
           </div>
 
           <button

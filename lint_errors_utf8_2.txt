@@ -1,0 +1,135 @@
+
+> 2-practice@0.0.0 lint
+> eslint .
+
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AddGroupModal.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AddStudentModal.jsx
+  3:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AddTeacherModal.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\AssignGroupModal.jsx
+   1:8  warning  'React' is defined but never used                                                                                                                                                                                                                                                    no-unused-vars
+  36:6  warning  React Hook useEffect has a missing dependency: 'selectedGroups'. Either include it or remove the dependency array. If 'setTempSelected' needs the current value of 'selectedGroups', you can also switch to useReducer instead of useState and read 'selectedGroups' in the reducer  react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Central\Main.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\CreateHomeworkModal.jsx
+   1:8   warning  'React' is defined but never used                 no-unused-vars
+  20:10  warning  'description' is assigned a value but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\ExamsTab.jsx
+  1:8   warning  'React' is defined but never used               no-unused-vars
+  3:92  warning  'setIsExamModalOpen' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\SelectStudentModal.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\SelectTeacherModal.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\ManagementFlyout.jsx
+  1:8  warning  'React' is defined but never used                no-unused-vars
+  9:3  warning  'setIsManagementOpen' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\Sidebar.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\SidebarFooter.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\SidebarHeader.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\components\Sidebar\SidebarNav.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\context\LanguageContext.jsx
+    1:8   warning  'React' is defined but never used                                                                                               no-unused-vars
+  172:17  error    Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\layouts\DashboardLayout.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Dashboard.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\Login.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\CreateExam.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\CreateHomework.jsx
+  1:8  warning  'React' is defined but never used            no-unused-vars
+  5:7  warning  'TOPICS' is assigned a value but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\ExamDetail.jsx
+   1:8   warning  'React' is defined but never used                                                                                   no-unused-vars
+  73:6   warning  React Hook useEffect has a missing dependency: 'passed.examData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  81:14  warning  'err' is defined but never used                                                                                     no-unused-vars
+  87:9   warning  'NavArrow' is assigned a value but never used                                                                       no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\GroupDetails.jsx
+     1:8   warning  'React' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  no-unused-vars
+    10:9   warning  'location' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-unused-vars
+    35:10  warning  'lessonsLoading' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                no-unused-vars
+   564:6   warning  React Hook useEffect has a missing dependency: 'fetchSchedules'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+   571:6   warning  React Hook useEffect has a missing dependency: 'fetchExams'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+   578:6   warning  React Hook useEffect has a missing dependency: 'fetchHomeworks'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+   586:6   warning  React Hook useEffect has missing dependencies: 'fetchLessons' and 'fetchVideos'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  1136:71  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  1134 |                         const givenText = `${gt.date} ${gt.time}`;
+  1135 |
+> 1136 |                         const createdDate = new Date(hw.created_at || Date.now());
+       |                                                                       ^^^^^^^^^^ Cannot call impure function
+  1137 |                         createdDate.setDate(createdDate.getDate() + 1);
+  1138 |                         const et = formatDT(createdDate.toISOString());
+  1139 |                         const endText = `${et.date} ${et.time}`;  react-hooks/purity
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\Groups.jsx
+   1:8  warning  'React' is defined but never used                                                                               no-unused-vars
+  75:6  warning  React Hook useEffect has a missing dependency: 'fetchGroups'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\LessonAttendance.jsx
+  81:6  warning  React Hook React.useEffect has a missing dependency: 'pastLessons'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\groups\VideoPlayer.jsx
+  1:8   warning  'React' is defined but never used        no-unused-vars
+  6:11  warning  'id' is assigned a value but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\Courses.jsx
+    1:8   warning  'React' is defined but never used  no-unused-vars
+  361:33  warning  'idx' is defined but never used    no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\ManagementLayout.jsx
+  1:8   warning  'React' is defined but never used        no-unused-vars
+  2:27  warning  'useNavigate' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\Rooms.jsx
+    1:8   warning  'React' is defined but never used                     no-unused-vars
+   75:7   warning  'branches' is assigned a value but never used         no-unused-vars
+   89:24  warning  'setActiveBranch' is assigned a value but never used  no-unused-vars
+  103:9   warning  'filtered' is assigned a value but never used         no-unused-vars
+  178:18  warning  'e' is defined but never used                         no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\management\Staff.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\students\Student.jsx
+  1:8  warning  'React' is defined but never used  no-unused-vars
+
+D:\Najot ta'lim frontend\7-month\NJ-Edu\src\page\teachers\Teacher.jsx
+   1:8  warning  'React' is defined but never used                                                                                 no-unused-vars
+  53:6  warning  React Hook useEffect has a missing dependency: 'fetchTeachers'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+✖ 56 problems (2 errors, 54 warnings)
+

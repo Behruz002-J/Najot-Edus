@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
-import AddGroupModal from '../components/AddGroupModal';
-import axiosClient from '../api/axios';
+import AddGroupModal from '../../components/AddGroupModal';
+import axiosClient from '../../api/axios';
 
 const MAP_DAYS = {
   MONDAY: 'Du',
@@ -30,8 +30,6 @@ export default function Groups() {
       if (Array.isArray(data)) {
         groupsData = data;
       } else if (Array.isArray(data?.data)) {
-        groupsData = data.data;
-      } else if (data?.success && Array.isArray(data?.data)) {
         groupsData = data.data;
       }
 

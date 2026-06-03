@@ -175,8 +175,6 @@ export default function Rooms() {
           const data = listRes?.data;
           if (Array.isArray(data)) setRooms(data);
           else if (Array.isArray(data?.data)) setRooms(data.data);
-          else if (data?.success && Array.isArray(data?.data))
-            setRooms(data.data);
         } catch (e) {
           // fallback: append the created room locally
           setRooms((prev) => [
