@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext, Link } from 'react-router-dom';
+import { useOutletContext, Link, useNavigate } from 'react-router-dom';
 import AddGroupModal from '../../components/AddGroupModal';
 import axiosClient from '../../api/axios';
 import { useLanguage } from '../../context/LanguageContext';
@@ -16,6 +16,7 @@ const MAP_DAYS = {
 
 export default function Groups() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('groups');
   const { isGroupModalOpen, setIsGroupModalOpen } = useOutletContext();
   const [groups, setGroups] = useState([]);
@@ -234,8 +235,12 @@ export default function Groups() {
                 </tr>
               ) : (
                 filteredGroups.map((group) => (
-                  <tr key={group.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors group">
-                    <td className="px-6 py-4">
+                  <tr 
+                    key={group.id} 
+                    onClick={() => navigate(`/dashboard/groups/${group.id}`)}
+                    className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors group cursor-pointer"
+                  >
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input 
@@ -252,7 +257,11 @@ export default function Groups() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Link to={`/dashboard/groups/${group.id}`} className="text-sm font-bold text-gray-800 dark:text-white hover:text-[#7C3AED] dark:hover:text-purple-400 transition-colors">
+                      <Link 
+                        to={`/dashboard/groups/${group.id}`} 
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-sm font-bold text-gray-800 dark:text-white hover:text-[#7C3AED] dark:hover:text-purple-400 transition-colors"
+                      >
                         {group.name}
                       </Link>
                     </td>
@@ -279,7 +288,7 @@ export default function Groups() {
                     <td className="px-6 py-4 text-center">
                       <span className="text-sm font-bold text-gray-800 dark:text-white">{group.students}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <button className="p-1 text-gray-300 hover:text-gray-500 transition-colors">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />

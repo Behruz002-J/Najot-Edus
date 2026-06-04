@@ -177,6 +177,59 @@ export default function HomeworkDetail() {
     fetchHomeworkDetails();
   }, [homeworkId, id]);
 
+  const fetchSubmissionsByTab = async (tabId) => {
+    try {
+      setLoading(true);
+      let endpoint = `/group/${id}/homework/${homeworkId}/results`;
+      if (tabId === 'waiting') endpoint += '?status=PENDING';
+      else if (tabId === 'returned') endpoint += '?status=REJECTED';
+      else if (tabId === 'accepted') endpoint += '?status=ACCEPTED';
+
+      const response = await axiosClient.get(endpoint);
+      if (response && response.data && response.data.success) {
+        const resData = response.data.data;
+        let studentsList = [];
+        if (resData && Array.isArray(resData.students)) {
+          studentsList = resData.students;
+        } else if (Array.isArray(response.data.students)) {
+          studentsList = response.data.students;
+        } else if (Array.isArray(resData)) {
+          studentsList = resData;
+        }
+
+        const mapped = studentsList.map(s => ({
+          id: s.id || s.student_id || Math.random(),
+          full_name: s.full_name || s.name || s.student_name || s.student?.full_name || s.student?.name || 'Noma\'lum',
+          submitted_at: s.submitted_at || s.created_at || s.submission_date || s.updated_at,
+          files_count: s.files_count || (s.files ? s.files.length : 0) || 0,
+          status: tabId,
+          description: s.description || s.comment || s.text || s.feedback || (s.github_link ? `Github: ${s.github_link}` : '') || '',
+          score: s.score || s.grade || 0,
+          ...s
+        }));
+
+        if (tabId === 'waiting') setWaitingSubmissions(mapped);
+        else if (tabId === 'returned') setReturnedSubmissions(mapped);
+        else if (tabId === 'accepted') setAcceptedSubmissions(mapped);
+        else if (tabId === 'unsubmitted') setUnsubmittedSubmissions(mapped);
+      } else {
+        applyMockDataByTab(tabId);
+      }
+    } catch (err) {
+      console.warn(`Failed to fetch submissions for tab ${tabId}:`, err);
+      applyMockDataByTab(tabId);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyMockDataByTab = (tabId) => {
+    if (tabId === 'waiting') setWaitingSubmissions(MOCK_WAITING_STUDENTS);
+    else if (tabId === 'returned') setReturnedSubmissions(MOCK_RETURNED_STUDENTS);
+    else if (tabId === 'accepted') setAcceptedSubmissions(MOCK_ACCEPTED_STUDENTS);
+    else if (tabId === 'unsubmitted') setUnsubmittedSubmissions(MOCK_UNSUBMITTED_STUDENTS);
+  };
+
   const goBack = () => navigate(`/dashboard/groups/${id}`);
 
   const handleSelectStudent = (student) => {
@@ -298,6 +351,7 @@ export default function HomeworkDetail() {
                 onClick={() => {
                   setActiveTab(tab.id);
                   setSelectedStudent(null);
+                  fetchSubmissionsByTab(tab.id);
                 }}
                 className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-all -mb-px cursor-pointer flex items-center gap-2 ${
                   isActive

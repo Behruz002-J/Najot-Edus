@@ -1167,22 +1167,28 @@ export default function GroupDetails() {
                   { id: 'videos',   label: t('groupDetail.videos') },
                   { id: 'exams',    label: t('groupDetail.exams') },
                   { id: 'journal',  label: t('groupDetail.journal') },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setSubTab(tab.id)}
-                    className={`px-4 py-2.5 text-sm transition-all cursor-pointer relative whitespace-nowrap ${
-                      subTab === tab.id
-                        ? 'font-bold text-gray-800 dark:text-white'
-                        : 'font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                    }`}
-                  >
-                    {tab.label}
-                    {subTab === tab.id && (
-                      <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800 dark:bg-white rounded-t-full" />
-                    )}
-                  </button>
-                ))}
+                ].map((tab) => {
+                  const isActive = subTab === tab.id;
+                  const isHomework = tab.id === 'homework';
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setSubTab(tab.id)}
+                      className={`px-4 py-2 text-sm transition-all cursor-pointer relative whitespace-nowrap ${
+                        isActive
+                          ? isHomework
+                            ? 'font-bold text-[#D97706] dark:text-[#F59E0B] border border-[#FCD34D] dark:border-[#FCD34D]/30 bg-[#FEF3C7]/40 dark:bg-[#78350F]/20 rounded-xl px-4 py-1.5'
+                            : 'font-bold text-gray-800 dark:text-white'
+                          : 'font-medium text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                      }`}
+                    >
+                      {tab.label}
+                      {isActive && !isHomework && (
+                        <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-gray-800 dark:bg-white rounded-t-full" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
