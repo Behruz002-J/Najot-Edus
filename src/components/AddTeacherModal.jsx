@@ -142,6 +142,7 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
           phone: '+998 ' + formData.phone,
           email: formData.email,
           address: formData.address,
+          photo: resData.data?.photo || (selectedFile ? URL.createObjectURL(selectedFile) : null),
           createdDate: new Date().toLocaleDateString('ru-RU')
         };
 

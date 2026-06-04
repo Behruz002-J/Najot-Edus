@@ -37,6 +37,7 @@ export default function Teacher() {
         phone: item.phone || "",
         email: item.email || "",
         address: item.address || "",
+        photo: item.photo || null,
         createdDate: item.created_at
           ? new Date(item.created_at).toLocaleDateString("ru-RU")
           : "",
@@ -178,11 +179,19 @@ export default function Teacher() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${teacher.name + currentPage}`} 
-                        alt="" 
-                        className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 object-cover" 
-                      />
+                      {teacher.photo ? (
+                        <img 
+                          src={teacher.photo.startsWith('http') || teacher.photo.startsWith('blob:') ? teacher.photo : `https://najot-edu.softwareengineer.uz${teacher.photo.startsWith('/') ? '' : '/'}${teacher.photo}`} 
+                          alt={teacher.name} 
+                          className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700" 
+                        />
+                      ) : (
+                        <img 
+                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${teacher.name + currentPage}`} 
+                          alt="" 
+                          className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 object-cover" 
+                        />
+                      )}
                       <span className="font-medium text-gray-900 dark:text-gray-100">{teacher.name} {currentPage > 1 ? `#${currentPage}` : ''}</span>
                     </div>
                   </td>

@@ -354,9 +354,9 @@ export default function DashboardLayout() {
 
             <div className="flex items-center gap-3 ml-2">
               <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName || "Admin")}`}
+                src="/profile-avatar.jpg"
                 alt="Profile"
-                className="w-9 h-9 rounded-full border border-gray-200 dark:border-gray-600"
+                className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600"
               />
             </div>
           </div>

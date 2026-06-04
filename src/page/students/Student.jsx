@@ -396,11 +396,19 @@ export default function Student() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${student.bgColor}`}
-                        >
-                          {student.initial}
-                        </div>
+                        {student.photo ? (
+                          <img
+                            src={student.photo.startsWith('http') || student.photo.startsWith('blob:') ? student.photo : `https://najot-edu.softwareengineer.uz${student.photo.startsWith('/') ? '' : '/'}${student.photo}`}
+                            alt={student.name}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0 bg-gray-100 dark:bg-gray-700"
+                          />
+                        ) : (
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${student.bgColor}`}
+                          >
+                            {student.initial}
+                          </div>
+                        )}
                         <span className="font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">
                           {student.name}
                         </span>
