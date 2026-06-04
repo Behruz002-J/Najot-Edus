@@ -1247,12 +1247,16 @@ export default function GroupDetails() {
                         const endText = `${et.date} ${et.time}`;
 
                         return (
-                          <tr key={hw.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors">
+                          <tr 
+                            key={hw.id} 
+                            onClick={() => navigate(`/dashboard/groups/${id}/homework/${hw.id}`, { state: { homeworkData: hw } })}
+                            className="hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors cursor-pointer"
+                          >
                             <td className="py-4 px-4 text-center font-bold text-gray-400 dark:text-gray-500 text-xs">{hw.id}</td>
                             <td className="py-4 px-4">
                               <button
                                 type="button"
-                                onClick={() => navigate(`/dashboard/groups/${id}/homework/${hw.id}`, { state: { homeworkData: hw } })}
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
                               >
                                 {hw.topic || (typeof hw.title === 'object' ? hw.title?.topic || hw.title?.title || hw.title?.name || '—' : hw.title || '—')}
@@ -1266,7 +1270,7 @@ export default function GroupDetails() {
                             <td className="py-4 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{givenText}</td>
                             <td className="py-4 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">{endText}</td>
                             <td className="py-4 px-4 text-xs font-bold text-gray-700 dark:text-gray-300">{gt.date}</td>
-                            <td className="py-4 px-4 text-center">
+                            <td className="py-4 px-4 text-center" onClick={(e) => e.stopPropagation()}>
                               <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
