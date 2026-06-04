@@ -143,21 +143,21 @@ export default function HomeworkDetail() {
             setAcceptedSubmissions(mapStudents(aList, 'accepted'));
             setUnsubmittedSubmissions(mapStudents(nList, 'unsubmitted'));
           } else {
-            useMockData();
+            applyMockData();
           }
         } catch (apiErr) {
           console.warn('API sub-fetching failed, using mock data:', apiErr);
-          useMockData();
+          applyMockData();
         }
       } catch (err) {
         console.error('Fetch homework detail page error, fallback to mock:', err);
-        useMockData();
+        applyMockData();
       } finally {
         setLoading(false);
       }
     };
 
-    const useMockData = () => {
+    const applyMockData = () => {
       setWaitingSubmissions(MOCK_WAITING_STUDENTS);
       setReturnedSubmissions(MOCK_RETURNED_STUDENTS);
       setAcceptedSubmissions(MOCK_ACCEPTED_STUDENTS);
