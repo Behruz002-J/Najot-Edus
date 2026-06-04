@@ -284,7 +284,7 @@ export default function HomeworkDetail() {
         </div>
 
         {/* Tab row */}
-        <div className="px-6 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/50 flex flex-wrap gap-2">
+        <div className="px-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/50 flex flex-wrap gap-4">
           {[
             { id: 'waiting', label: t('homeworkDetail.waiting'), count: waitingSubmissions.length },
             { id: 'returned', label: t('homeworkDetail.returned'), count: returnedSubmissions.length },
@@ -299,15 +299,23 @@ export default function HomeworkDetail() {
                   setActiveTab(tab.id);
                   setSelectedStudent(null);
                 }}
-                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer border ${
+                className={`px-4 py-3 text-xs font-bold whitespace-nowrap border-b-2 transition-all -mb-px cursor-pointer flex items-center gap-2 ${
                   isActive
-                    ? 'bg-[#FEF3C7]/40 dark:bg-[#78350F]/20 text-[#D97706] border-[#FCD34D] dark:border-[#FCD34D]/30'
-                    : 'bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white border-gray-200 dark:border-gray-700'
+                    ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:border-gray-300'
                 }`}
               >
                 <span>{tab.label}</span>
                 {tab.count > 0 && (
-                  <span className="w-5 h-5 flex items-center justify-center bg-[#D97706] text-white rounded-full text-[10px] font-black">
+                  <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-black ${
+                    tab.id === 'waiting'
+                      ? 'bg-emerald-500 text-white'
+                      : tab.id === 'returned'
+                      ? 'bg-red-500 text-white'
+                      : tab.id === 'accepted'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-yellow-500 text-white'
+                  }`}>
                     {tab.count}
                   </span>
                 )}
