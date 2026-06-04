@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import axiosClient from "../../api/axios";
 
 // ─── Toast Component ────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ export default function Courses() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -199,17 +201,22 @@ export default function Courses() {
 
   // ── Open Add modal ────────────────────────────────────────────────────────
   const handleAdd = () => {
+    setEditingCourse(null);
     setForm({ name: "", description: "", duration: "", months: "", price: "" });
     setShowModal(true);
   };
 
-  // ── Edit: not supported by backend ───────────────────────────────────────
-  const handleEdit = () => {
-    addToast(
-      "warning",
-      "Tahrirlash mumkin emas",
-      "Hozircha backend API kursni tahrirlashni qo'llab-quvvatlamaydi.",
-    );
+  // ── Edit: supported via PATCH ─────────────────────────────────────────────
+  const handleEdit = (course) => {
+    setEditingCourse(course);
+    setForm({
+      name: course.name || "",
+      description: course.description || "",
+      duration: course.duration_hours || course.duration || "",
+      months: course.duration_month || "",
+      price: course.price || "",
+    });
+    setShowModal(true);
   };
 
   // ── Delete ─────────────────────────────────────────────────────────────────
@@ -241,7 +248,7 @@ export default function Courses() {
     setCourseToDelete(null);
   };
 
-  // ── Save (POST) new course ────────────────────────────────────────────────
+  // ── Save (POST/PATCH) course ──────────────────────────────────────────────
   const handleSave = async () => {
     if (!form.name || !form.price || !form.duration || !form.months) return;
     setSaving(true);
@@ -253,22 +260,46 @@ export default function Courses() {
         duration_hours: Number(form.duration),
         duration_month: Number(form.months),
       };
-      const res = await axiosClient.post("/courses", payload);
-      if (res.status === 200 || res.status === 201) {
-        addToast(
-          "success",
-          "Kurs muvaffaqiyatli qo'shildi!",
-          `"${form.name}" kursi bazaga saqlandi.`,
-        );
-        setShowModal(false);
-        setForm({
-          name: "",
-          description: "",
-          duration: "",
-          months: "",
-          price: "",
-        });
-        await fetchCourses();
+      
+      if (editingCourse) {
+        // Edit mode: PATCH /courses/:id
+        const res = await axiosClient.patch(`/courses/${editingCourse.id}`, payload);
+        if (res.status === 200 || res.status === 201 || res.data?.success) {
+          addToast(
+            "success",
+            "Kurs muvaffaqiyatli tahrirlandi!",
+            `"${form.name}" kursi o'zgartirildi.`,
+          );
+          setShowModal(false);
+          setEditingCourse(null);
+          setForm({
+            name: "",
+            description: "",
+            duration: "",
+            months: "",
+            price: "",
+          });
+          await fetchCourses();
+        }
+      } else {
+        // Add mode: POST /courses
+        const res = await axiosClient.post("/courses", payload);
+        if (res.status === 200 || res.status === 201 || res.data?.success) {
+          addToast(
+            "success",
+            "Kurs muvaffaqiyatli qo'shildi!",
+            `"${form.name}" kursi bazaga saqlandi.`,
+          );
+          setShowModal(false);
+          setForm({
+            name: "",
+            description: "",
+            duration: "",
+            months: "",
+            price: "",
+          });
+          await fetchCourses();
+        }
       }
     } catch (err) {
       const msg =
@@ -305,25 +336,46 @@ export default function Courses() {
             ta kurs
           </p>
         </div>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-6 py-3 bg-[#7C3AED] text-white text-[15px] font-bold rounded-2xl hover:bg-[#6D28D9] transition-all shadow-lg shadow-purple-100 dark:shadow-none active:scale-95"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard/management/archive"
+            className="flex items-center gap-2 px-5 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-[15px] font-bold rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm active:scale-95"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Kurs qo'shish
-        </button>
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 8h14M5 8a2 2 0 110-4 2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+              />
+            </svg>
+            Arxiv
+          </Link>
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-6 py-3 bg-[#7C3AED] text-white text-[15px] font-bold rounded-2xl hover:bg-[#6D28D9] transition-all shadow-lg shadow-purple-100 dark:shadow-none active:scale-95"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Kurs qo'shish
+          </button>
+        </div>
       </div>
 
       {/* Loading Skeleton */}
@@ -404,9 +456,9 @@ export default function Courses() {
                     </svg>
                   </button>
                   <button
-                    onClick={handleEdit}
+                    onClick={() => handleEdit(course)}
                     className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                    title="Tahrirlash (hozircha qo'llab-quvvatlanmaydi)"
+                    title="Tahrirlash"
                   >
                     <svg
                       className="w-5 h-5"
@@ -497,10 +549,10 @@ export default function Courses() {
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="text-[20px] font-bold text-gray-900 dark:text-white mb-1">
-                    Kurs qo'shish
+                    {editingCourse ? "Kursni tahrirlash" : "Kurs qo'shish"}
                   </h3>
                   <p className="text-[13px] text-gray-500 dark:text-gray-400">
-                    Yangi kurs ma'lumotlarini kiriting.
+                    {editingCourse ? "Kurs ma'lumotlarini o'zgartiring." : "Yangi kurs ma'lumotlarini kiriting."}
                   </p>
                 </div>
                 <button

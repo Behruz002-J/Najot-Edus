@@ -4,6 +4,16 @@ import AddTeacherModal from '../../components/AddTeacherModal';
 import axiosClient from '../../api/axios';
 import { useLanguage } from '../../context/LanguageContext';
 
+const getImageUrl = (photo) => {
+  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (photo.startsWith('http') || photo.startsWith('blob:')) return photo;
+  const path = photo.startsWith('/') ? photo : `/${photo}`;
+  if (path.startsWith('/files/')) {
+    return `https://najot-edu.softwareengineer.uz${path}`;
+  }
+  return `https://najot-edu.softwareengineer.uz/files${path}`;
+};
+
 export default function Teacher() {
   const { isTeacherModalOpen, setIsTeacherModalOpen } = useOutletContext();
   const [teachers, setTeachers] = useState([]);
@@ -37,7 +47,7 @@ export default function Teacher() {
         phone: item.phone || "",
         email: item.email || "",
         address: item.address || "",
-        photo: item.photo || null,
+        photo: item.photo || item.avatar || item.image || null,
         createdDate: item.created_at
           ? new Date(item.created_at).toLocaleDateString("ru-RU")
           : "",
@@ -181,13 +191,16 @@ export default function Teacher() {
                     <div className="flex items-center gap-3">
                       {teacher.photo ? (
                         <img 
-                          src={teacher.photo.startsWith('http') || teacher.photo.startsWith('blob:') ? teacher.photo : `https://najot-edu.softwareengineer.uz${teacher.photo.startsWith('/') ? '' : '/'}${teacher.photo}`} 
+                          src={getImageUrl(teacher.photo)} 
                           alt={teacher.name} 
+                          onError={(e) => {
+                            e.target.src = '/bane-profile.jpg';
+                          }}
                           className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700" 
                         />
                       ) : (
                         <img 
-                          src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${teacher.name + currentPage}`} 
+                          src="/bane-profile.jpg" 
                           alt="" 
                           className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 object-cover" 
                         />

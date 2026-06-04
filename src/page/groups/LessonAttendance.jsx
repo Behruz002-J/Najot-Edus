@@ -9,8 +9,10 @@ export default function LessonAttendance() {
 
   // Alert/Snackbar notification state
   const [alertMessage, setAlertMessage] = useState(null);
-  const triggerAlert = (msg) => {
+  const [alertType, setAlertType] = useState("info"); // "info" or "success"
+  const triggerAlert = (msg, type = "info") => {
     setAlertMessage(msg);
+    setAlertType(type);
     setTimeout(() => {
       setAlertMessage(null);
     }, 3000);
@@ -57,15 +59,33 @@ export default function LessonAttendance() {
   // Expanded months state: when true show all dates for that month
   const [expandedMonths, setExpandedMonths] = useState({});
 
-  // Attendance list state
-  const [students, setStudents] = useState([
+  const defaultStudents = [
     { id: 1, name: "Ali Valiyev", avatarSeed: "Ali", attended: true },
     { id: 2, name: "Salim Qodirov", avatarSeed: "Salim", attended: false },
     { id: 3, name: "Bobur", avatarSeed: "Bobur", attended: false },
-  ]);
+  ];
 
-  const pastDates = ["2", "5", "7", "9", "12"];
-  const isSaved = pastDates.includes(date);
+  // Attendance list state
+  const [students, setStudents] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`attendance_students_${groupId || "1"}_${date}`);
+      return stored ? JSON.parse(stored) : defaultStudents;
+    } catch {
+      return defaultStudents;
+    }
+  });
+
+  const defaultPastDates = ["2", "5", "7", "9", "12"];
+  const [savedDates, setSavedDates] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`attendance_saved_${groupId || "1"}`);
+      return stored ? JSON.parse(stored) : defaultPastDates;
+    } catch {
+      return defaultPastDates;
+    }
+  });
+
+  const isSaved = savedDates.includes(date);
 
   const toggleAttendance = (id) => {
     if (isSaved) return; // Prevent changing past attendance
@@ -74,33 +94,58 @@ export default function LessonAttendance() {
     );
   };
 
+  const handleSave = () => {
+    if (isSaved) return;
+    const newSavedDates = [...savedDates, date];
+    setSavedDates(newSavedDates);
+    try {
+      localStorage.setItem(`attendance_saved_${groupId || "1"}`, JSON.stringify(newSavedDates));
+      localStorage.setItem(`attendance_students_${groupId || "1"}_${date}`, JSON.stringify(students));
+    } catch (e) {
+      console.error(e);
+    }
+    
+    triggerAlert("Yo'qlama muvaffaqiyatli saqlandi va dars yakunlandi!", "success");
+    setTimeout(() => {
+      navigate(`/dashboard/groups/${groupId || "1"}`);
+    }, 1500);
+  };
+
   // Hooking topic loaded whenever date changes in URL
   React.useEffect(() => {
     const freshLesson = pastLessons[date] || { topic: "Nodejs", desc: "" };
     setTopicName(freshLesson.topic);
     setDescription(freshLesson.desc);
     setTopicType(pastLessons[date] ? "syllabus" : "other");
-  }, [date]);
+
+    // Load students for this date
+    try {
+      const stored = localStorage.getItem(`attendance_students_${groupId || "1"}_${date}`);
+      setStudents(stored ? JSON.parse(stored) : defaultStudents);
+    } catch {
+      setStudents(defaultStudents);
+    }
+  }, [date, groupId]);
 
   return (
     <div className="space-y-6 relative">
       {/* Alert/Snackbar Notification */}
       {alertMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="flex items-center gap-3 px-5 py-3.5 bg-[#ED6C02] text-white rounded-xl shadow-lg border border-orange-500 font-bold text-sm">
-            <svg
-              className="w-5 h-5 flex-shrink-0 animate-bounce"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2.5}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+          <div className={`flex items-center gap-3 px-5 py-3.5 text-white rounded-xl shadow-lg border font-bold text-sm ${
+            alertType === "success" 
+              ? "bg-emerald-600 border-emerald-500" 
+              : "bg-[#ED6C02] border-orange-500"
+          }`}>
+            {alertType === "success" ? (
+              <svg className="w-5 h-5 flex-shrink-0 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5 flex-shrink-0 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            )}
             <span>{alertMessage}</span>
           </div>
         </div>
@@ -195,10 +240,23 @@ export default function LessonAttendance() {
       </div>
 
       {/* 4. Yo'qlama va mavzu kiritish */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm space-y-6 relative overflow-hidden">
+      <div className={`bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm space-y-6 relative overflow-hidden transition-all duration-300 ${
+        isSaved 
+          ? "bg-white/80 dark:bg-gray-800/80 opacity-60 pointer-events-none cursor-not-allowed select-none" 
+          : ""
+      }`}>
         <h3 className="text-lg font-bold text-gray-800 dark:text-white">
           {t('lessonAttendance.attendanceAndTopic')}
         </h3>
+
+        {isSaved && (
+          <div className="flex items-center gap-2.5 p-4 bg-gray-50/50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-500 dark:text-gray-400">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Yo'qlama boshqa o'qituvchi tomonidan saqlangan va muzlatilgan. Tahrirlash imkoniyati yo'q.
+          </div>
+        )}
 
         {/* Radio group */}
         <div className="flex items-center gap-6">
@@ -263,10 +321,7 @@ export default function LessonAttendance() {
           />
         </div>
 
-        {/* Giant Watermark background */}
-        <div className="absolute right-0 top-1/3 pointer-events-none select-none text-[150px] font-black text-gray-200/25 dark:text-gray-800/10 z-0">
-          38645
-        </div>
+
 
         {/* Attendance List */}
         <div className="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4 z-10 relative">
@@ -314,20 +369,7 @@ export default function LessonAttendance() {
           </div>
         </div>
 
-        {/* Bottom-right watermark logo/motif */}
-        <div className="absolute right-4 bottom-2 opacity-[0.12] pointer-events-none select-none dark:opacity-[0.05]">
-          <svg
-            className="w-12 h-12 text-amber-600 dark:text-amber-400"
-            viewBox="0 0 100 100"
-            fill="currentColor"
-          >
-            <path d="M50 20 C60 10, 80 10, 80 35 C80 50, 60 70, 50 80 C40 70, 20 50, 20 35 C20 10, 40 10, 50 20 Z" />
-            <path
-              d="M50 30 C55 20, 70 20, 70 40 C70 50, 55 65, 50 72 C45 65, 30 50, 30 40 C30 20, 45 20, 50 30 Z"
-              opacity="0.6"
-            />
-          </svg>
-        </div>
+
       </div>
 
       {/* Save Button */}
@@ -347,7 +389,7 @@ export default function LessonAttendance() {
           </button>
         ) : (
           <button
-            onClick={() => navigate(`/dashboard/groups/${groupId || "1"}`)}
+            onClick={handleSave}
             className="px-6 py-3 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-sm font-bold shadow-md shadow-purple-100/50 dark:shadow-none transition-colors"
           >
             {t('common.save')}

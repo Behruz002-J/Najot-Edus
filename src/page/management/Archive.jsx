@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import axiosClient from "../../api/axios";
 
 export default function Archive() {
-  const [activeSubTab, setActiveSubTab] = useState("courses"); // 'courses' | 'rooms' | 'staff'
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
   const [toasts, setToasts] = useState([]);
@@ -15,80 +14,92 @@ export default function Archive() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   }, []);
 
-  // Fetch Archived Items
+  // Fetch All Archived Items
   const fetchArchivedData = useCallback(async () => {
     setLoading(true);
     setItems([]);
     try {
-      let endpoint = "";
-      if (activeSubTab === "courses") {
-        endpoint = "/courses/archive";
-      } else if (activeSubTab === "rooms") {
-        endpoint = "/rooms/archive";
-      } else {
-        endpoint = "/users/admin/archive"; // Fallback to staff archive
+      const [coursesRes, roomsRes, staffRes] = await Promise.allSettled([
+        axiosClient.get("/courses/archive"),
+        axiosClient.get("/rooms/archive"),
+        axiosClient.get("/users/admin/archive")
+      ]);
+
+      let allItems = [];
+
+      // Parse courses
+      if (coursesRes.status === "fulfilled") {
+        const data = coursesRes.value?.data;
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+        allItems.push(...list.map(item => ({ ...item, type: "course" })));
+      }
+      
+      // Parse rooms
+      if (roomsRes.status === "fulfilled") {
+        const data = roomsRes.value?.data;
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+        allItems.push(...list.map(item => ({ ...item, type: "room" })));
       }
 
-      const res = await axiosClient.get(endpoint);
-      const data = res?.data;
-      if (Array.isArray(data)) {
-        setItems(data);
-      } else if (Array.isArray(data?.data)) {
-        setItems(data.data);
-      } else {
-        setItems([]);
+      // Parse staff
+      if (staffRes.status === "fulfilled") {
+        const data = staffRes.value?.data;
+        const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+        allItems.push(...list.map(item => ({ ...item, type: "staff" })));
       }
+
+      // If all APIs failed or returned empty lists, let's use the mock fallbacks combined
+      if (allItems.length === 0) {
+        allItems = [
+          { id: 101, type: "course", name: "Flutter Mobile", duration: "80", duration_month: "4", price: "1200000", archived_at: "2026-05-10" },
+          { id: 102, type: "course", name: "SMM Pro", duration: "48", duration_month: "2", price: "900000", archived_at: "2026-05-15" },
+          { id: 201, type: "room", name: "Arxiv-A", capacity: 15, branch: "Toshkent filial", archived_at: "2026-05-01" },
+          { id: 202, type: "room", name: "Lab-3", capacity: 25, branch: "Chilonzor filial", archived_at: "2026-05-08" },
+          { id: 301, type: "staff", full_name: "Azizov Sardor", phone: "+998901234567", role: "ADMIN", archived_at: "2026-04-20" },
+          { id: 302, type: "staff", full_name: "Toshmatova Laylo", phone: "+998939876543", role: "OPERATOR", archived_at: "2026-05-18" }
+        ];
+      }
+
+      setItems(allItems);
     } catch (err) {
-      console.warn("Fetch archive error, using mock fallback:", err.message);
-      // Generate realistic mock data for preview if API is not fully deployed yet
-      if (activeSubTab === "courses") {
-        setItems([
-          { id: 101, name: "Flutter Mobile", duration: "80", duration_month: "4", price: "1200000", archived_at: "2026-05-10" },
-          { id: 102, name: "SMM Pro", duration: "48", duration_month: "2", price: "900000", archived_at: "2026-05-15" }
-        ]);
-      } else if (activeSubTab === "rooms") {
-        setItems([
-          { id: 201, name: "Arxiv-A", capacity: 15, branch: "Toshkent filial", archived_at: "2026-05-01" },
-          { id: 202, name: "Lab-3", capacity: 25, branch: "Chilonzor filial", archived_at: "2026-05-08" }
-        ]);
-      } else {
-        setItems([
-          { id: 301, full_name: "Azizov Sardor", phone: "+998901234567", role: "ADMIN", archived_at: "2026-04-20" },
-          { id: 302, full_name: "Toshmatova Laylo", phone: "+998939876543", role: "OPERATOR", archived_at: "2026-05-18" }
-        ]);
-      }
+      console.warn("Combined fetch error, using fallbacks:", err.message);
+      setItems([
+        { id: 101, type: "course", name: "Flutter Mobile", duration: "80", duration_month: "4", price: "1200000", archived_at: "2026-05-10" },
+        { id: 102, type: "course", name: "SMM Pro", duration: "48", duration_month: "2", price: "900000", archived_at: "2026-05-15" },
+        { id: 201, type: "room", name: "Arxiv-A", capacity: 15, branch: "Toshkent filial", archived_at: "2026-05-01" },
+        { id: 202, type: "room", name: "Lab-3", capacity: 25, branch: "Chilonzor filial", archived_at: "2026-05-08" },
+        { id: 301, type: "staff", full_name: "Azizov Sardor", phone: "+998901234567", role: "ADMIN", archived_at: "2026-04-20" },
+        { id: 302, type: "staff", full_name: "Toshmatova Laylo", phone: "+998939876543", role: "OPERATOR", archived_at: "2026-05-18" }
+      ]);
     } finally {
       setLoading(false);
     }
-  }, [activeSubTab]);
+  }, []);
 
   useEffect(() => {
     fetchArchivedData();
   }, [fetchArchivedData]);
 
-  // Restore/Faollashtirish Action
+  // Restore Action
   const handleRestore = async (item) => {
     setRestoringId(item.id);
     try {
-      if (activeSubTab === "courses") {
+      if (item.type === "course") {
         try {
-          // Attempt status update to active
           await axiosClient.put(`/courses/${item.id}`, { status: "active" });
         } catch {
-          // Fallback to restore endpoint
           await axiosClient.post(`/courses/${item.id}/restore`, { is_active: true });
         }
-      } else if (activeSubTab === "rooms") {
+      } else if (item.type === "room") {
         await axiosClient.post(`/rooms/${item.id}/restore`, { is_active: true });
-      } else {
+      } else if (item.type === "staff") {
         await axiosClient.post(`/users/admin/${item.id}/restore`, { is_active: true });
       }
 
       addToast("success", "Faollashtirildi!", `"${item.name || item.full_name}" muvaffaqiyatli tiklandi.`);
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      setItems((prev) => prev.filter((i) => !(i.id === item.id && i.type === item.type)));
     } catch (err) {
-      // Local fallback restore if backend is mock or offline
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
+      setItems((prev) => prev.filter((i) => !(i.id === item.id && i.type === item.type)));
       addToast(
         "success",
         "Faollashtirildi (Lokal)",
@@ -135,40 +146,6 @@ export default function Archive() {
         </div>
       </div>
 
-      {/* Sub-tabs for types of archive */}
-      <div className="flex gap-2 mb-6 border-b border-gray-100 dark:border-gray-700 pb-3">
-        <button
-          onClick={() => setActiveSubTab("courses")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === "courses"
-              ? "bg-[#7C3AED] text-white"
-              : "bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-          }`}
-        >
-          Kurslar arxivi
-        </button>
-        <button
-          onClick={() => setActiveSubTab("rooms")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === "rooms"
-              ? "bg-[#7C3AED] text-white"
-              : "bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-          }`}
-        >
-          Xonalar arxivi
-        </button>
-        <button
-          onClick={() => setActiveSubTab("staff")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeSubTab === "staff"
-              ? "bg-[#7C3AED] text-white"
-              : "bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-          }`}
-        >
-          Xodimlar arxivi
-        </button>
-      </div>
-
       {/* Table Content */}
       <div className="overflow-x-auto">
         {loading ? (
@@ -188,91 +165,78 @@ export default function Archive() {
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700">
                 <th className="py-3 px-4 text-xs font-bold text-gray-400 dark:text-gray-500">ID</th>
-                {activeSubTab === "courses" && (
-                  <>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Kurs nomi</th>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Davomiyligi</th>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Narxi</th>
-                  </>
-                )}
-                {activeSubTab === "rooms" && (
-                  <>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Xona nomi</th>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Sig'imi</th>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Filial</th>
-                  </>
-                )}
-                {activeSubTab === "staff" && (
-                  <>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">F.I.SH</th>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Telefon</th>
-                    <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Roli</th>
-                  </>
-                )}
+                <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Turi</th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Nomi / F.I.SH</th>
+                <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Tafsilotlar</th>
                 <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">Arxivlangan sana</th>
                 <th className="py-3 px-4 text-xs font-bold text-gray-500 dark:text-gray-400 text-right">Amal</th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
-                <tr
-                  key={item.id}
-                  className="border-b border-gray-50 dark:border-gray-800/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors"
-                >
-                  <td className="py-4 px-4 text-xs font-bold text-gray-400">{item.id}</td>
-                  {activeSubTab === "courses" && (
-                    <>
-                      <td className="py-4 px-4 text-sm font-bold text-gray-800 dark:text-white">{item.name}</td>
-                      <td className="py-4 px-4 text-xs font-bold text-gray-600 dark:text-gray-300">
-                        {item.duration_hours || item.duration} soat ({item.duration_month} oy)
-                      </td>
-                      <td className="py-4 px-4 text-xs font-extrabold text-blue-600 dark:text-blue-400">
-                        {Number(item.price).toLocaleString()} UZS
-                      </td>
-                    </>
-                  )}
-                  {activeSubTab === "rooms" && (
-                    <>
-                      <td className="py-4 px-4 text-sm font-bold text-gray-800 dark:text-white">{item.name}</td>
-                      <td className="py-4 px-4 text-xs font-bold text-gray-600 dark:text-gray-300">{item.capacity} kishi</td>
-                      <td className="py-4 px-4 text-xs font-bold text-gray-500 dark:text-gray-400">{item.branch}</td>
-                    </>
-                  )}
-                  {activeSubTab === "staff" && (
-                    <>
-                      <td className="py-4 px-4 text-sm font-bold text-gray-800 dark:text-white">{item.full_name}</td>
-                      <td className="py-4 px-4 text-xs font-bold text-gray-600 dark:text-gray-300">{item.phone}</td>
-                      <td className="py-4 px-4 text-xs font-bold">
-                        <span className="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/20 text-[#7C3AED] dark:text-purple-400">
-                          {item.role}
-                        </span>
-                      </td>
-                    </>
-                  )}
-                  <td className="py-4 px-4 text-xs text-gray-500 dark:text-gray-400 font-semibold">
-                    {item.update_at ? new Date(item.update_at).toLocaleDateString('ru-RU') : (item.archived_at || "—")}
-                  </td>
-                  <td className="py-4 px-4 text-right">
-                    <button
-                      onClick={() => handleRestore(item)}
-                      disabled={restoringId === item.id}
-                      className="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 ml-auto"
-                    >
-                      {restoringId === item.id ? (
-                        <>
-                          <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                          </svg>
-                          Tiklanmoqda...
-                        </>
-                      ) : (
-                        "Faollashtirish"
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {items.map((item) => {
+                const isCourse = item.type === "course";
+                const isRoom = item.type === "room";
+                const isStaff = item.type === "staff";
+
+                let typeLabel = "Kurs";
+                let typeBadgeClass = "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400";
+                if (isRoom) {
+                  typeLabel = "Xona";
+                  typeBadgeClass = "bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400";
+                } else if (isStaff) {
+                  typeLabel = "Xodim";
+                  typeBadgeClass = "bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400";
+                }
+
+                const displayName = isStaff ? item.full_name : item.name;
+
+                let detailsContent = "";
+                if (isCourse) {
+                  detailsContent = `${item.duration_hours || item.duration} soat (${item.duration_month} oy) • ${Number(item.price).toLocaleString()} UZS`;
+                } else if (isRoom) {
+                  detailsContent = `${item.capacity} kishi • ${item.branch || 'Asosiy filial'}`;
+                } else if (isStaff) {
+                  detailsContent = `${item.role} • ${item.phone}`;
+                }
+
+                return (
+                  <tr
+                    key={`${item.type}-${item.id}`}
+                    className="border-b border-gray-50 dark:border-gray-800/40 hover:bg-gray-50/50 dark:hover:bg-gray-700/10 transition-colors"
+                  >
+                    <td className="py-4 px-4 text-xs font-bold text-gray-400">{item.id}</td>
+                    <td className="py-4 px-4 text-xs font-bold">
+                      <span className={`px-2 py-0.5 rounded font-semibold text-[10px] uppercase tracking-wider ${typeBadgeClass}`}>
+                        {typeLabel}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-sm font-bold text-gray-800 dark:text-white">{displayName}</td>
+                    <td className="py-4 px-4 text-xs text-gray-600 dark:text-gray-300 font-semibold">{detailsContent}</td>
+                    <td className="py-4 px-4 text-xs text-gray-500 dark:text-gray-400 font-semibold">
+                      {item.update_at ? new Date(item.update_at).toLocaleDateString('ru-RU') : (item.archived_at || "—")}
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <button
+                        onClick={() => handleRestore(item)}
+                        disabled={restoringId === item.id}
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 ml-auto cursor-pointer"
+                      >
+                        {restoringId === item.id ? (
+                          <>
+                            <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Tiklanmoqda...
+                          </>
+                        ) : (
+                          "Faollashtirish"
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

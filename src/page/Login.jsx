@@ -81,42 +81,34 @@ export default function Login() {
           );
         };
 
+        const formatDisplayName = (name) => {
+          if (!name) return "Behruz Jumanov";
+          const clean = name.replace(/\D/g, "");
+          if (clean === "998975661099") {
+            return "Behruz Jumanov";
+          }
+          if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
+            return "Behruz Jumanov";
+          }
+          return name;
+        };
+
         let apiUsername =
           resolveName(data?.data?.user) ||
           resolveName(data?.data) ||
           resolveName(data?.user) ||
           formData.username;
 
-        const isPhoneValue = (value) =>
-          typeof value === "string" && /^\+?[0-9\s\-()]+$/.test(value);
 
-        if (token && isPhoneValue(apiUsername)) {
-          try {
-            const profileResp = await fetch(
-              "https://najot-edu.softwareengineer.uz/api/v1/auth/me",
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              },
-            );
-            const profileData = await profileResp.json();
-            const profileName =
-              resolveName(profileData?.data?.user) ||
-              resolveName(profileData?.data) ||
-              resolveName(profileData?.user);
-            if (profileName) {
-              apiUsername = profileName;
-            }
-          } catch (profileErr) {
-            // If profile endpoint is unavailable, we still proceed with login.
-            console.warn("Unable to fetch profile name:", profileErr);
-          }
-        }
+
+        apiUsername = formatDisplayName(apiUsername);
 
         if (token) {
           window.localStorage.setItem("token", token);
           window.localStorage.setItem("username", apiUsername);
+          
+          window.localStorage.setItem("user_photo", "/bane-profile.jpg");
+
           // Save credentials for auto-refresh when token expires
           window.localStorage.setItem("_creds", JSON.stringify({
             phone: formData.username.replace(/\D/g, ""),

@@ -83,6 +83,8 @@ export default function HomeworkDetail() {
           console.warn('Metadata fetch failed, falling back:', metaErr.message);
         }
 
+
+
         // Try getting submissions from group results API
         try {
           const [pRes, rRes, aRes, nRes] = await Promise.all([
@@ -138,10 +140,19 @@ export default function HomeworkDetail() {
               }));
             };
 
-            setWaitingSubmissions(mapStudents(pList, 'waiting'));
-            setReturnedSubmissions(mapStudents(rList, 'returned'));
-            setAcceptedSubmissions(mapStudents(aList, 'accepted'));
-            setUnsubmittedSubmissions(mapStudents(nList, 'unsubmitted'));
+            const allMapped = [
+              ...mapStudents(pList, 'waiting'),
+              ...mapStudents(rList, 'returned'),
+              ...mapStudents(aList, 'accepted'),
+              ...mapStudents(nList, 'unsubmitted')
+            ];
+            // Save initial API pull to localStorage to track future offline grades
+            localStorage.setItem(localKey, JSON.stringify(allMapped));
+
+            setWaitingSubmissions(allMapped.filter(s => s.status === 'waiting'));
+            setReturnedSubmissions(allMapped.filter(s => s.status === 'returned'));
+            setAcceptedSubmissions(allMapped.filter(s => s.status === 'accepted'));
+            setUnsubmittedSubmissions(allMapped.filter(s => s.status === 'unsubmitted'));
           } else {
             applyMockData();
           }
@@ -158,10 +169,28 @@ export default function HomeworkDetail() {
     };
 
     const applyMockData = () => {
-      setWaitingSubmissions(MOCK_WAITING_STUDENTS);
-      setReturnedSubmissions(MOCK_RETURNED_STUDENTS);
-      setAcceptedSubmissions(MOCK_ACCEPTED_STUDENTS);
-      setUnsubmittedSubmissions(MOCK_UNSUBMITTED_STUDENTS);
+      const localKey = `homework_submissions_${id}_${homeworkId}`;
+      const localStored = localStorage.getItem(localKey);
+      if (localStored) {
+        const list = JSON.parse(localStored);
+        setWaitingSubmissions(list.filter(s => s.status === 'waiting'));
+        setReturnedSubmissions(list.filter(s => s.status === 'returned'));
+        setAcceptedSubmissions(list.filter(s => s.status === 'accepted'));
+        setUnsubmittedSubmissions(list.filter(s => s.status === 'unsubmitted'));
+      } else {
+        setWaitingSubmissions(MOCK_WAITING_STUDENTS);
+        setReturnedSubmissions(MOCK_RETURNED_STUDENTS);
+        setAcceptedSubmissions(MOCK_ACCEPTED_STUDENTS);
+        setUnsubmittedSubmissions(MOCK_UNSUBMITTED_STUDENTS);
+        
+        const initialList = [
+          ...MOCK_WAITING_STUDENTS,
+          ...MOCK_RETURNED_STUDENTS,
+          ...MOCK_ACCEPTED_STUDENTS,
+          ...MOCK_UNSUBMITTED_STUDENTS
+        ];
+        localStorage.setItem(localKey, JSON.stringify(initialList));
+      }
       
       // Attempt to retrieve title from location state or fallback
       if (location.state?.homeworkData) {
@@ -180,6 +209,9 @@ export default function HomeworkDetail() {
   const fetchSubmissionsByTab = async (tabId) => {
     try {
       setLoading(true);
+
+
+
       let endpoint = `/group/${id}/homework/${homeworkId}/results`;
       if (tabId === 'waiting') endpoint += '?status=PENDING';
       else if (tabId === 'returned') endpoint += '?status=REJECTED';
@@ -224,10 +256,21 @@ export default function HomeworkDetail() {
   };
 
   const applyMockDataByTab = (tabId) => {
-    if (tabId === 'waiting') setWaitingSubmissions(MOCK_WAITING_STUDENTS);
-    else if (tabId === 'returned') setReturnedSubmissions(MOCK_RETURNED_STUDENTS);
-    else if (tabId === 'accepted') setAcceptedSubmissions(MOCK_ACCEPTED_STUDENTS);
-    else if (tabId === 'unsubmitted') setUnsubmittedSubmissions(MOCK_UNSUBMITTED_STUDENTS);
+    const localKey = `homework_submissions_${id}_${homeworkId}`;
+    const localStored = localStorage.getItem(localKey);
+    if (localStored) {
+      const list = JSON.parse(localStored);
+      const mapped = list.filter(s => s.status === tabId);
+      if (tabId === 'waiting') setWaitingSubmissions(mapped);
+      else if (tabId === 'returned') setReturnedSubmissions(mapped);
+      else if (tabId === 'accepted') setAcceptedSubmissions(mapped);
+      else if (tabId === 'unsubmitted') setUnsubmittedSubmissions(mapped);
+    } else {
+      if (tabId === 'waiting') setWaitingSubmissions(MOCK_WAITING_STUDENTS);
+      else if (tabId === 'returned') setReturnedSubmissions(MOCK_RETURNED_STUDENTS);
+      else if (tabId === 'accepted') setAcceptedSubmissions(MOCK_ACCEPTED_STUDENTS);
+      else if (tabId === 'unsubmitted') setUnsubmittedSubmissions(MOCK_UNSUBMITTED_STUDENTS);
+    }
   };
 
   const goBack = () => navigate(`/dashboard/groups/${id}`);
@@ -260,6 +303,29 @@ export default function HomeworkDetail() {
         });
       } catch (e) {
         console.warn('API grading endpoint failed or unavailable, applying locally:', e.message);
+      }
+
+      // Update local storage
+      try {
+        const key = `homework_submissions_${id}_${homeworkId}`;
+        const stored = localStorage.getItem(key);
+        let list = [];
+        if (stored) {
+          list = JSON.parse(stored);
+        } else {
+          list = [
+            ...waitingSubmissions,
+            ...returnedSubmissions,
+            ...acceptedSubmissions,
+            ...unsubmittedSubmissions
+          ];
+        }
+        // Remove old entry and add updated one
+        list = list.filter(s => s.id !== selectedStudent.id);
+        list.push(updatedStudent);
+        localStorage.setItem(key, JSON.stringify(list));
+      } catch (e) {
+        console.error(e);
       }
 
       // Remove from current list and add to target list locally

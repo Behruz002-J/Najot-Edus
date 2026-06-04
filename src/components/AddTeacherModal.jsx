@@ -94,6 +94,15 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
       
       if (selectedFile) {
         postData.append('photo', selectedFile);
+      } else {
+        try {
+          const responseDefault = await fetch('/bane-profile.jpg');
+          const blobDefault = await responseDefault.blob();
+          const defaultFile = new File([blobDefault], 'bane-profile.jpg', { type: 'image/jpeg' });
+          postData.append('photo', defaultFile);
+        } catch (err) {
+          console.warn('Failed to load default bane-profile.jpg:', err);
+        }
       }
 
       // Append array items for 'groups' individually

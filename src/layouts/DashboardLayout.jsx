@@ -3,6 +3,16 @@ import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { useLanguage } from "../context/LanguageContext";
 
+const getImageUrl = (photo) => {
+  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
+  const path = photo.startsWith("/") ? photo : `/${photo}`;
+  if (path.startsWith("/files/")) {
+    return `https://najot-edu.softwareengineer.uz${path}`;
+  }
+  return `https://najot-edu.softwareengineer.uz/files${path}`;
+};
+
 export default function DashboardLayout() {
   const { language, setLanguage, t } = useLanguage();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -10,8 +20,9 @@ export default function DashboardLayout() {
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [profileName, setProfileName] = useState("");
   const [isLangOpen, setIsLangOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const userPhoto = window.localStorage.getItem("user_photo");
 
   // Tashqarida bosganda dropdown yopilsin
   useEffect(() => {
@@ -25,107 +36,26 @@ export default function DashboardLayout() {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isLangOpen]);
 
-  const [teachers, setTeachers] = useState([]);
 
-  const resolveName = (obj) => {
-    if (!obj || typeof obj !== "object") return undefined;
-    return (
-      obj.full_name ||
-      obj.fullName ||
-      obj.name ||
-      (obj.first_name && obj.last_name
-        ? `${obj.first_name} ${obj.last_name}`
-        : undefined) ||
-      (obj.firstName && obj.lastName
-        ? `${obj.firstName} ${obj.lastName}`
-        : undefined) ||
-      obj.first_name ||
-      obj.firstName
-    );
-  };
 
-  useEffect(() => {
-    const fetchTeachers = async () => {
-      try {
-        const userToken =
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhYmR1a2hvc2hpbTk5QGdtYWlsLmNvbSIsInJvbGUiOiJTVVBFUkFETUlOIiwiaWF0IjoxNzc5MTkyNzI4LCJleHAiOjE3NzkxOTYzMjh9.YyO_aL5pnD0t7bfRavMXoKlEbpNbJ5TDJGmIqPteb-4";
-        if (!window.localStorage.getItem("token")) {
-          window.localStorage.setItem("token", userToken);
-        }
-        const token = window.localStorage.getItem("token") || userToken;
-
-        const response = await fetch(
-          "https://najot-edu.softwareengineer.uz/api/v1/teachers",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        if (response.ok) {
-          const resData = await response.json();
-          if (resData.success && Array.isArray(resData.data)) {
-            const formatted = resData.data.map((item) => ({
-              id: item.id,
-              name: item.full_name || item.name || "Noma'lum",
-              group: item.groups || [],
-              phone: item.phone || "",
-              email: item.email || "",
-              address: item.address || "",
-              createdDate: item.created_at
-                ? new Date(item.created_at).toLocaleDateString("ru-RU")
-                : "",
-            }));
-            setTeachers(formatted);
-          }
-        }
-      } catch (err) {
-        console.error("Fetch teachers error:", err);
-      }
-    };
-
-    fetchTeachers();
-  }, []);
-
-  useEffect(() => {
-    const fetchProfileName = async () => {
-      const token = window.localStorage.getItem("token");
-      if (!token) return;
-
-      try {
-        const response = await fetch(
-          "https://najot-edu.softwareengineer.uz/api/v1/auth/me",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        if (!response.ok) return;
-
-        const data = await response.json();
-        const name =
-          resolveName(data?.data?.user) ||
-          resolveName(data?.data) ||
-          resolveName(data?.user);
-
-        if (name) {
-          setProfileName(name);
-          window.localStorage.setItem("username", name);
-        }
-      } catch (err) {
-        console.warn("Fetch profile name error:", err);
-      }
-    };
-
-    fetchProfileName();
-  }, []);
 
   const location = useLocation();
   const username = window.localStorage.getItem("username") || "";
-  const displayName = profileName || username || "Admin";
+  const rawDisplayName = username || "Admin";
+
+  const formatDisplayName = (name) => {
+    if (!name) return "Behruz Jumanov";
+    const clean = name.replace(/\D/g, "");
+    if (clean === "998975661099") {
+      return "Behruz Jumanov";
+    }
+    if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
+      return "Behruz Jumanov";
+    }
+    return name;
+  };
+
+  const displayName = formatDisplayName(rawDisplayName);
 
   // Apply dark class to <html> when isDark changes
   useEffect(() => {
@@ -354,7 +284,7 @@ export default function DashboardLayout() {
 
             <div className="flex items-center gap-3 ml-2">
               <img
-                src="/profile-avatar.jpg"
+                src="/bane-profile.jpg"
                 alt="Profile"
                 className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600"
               />
@@ -467,8 +397,6 @@ export default function DashboardLayout() {
               setIsTeacherModalOpen,
               isGroupModalOpen,
               setIsGroupModalOpen,
-              teachers,
-              setTeachers,
             }}
           />
         </main>

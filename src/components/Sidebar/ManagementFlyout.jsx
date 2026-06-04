@@ -8,7 +8,6 @@ export default function ManagementFlyout({
   isManagementOpen,
   setIsManagementOpen,
   flyoutRef,
-  roomsCount,
 }) {
   const { t } = useLanguage();
   const location = useLocation();
@@ -76,11 +75,7 @@ export default function ManagementFlyout({
                 >
                   {subItem.key ? t(subItem.key) : subItem.name}
                 </span>
-                {subItem.key === "nav.rooms" && (
-                  <span className="ml-auto inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-bold bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200">
-                    {roomsCount === null ? "..." : roomsCount}
-                  </span>
-                )}
+
               </Link>
             );
           })}

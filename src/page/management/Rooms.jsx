@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 
 const initialRooms = [
   // AlCoder markazi
@@ -72,21 +73,11 @@ const initialRooms = [
   { id: 36, name: "Eski sinf xona", capacity: 20, branch: "Arxiv" },
 ];
 
-const branches = [
-  "AlCoder markazi",
-  "Fizika va Matematika",
-  "4-maktab",
-  "Niner markazi",
-  "IELTS full mock",
-  "IELTS full mock centre",
-  "Arxiv",
-];
-
 import axiosClient from "../../api/axios";
 
 export default function Rooms() {
-  const [rooms, setRooms] = useState(initialRooms);
-  const [activeBranch, setActiveBranch] = useState("AlCoder markazi");
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editRoom, setEditRoom] = useState(null);
   const [form, setForm] = useState({ name: "", capacity: "" });
@@ -100,7 +91,36 @@ export default function Rooms() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4500);
   };
 
-  const filtered = rooms.filter((r) => r.branch === activeBranch);
+  const fetchRooms = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await axiosClient.get("/rooms");
+      const data = res?.data;
+      let roomsData = [];
+      if (Array.isArray(data)) {
+        roomsData = data;
+      } else if (Array.isArray(data?.data)) {
+        roomsData = data.data;
+      }
+
+      const formatted = roomsData.map((item, idx) => ({
+        id: item.id || idx + 1,
+        name: item.name || "Noma'lum xona",
+        capacity: Number(item.capacity || 20),
+        branch: item.branch || "AlCoder markazi"
+      }));
+      setRooms(formatted);
+    } catch (err) {
+      console.warn("Fetch rooms error, using mock fallback:", err.message);
+      setRooms(initialRooms);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRooms();
+  }, [fetchRooms]);
 
   const deleteRoom = (id) => {
     setRooms((prev) => prev.filter((r) => r.id !== id));
@@ -145,16 +165,29 @@ export default function Rooms() {
   const handleSave = async () => {
     if (!form.name || !form.capacity) return;
 
-    // If editing locally, update local state only
+    // If editing, update on backend
     if (editRoom) {
-      setRooms((prev) =>
-        prev.map((r) =>
-          r.id === editRoom.id
-            ? { ...r, name: form.name, capacity: Number(form.capacity) }
-            : r,
-        ),
-      );
-      setShowModal(false);
+      try {
+        const payload = {
+          name: form.name.trim(),
+          capacity: Number(form.capacity),
+        };
+        await axiosClient.patch(`/rooms/${editRoom.id}`, payload);
+        await fetchRooms();
+        setShowModal(false);
+        addToast("success", "Xona tahrirlandi", "Xona ma'lumotlari muvaffaqiyatli yangilandi.");
+      } catch (err) {
+        console.warn("Edit room API failed, applying locally:", err.message);
+        setRooms((prev) =>
+          prev.map((r) =>
+            r.id === editRoom.id
+              ? { ...r, name: form.name, capacity: Number(form.capacity) }
+              : r,
+          ),
+        );
+        setShowModal(false);
+        addToast("success", "Xona tahrirlandi (Lokal)", "Xona ma'lumotlari mahalliy ro'yxatda yangilandi.");
+      }
       return;
     }
 
@@ -165,45 +198,10 @@ export default function Rooms() {
         capacity: Number(form.capacity),
       };
 
-      const res = await axiosClient.post("/rooms", payload);
-
-      // If API returns success, refresh local list by fetching rooms or append
-      if (res?.data?.success) {
-        // Try to fetch fresh rooms list
-        try {
-          const listRes = await axiosClient.get("/rooms");
-          const data = listRes?.data;
-          if (Array.isArray(data)) setRooms(data);
-          else if (Array.isArray(data?.data)) setRooms(data.data);
-        } catch (e) {
-          // fallback: append the created room locally
-          setRooms((prev) => [
-            ...prev,
-            {
-              id: Date.now(),
-              name: payload.name,
-              capacity: payload.capacity,
-              branch: activeBranch,
-            },
-          ]);
-        }
-
-        window.alert(res.data.message || "Xona yaratildi");
-        setShowModal(false);
-      } else {
-        // API didn't return success — fallback to local add
-        setRooms((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            name: form.name,
-            capacity: Number(form.capacity),
-            branch: activeBranch,
-          },
-        ]);
-        setShowModal(false);
-        window.alert("Xona mahalliy ravishda qo`shildi (server javobi noaniq)");
-      }
+      await axiosClient.post("/rooms", payload);
+      await fetchRooms();
+      setShowModal(false);
+      addToast("success", "Xona yaratildi", "Yangi xona muvaffaqiyatli qo'shildi.");
     } catch (err) {
       console.error("Create room error:", err?.response?.data || err.message);
       // fallback: keep local behavior
@@ -213,14 +211,11 @@ export default function Rooms() {
           id: Date.now(),
           name: form.name,
           capacity: Number(form.capacity),
-          branch: activeBranch,
+          branch: "AlCoder markazi",
         },
       ]);
       setShowModal(false);
-      window.alert(
-        err?.response?.data?.message ||
-          "Xona qo`shishda xatolik. Mahalliy ro`yxatga qo`shildi.",
-      );
+      addToast("success", "Xona yaratildi (Lokal)", "Xona mahalliy ro'yxatga qo'shildi.");
     }
   };
 
@@ -232,9 +227,13 @@ export default function Rooms() {
           <h2 className="text-[24px] font-black text-gray-900 dark:text-white">
             Xonalar
           </h2>
-          <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full transition-colors mt-1">
+          <button 
+            onClick={fetchRooms}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-full transition-colors mt-1"
+            title="Yangilash"
+          >
             <svg
-              className="w-5 h-5"
+              className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -248,29 +247,59 @@ export default function Rooms() {
             </svg>
           </button>
         </div>
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-2 px-6 py-2.5 bg-[#7B2CBF] text-white text-[15px] font-bold rounded-xl hover:bg-[#6D28D9] transition-all shadow-lg shadow-purple-100 dark:shadow-none active:scale-95"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-3">
+          <Link
+            to="/dashboard/management/archive"
+            state={{ activeSubTab: "rooms" }}
+            className="flex items-center gap-2 px-5 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-[15px] font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all shadow-sm active:scale-95"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Xonani qo'shish
-        </button>
+            <svg
+              className="w-5 h-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 8h14M5 8a2 2 0 110-4 2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+              />
+            </svg>
+            Arxiv
+          </Link>
+          <button
+            onClick={handleAdd}
+            className="flex items-center gap-2 px-6 py-2.5 bg-[#7B2CBF] text-white text-[15px] font-bold rounded-xl hover:bg-[#6D28D9] transition-all shadow-lg shadow-purple-100 dark:shadow-none active:scale-95"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2.5}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Xonani qo'shish
+          </button>
+        </div>
       </div>
 
       {/* Rooms Grid */}
-      {rooms.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24">
+          <svg className="w-8 h-8 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-3">Yuklanmoqda...</p>
+        </div>
+      ) : rooms.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-gray-400 dark:text-gray-500">
           <p className="text-base">Xonalar mavjud emas</p>
         </div>

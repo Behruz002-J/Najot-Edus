@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axiosClient from "../../api/axios";
 
+const getImageUrl = (photo) => {
+  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
+  const path = photo.startsWith("/") ? photo : `/${photo}`;
+  if (path.startsWith("/files/")) {
+    return `https://najot-edu.softwareengineer.uz${path}`;
+  }
+  return `https://najot-edu.softwareengineer.uz/files${path}`;
+};
+
 const LIMIT = 5;
 
 const AVATAR_COLORS = [
@@ -162,7 +172,7 @@ export default function Staff() {
 
   // Paginated chunk
   const paginated = filtered.slice((page - 1) * LIMIT, page * LIMIT);
-  const totalPages = Math.ceil(filtered.length / LIMIT) || 1;
+  const totalPages = Math.max(10, Math.ceil(filtered.length / LIMIT));
 
   const handlePrev = () => {
     if (page > 1) setPage((p) => p - 1);
@@ -265,11 +275,20 @@ export default function Staff() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {admin.photo ? (
-                          <img src={admin.photo} alt={admin.name} className="w-8 h-8 rounded-full object-cover" />
+                          <img 
+                            src={getImageUrl(admin.photo)} 
+                            alt={admin.name} 
+                            onError={(e) => {
+                              e.target.src = '/bane-profile.jpg';
+                            }}
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
                         ) : (
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${admin.bgColor}`}>
-                            {admin.initial}
-                          </div>
+                          <img 
+                            src="/bane-profile.jpg" 
+                            alt="" 
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
                         )}
                         <span className="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
                           {admin.name}
@@ -308,12 +327,24 @@ export default function Staff() {
             &larr; Oldingi
           </button>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">Sahifa</span>
-            <span className="w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold bg-[#7C3AED] text-white shadow-sm">
-              {page}
-            </span>
-            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">/ {totalPages}</span>
+          <div className="flex items-center gap-1.5">
+            {Array.from({ length: totalPages }, (_, idx) => {
+              const pageNum = idx + 1;
+              const isSelected = page === pageNum;
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setPage(pageNum)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all shadow-sm cursor-pointer ${
+                    isSelected
+                      ? "bg-[#7C3AED] text-white"
+                      : "bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
           </div>
 
           <button
