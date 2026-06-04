@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosClient from '../../api/axios';
+import { useLanguage } from '../../context/LanguageContext';
 
 const TOPICS = [
   'Html asoslari',
@@ -16,6 +17,7 @@ const TOPICS = [
 ];
 
 export default function CreateHomework() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -80,7 +82,7 @@ export default function CreateHomework() {
   };
 
   const handleFontSize = (size) => {
-    const map = { Normal: '3', Katta: '5', Kichik: '1' };
+    const map = { 'Normal': '3', 'Katta': '5', 'Kichik': '1', 'Large': '5', 'Small': '1', 'Крупный': '5', 'Мелкий': '1', 'Обычный': '3' };
     execCmd('fontSize', map[size] || '3');
     setFontSize(size);
   };
@@ -94,12 +96,12 @@ export default function CreateHomework() {
 
   const handlePublish = async () => {
     if (!selectedTopic) {
-      alert("Iltimos, mavzuni tanlang!");
+      alert(t('createHomework.selectTopicError') || "Iltimos, mavzuni tanlang!");
       return;
     }
     const content = editorRef.current?.innerHTML || '';
     if (!content || content.replace(/<[^>]+>/g, '').trim() === '') {
-      alert("Iltimos, izoh kiriting!");
+      alert(t('createHomework.enterCommentError') || "Iltimos, izoh kiriting!");
       return;
     }
     try {
@@ -120,7 +122,7 @@ export default function CreateHomework() {
         }
       });
 
-      alert("Uyga vazifa muvaffaqiyatli e'lon qilindi!");
+      alert(t('createHomework.successPublish') || "Uyga vazifa muvaffaqiyatli e'lon qilindi!");
       navigate(`/dashboard/groups/${id}`);
     } catch (err) {
       console.error('Create homework error:', err?.response?.data || err.message);
@@ -144,8 +146,8 @@ export default function CreateHomework() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h2 className="text-lg font-black text-gray-800 dark:text-white">
-          Yangi uyga vazifa yaratish
+        <h2 className="text-lg font-black text-gray-805 dark:text-white">
+          {t('createHomework.createHomework')}
         </h2>
       </div>
 
@@ -156,7 +158,7 @@ export default function CreateHomework() {
           {/* Mavzu */}
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-              <span className="text-red-500 mr-1">*</span>Mavzu
+              <span className="text-red-500 mr-1">*</span>{t('lessonAttendance.topic')}
             </label>
             <div className="relative" ref={dropdownRef}>
               <button
@@ -165,7 +167,7 @@ export default function CreateHomework() {
                 className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-left transition-all focus:outline-none hover:border-gray-300 dark:hover:border-gray-600"
               >
                 <span className={selectedTopic ? 'text-gray-800 dark:text-white font-semibold' : 'text-gray-400 dark:text-gray-500'}>
-                  {selectedTopic || 'Mavzulardan birini tanlang'}
+                  {selectedTopic || t('createHomework.selectTopic')}
                 </span>
                 <svg
                   className={`w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${isTopicOpen ? 'rotate-180' : ''}`}
@@ -179,7 +181,7 @@ export default function CreateHomework() {
                 <div className="absolute top-full left-0 right-0 mt-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
                   <div className="max-h-56 overflow-y-auto">
                     {lessonsLoading ? (
-                      <div className="p-4 text-center text-xs text-gray-400 font-semibold">Mavzular yuklanmoqda...</div>
+                      <div className="p-4 text-center text-xs text-gray-400 font-semibold">{t('createHomework.loadingTopics')}</div>
                     ) : lessons.length > 0 ? (
                       lessons.map((lesson) => (
                         <button
@@ -233,7 +235,7 @@ export default function CreateHomework() {
           {/* Izoh */}
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-              <span className="text-red-500 mr-1">*</span>Izoh
+              <span className="text-red-500 mr-1">*</span>{t('createHomework.description')}
             </label>
             <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-400/30 focus-within:border-purple-400 transition-all">
               {/* Toolbar */}
@@ -251,9 +253,9 @@ export default function CreateHomework() {
 
                 <select value={fontSize} onMouseDown={(e) => e.stopPropagation()} onChange={(e) => handleFontSize(e.target.value)}
                   className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 cursor-pointer focus:outline-none">
-                  <option>Kichik</option>
-                  <option>Normal</option>
-                  <option>Katta</option>
+                  <option value="Kichik">{t('createHomework.small') || "Kichik"}</option>
+                  <option value="Normal">{t('createHomework.normal') || "Normal"}</option>
+                  <option value="Katta">{t('createHomework.large') || "Katta"}</option>
                 </select>
                 <Sep />
 
@@ -299,7 +301,7 @@ export default function CreateHomework() {
                 contentEditable
                 suppressContentEditableWarning
                 className="min-h-[160px] p-4 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 focus:outline-none leading-relaxed"
-                data-placeholder="Vazifa haqida batafsil ma'lumot kiriting..."
+                data-placeholder={t('createHomework.descriptionPlaceholderHW')}
               />
             </div>
           </div>
@@ -330,15 +332,15 @@ export default function CreateHomework() {
                   <p className="text-xs text-gray-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
                   <button type="button" onClick={(e) => { e.stopPropagation(); setFile(null); }}
                     className="mt-2 text-xs text-red-400 hover:text-red-600 transition-colors">
-                    O'chirish
+                    {t('common.delete')}
                   </button>
                 </div>
               ) : (
                 <div className="text-center">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    <span className="font-bold text-gray-700 dark:text-gray-200">Faylni tanlash</span> yoki shu yerga tashlang
+                    <span className="font-bold text-gray-700 dark:text-gray-200">{t('createHomework.selectFileOrDrag').split(' yoki ')[0]}</span> {t('createHomework.selectFileOrDrag').includes(' yoki ') ? ' yoki ' + t('createHomework.selectFileOrDrag').split(' yoki ')[1] : ''}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PDF, Word, ZIP va boshqa formatlar</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('createHomework.allowedFormats')}</p>
                 </div>
               )}
             </div>
@@ -350,7 +352,7 @@ export default function CreateHomework() {
         <div className="flex items-center justify-end gap-3 px-7 py-4 border-t border-gray-100 dark:border-gray-800">
           <button type="button" onClick={goBack}
             className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            Bekor qilish
+            {t('btn.cancel')}
           </button>
           <button type="button" onClick={handlePublish} disabled={saving}
             className="px-7 py-2.5 rounded-xl text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
@@ -360,7 +362,7 @@ export default function CreateHomework() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            E'lon qilish
+            {t('createHomework.publish')}
           </button>
         </div>
       </div>

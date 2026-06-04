@@ -3,8 +3,10 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axiosClient from '../../api/axios';
 import CreateHomeworkModal from '../../components/CreateHomeworkModal';
 import ExamsTab from '../../components/ExamsTab';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function GroupDetails() {
+  const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,6 +25,8 @@ export default function GroupDetails() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [selectedLesson, setSelectedLesson] = useState('');
   const [customVideoName, setCustomVideoName] = useState('');
+  const [videoBlobUrl, setVideoBlobUrl] = useState('');
+  const [videoBlobLoading, setVideoBlobLoading] = useState(false);
 
   // Schedules states
   const [schedules, setSchedules] = useState([]);
@@ -48,6 +52,10 @@ export default function GroupDetails() {
   // Homeworks state
   const [homeworks, setHomeworks] = useState([]);
   const [homeworksLoading, setHomeworksLoading] = useState(false);
+
+  // Attendance state
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
 
   const triggerAlert = (msg) => {
     setAlertMessage(msg);
@@ -521,6 +529,93 @@ export default function GroupDetails() {
     }
   };
 
+  // Attendance API dan olish
+  const fetchAttendance = async () => {
+    try {
+      setAttendanceLoading(true);
+      const res = await axiosClient.get('/attendance/all');
+      let list = [];
+      if (res?.data?.success && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      } else if (Array.isArray(res?.data)) {
+        list = res.data;
+      } else if (res?.data?.data && Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      }
+      // Filter only this group's attendance
+      const filtered = list.filter(a => {
+        const gid = a.group_id || a.groupId || (a.group && a.group.id);
+        return Number(gid) === Number(id);
+      });
+      setAttendanceData(filtered);
+    } catch (err) {
+      console.error('Fetch attendance error:', err?.response?.data || err.message);
+      setAttendanceData([]);
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    let url = '';
+
+    const loadVideoBlob = async () => {
+      if (!selectedVideo) {
+        setVideoBlobUrl('');
+        return;
+      }
+
+      const isBackendUrl = selectedVideo.videoUrl && (
+        selectedVideo.videoUrl.includes('najot-edu.softwareengineer.uz') ||
+        selectedVideo.videoUrl.startsWith('/') ||
+        !selectedVideo.videoUrl.startsWith('http')
+      );
+
+      if (!isBackendUrl) {
+        setVideoBlobUrl(selectedVideo.videoUrl);
+        return;
+      }
+
+      try {
+        setVideoBlobLoading(true);
+        let endpoint = '';
+        if (selectedVideo.videoUrl.startsWith('http')) {
+          endpoint = selectedVideo.videoUrl.replace('https://najot-edu.softwareengineer.uz/api/v1', '');
+        } else {
+          endpoint = selectedVideo.videoUrl;
+        }
+
+        const response = await axiosClient.get(endpoint, {
+          responseType: 'blob'
+        });
+
+        if (active) {
+          url = URL.createObjectURL(response.data);
+          setVideoBlobUrl(url);
+        }
+      } catch (err) {
+        console.error('Error fetching video blob:', err);
+        if (active) {
+          setVideoBlobUrl(selectedVideo.videoUrl);
+        }
+      } finally {
+        if (active) {
+          setVideoBlobLoading(false);
+        }
+      }
+    };
+
+    loadVideoBlob();
+
+    return () => {
+      active = false;
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [selectedVideo]);
+
   useEffect(() => {
     const init = async () => {
       let startDateVal = null;
@@ -584,6 +679,13 @@ export default function GroupDetails() {
       fetchLessons();
     }
   }, [activeTab, subTab, id]);
+
+  // Attendance tabiga o'tilganda fetch
+  useEffect(() => {
+    if (activeTab === 'attendance') {
+      fetchAttendance();
+    }
+  }, [activeTab, id]);
 
   const defaultGroup = {
     name: 'Bootcamp Full Stack N26',
@@ -655,7 +757,7 @@ export default function GroupDetails() {
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{currentGroup.name}</h1>
             <span className="px-2.5 py-0.5 bg-green-100 dark:bg-green-900/35 text-green-600 dark:text-green-400 rounded-full text-xs font-bold uppercase tracking-wider">
-              {currentGroup.status === 'FAOL' ? 'Aktiv' : 'Faol emas'}
+              {currentGroup.status === 'FAOL' ? t('groupDetail.active') : t('groupDetail.inactive')}
             </span>
           </div>
         </div>
@@ -664,7 +766,7 @@ export default function GroupDetails() {
           <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
           </svg>
-          Statistika
+          {t('groupDetail.statistics')}
         </button>
       </div>
 
@@ -676,7 +778,7 @@ export default function GroupDetails() {
             activeTab === 'info' ? 'text-[#7C3AED] dark:text-purple-400' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          Ma'lumotlar
+          {t('groupDetail.info')}
           {activeTab === 'info' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
         </button>
         <button
@@ -685,7 +787,7 @@ export default function GroupDetails() {
             activeTab === 'syllabus' ? 'text-[#7C3AED] dark:text-purple-400' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          Guruh darsliklari
+          {t('groupDetail.syllabus')}
           {activeTab === 'syllabus' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
         </button>
         <button
@@ -694,7 +796,7 @@ export default function GroupDetails() {
             activeTab === 'attendance' ? 'text-[#7C3AED] dark:text-purple-400' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          Akademik davomati
+          {t('groupDetail.attendance')}
           {activeTab === 'attendance' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
         </button>
       </div>
@@ -706,7 +808,7 @@ export default function GroupDetails() {
             {/* Guruh mentorlari Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="bg-[#3B82F6] px-6 py-4 flex items-center justify-between text-white">
-                <h3 className="font-bold text-[15px]">Guruh mentorlari</h3>
+                <h3 className="font-bold text-[15px]">{t('groupDetail.mentors')}</h3>
                 <button 
                   onClick={() => setIsMentorsVisible(!isMentorsVisible)}
                   className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg flex items-center justify-center cursor-pointer"
@@ -762,7 +864,7 @@ export default function GroupDetails() {
             {/* Parametrlar Card */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="bg-[#3B82F6] px-6 py-4 flex items-center justify-between text-white">
-                <h3 className="font-bold text-[15px]">Parametrlar</h3>
+                <h3 className="font-bold text-[15px]">{t('groupDetail.params')}</h3>
                 <button 
                   onClick={() => setIsParamsVisible(!isParamsVisible)}
                   className="text-white/80 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-lg flex items-center justify-center cursor-pointer"
@@ -781,31 +883,31 @@ export default function GroupDetails() {
               {isParamsVisible && (
                 <div className="p-6 divide-y divide-gray-100 dark:divide-gray-700 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Kurs:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.courseLabel')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.course}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">O'rta yosh:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.avgAge')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.avgAge}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">O'quvchilar sig'imi:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.capacity')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.capacity}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Mavjud o'quvchilar:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.currentStudents')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.studentsCount}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">O'quv oyidagi darslar soni:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.monthlyLessons')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.monthlyLessons}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Kurs davomiyligi (oy):</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.courseDuration')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.duration}</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
-                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Jami darslar soni:</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{t('groupDetail.totalLessons')}</span>
                     <span className="text-sm font-bold text-gray-800 dark:text-white">{currentGroup.totalLessons}</span>
                   </div>
                 </div>
@@ -814,7 +916,7 @@ export default function GroupDetails() {
 
             {/* Dars jadvali Section */}
             <div className="col-span-1 md:col-span-2 mt-8 space-y-4 z-10 relative">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-white">Dars jadvali</h3>
+              <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t('groupDetail.schedule')}</h3>
               
               <div className="space-y-3">
                 {/* Row 1 */}
@@ -905,11 +1007,11 @@ export default function GroupDetails() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        <span>Schedules yuklanmoqda...</span>
+                        <span>{t('groupDetail.loading')}</span>
                       </div>
                     ) : currentLessons.length === 0 ? (
                       <div className="py-4 text-gray-400 dark:text-gray-500 font-semibold text-xs">
-                        Ushbu oyda darslar rejalashtirilmagan.
+                        {t('groupDetail.noLessons')}
                       </div>
                     ) : (
                       currentLessons.map((lesson, index) => {
@@ -957,7 +1059,7 @@ export default function GroupDetails() {
                           </h4>
                           {isCurrentMonth && (
                             <span className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
-                              Joriy oy
+                              {t('groupDetail.currentMonth')}
                             </span>
                           )}
                         </div>
@@ -1004,7 +1106,7 @@ export default function GroupDetails() {
                   onClick={() => setIsAllLessonsExpanded(!isAllLessonsExpanded)}
                   className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm cursor-pointer"
                 >
-                  {isAllLessonsExpanded ? "Kamroq ko'rsatish" : "Barchasini ko'rish"}
+                  {isAllLessonsExpanded ? t('groupDetail.showLess') : t('groupDetail.showAll')}
                 </button>
               </div>
             </div>
@@ -1026,13 +1128,13 @@ export default function GroupDetails() {
             <div className="px-6 pt-5 pb-0">
               {/* Sarlavha + "Yangi imtihon" tugmasi */}
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-[15px] font-bold text-gray-800 dark:text-white">Guruh darsliklari</h3>
+                <h3 className="text-[15px] font-bold text-gray-800 dark:text-white">{t('groupDetail.syllabus')}</h3>
                 {subTab === 'exams' && (
                   <button
                     onClick={() => navigate(`/dashboard/groups/${id}/exam/create`)}
                     className="px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-semibold text-sm transition-colors cursor-pointer"
                   >
-                    Yangi imtihon
+                    {t('groupDetail.newExam')}
                   </button>
                 )}
                 {subTab === 'homework' && (
@@ -1040,7 +1142,7 @@ export default function GroupDetails() {
                     onClick={() => navigate(`/dashboard/groups/${id}/homework/create`)}
                     className="px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-semibold text-sm transition-colors cursor-pointer"
                   >
-                    Qo'shish
+                    {t('btn.add')}
                   </button>
                 )}
                 {subTab === 'videos' && (
@@ -1053,7 +1155,7 @@ export default function GroupDetails() {
                     }}
                     className="px-5 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg font-semibold text-sm transition-colors cursor-pointer"
                   >
-                    Qo'shish
+                    {t('groupDetail.addVideo')}
                   </button>
                 )}
               </div>
@@ -1061,10 +1163,10 @@ export default function GroupDetails() {
               {/* Border-bottom style sub-tabs — rasmga mos */}
               <div className="flex items-center border-b border-gray-100 dark:border-gray-700">
                 {[
-                  { id: 'homework', label: 'Uyga vazifa' },
-                  { id: 'videos',   label: 'Videolar' },
-                  { id: 'exams',    label: 'Imtihonlar' },
-                  { id: 'journal',  label: 'Jurnal' },
+                  { id: 'homework', label: t('groupDetail.homework') },
+                  { id: 'videos',   label: t('groupDetail.videos') },
+                  { id: 'exams',    label: t('groupDetail.exams') },
+                  { id: 'journal',  label: t('groupDetail.journal') },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -1093,7 +1195,7 @@ export default function GroupDetails() {
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/50 dark:bg-gray-700/10">
                       <th className="py-4 px-4 text-center w-12">#</th>
-                      <th className="py-4 px-4">Mavzu</th>
+                      <th className="py-4 px-4">{t('groupDetail.topic')}</th>
                       <th className="py-4 px-4 text-center w-16">
                         <span className="inline-flex items-center justify-center w-7 h-7 bg-blue-50 dark:bg-blue-900/20 text-blue-500 rounded-lg text-sm font-bold" title="Talabalar soni">👤</span>
                       </th>
@@ -1103,9 +1205,9 @@ export default function GroupDetails() {
                       <th className="py-4 px-4 text-center w-16">
                         <span className="inline-flex items-center justify-center w-7 h-7 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-lg text-sm font-bold" title="Tekshirilgan">✅</span>
                       </th>
-                      <th className="py-4 px-4">Berilgan vaqt</th>
-                      <th className="py-4 px-4">Tugash vaqti</th>
-                      <th className="py-4 px-4">Dars sanasi</th>
+                      <th className="py-4 px-4">{t('groupDetail.givenTime')}</th>
+                      <th className="py-4 px-4">{t('groupDetail.endTime')}</th>
+                      <th className="py-4 px-4">{t('groupDetail.lessonDate')}</th>
                       <th className="py-4 px-4 text-center w-12"></th>
                     </tr>
                   </thead>
@@ -1118,14 +1220,14 @@ export default function GroupDetails() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                            <span>Yuklanmoqda...</span>
+                            <span>{t('groupDetail.loading')}</span>
                           </div>
                         </td>
                       </tr>
                     ) : homeworks.length === 0 ? (
                       <tr>
                         <td colSpan="9" className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm">
-                          Ushbu guruhda hali uyga vazifalar mavjud emas.
+                          {t('groupDetail.noHomework')}
                         </td>
                       </tr>
                     ) : (
@@ -1178,12 +1280,12 @@ export default function GroupDetails() {
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-700 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/50 dark:bg-gray-700/10">
                       <th className="py-4 px-6 text-center w-16">#</th>
-                      <th className="py-4 px-6">Video nomi</th>
-                      <th className="py-4 px-6">Dars nomi</th>
-                      <th className="py-4 px-6">Status</th>
-                      <th className="py-4 px-6">Dars sanasi</th>
-                      <th className="py-4 px-6">Hajmi</th>
-                      <th className="py-4 px-6">Qo'shilgan vaqti</th>
+                      <th className="py-4 px-6">{t('groupDetail.videoName')}</th>
+                      <th className="py-4 px-6">{t('groupDetail.lessonName')}</th>
+                      <th className="py-4 px-6">{t('common.status')}</th>
+                      <th className="py-4 px-6">{t('groupDetail.lessonDate')}</th>
+                      <th className="py-4 px-6">{t('groupDetail.size')}</th>
+                      <th className="py-4 px-6">{t('groupDetail.addedTime')}</th>
                       <th className="py-4 px-6 text-center w-16"></th>
                     </tr>
                   </thead>
@@ -1196,14 +1298,14 @@ export default function GroupDetails() {
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                             </svg>
-                            <span>Yuklanmoqda...</span>
+                            <span>{t('groupDetail.loading')}</span>
                           </div>
                         </td>
                       </tr>
                     ) : videosList.length === 0 ? (
                       <tr>
                         <td colSpan="8" className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm">
-                          Ushbu guruhda hali videolar yuklanmagan.
+                          {t('groupDetail.noVideos')}
                         </td>
                       </tr>
                     ) : (
@@ -1260,82 +1362,171 @@ export default function GroupDetails() {
               />
             ) : subTab === 'journal' ? (
               <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-semibold text-sm">
-                Jurnal bo'limi hozircha mavjud emas
+                {t('groupDetail.journalEmpty')}
               </div>
             ) : (
               <div className="py-12 text-center text-gray-400 dark:text-gray-500 font-semibold text-sm">
-                Ushbu bo'lim hozircha bo'sh
+                {t('groupDetail.sectionEmpty')}
               </div>
             )}
             </div>
           </div>
         )}
 
-        {activeTab === 'attendance' && (
-          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm overflow-hidden animate-in fade-in duration-300">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Akademik davomati</h3>
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    <th className="py-3 pr-4">Talaba nomi</th>
-                    {['12.05', '14.05', '16.05', '19.05', '21.05', '23.05'].map((date) => (
-                      <th key={date} className="py-3 px-3 text-center">{date}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {loading ? (
-                    <tr>
-                      <td colSpan="7" className="text-center py-8 text-gray-400 font-semibold text-sm">
-                        Talabalar yuklanmoqda...
-                      </td>
-                    </tr>
-                  ) : (currentGroup.students || []).length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="text-center py-8 text-gray-400 font-semibold text-sm">
-                        Talabalar mavjud emas.
-                      </td>
-                    </tr>
-                  ) : (currentGroup.students || []).map((student, sIdx) => {
-                    const mockAttendance = [
-                      sIdx % 3 !== 0,
-                      sIdx % 4 !== 0,
-                      sIdx % 2 === 0,
-                      true,
-                      sIdx % 5 !== 0,
-                      true
-                    ];
-                    return (
-                      <tr key={student.id || sIdx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
-                        <td className="py-4 pr-4 font-semibold text-sm text-gray-800 dark:text-white">{student.full_name || student.name}</td>
-                        {mockAttendance.map((present, aIdx) => (
-                          <td key={aIdx} className="py-4 px-3 text-center">
-                            <span className={`inline-flex p-1.5 rounded-full ${
-                              present 
-                                ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400' 
-                                : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
-                            }`}>
-                              {present ? (
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                </svg>
-                              ) : (
-                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              )}
-                            </span>
-                          </td>
+        {activeTab === 'attendance' && (() => {
+          // API ma'lumotlardan unique sanalarni ajratib olish
+          const allDates = [...new Set(
+            attendanceData.map(a => {
+              const d = new Date(a.created_at || a.date || a.lesson_date || a.lessonDate || '');
+              if (isNaN(d.getTime())) return null;
+              return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+            }).filter(Boolean)
+          )].sort();
+
+          // Har bir talaba uchun davomati map: { studentId -> { 'dd.mm': isPresent } }
+          const attendanceMap = {};
+          attendanceData.forEach(a => {
+            const sid = a.student_id || a.studentId || (a.student && a.student.id);
+            if (!sid) return;
+            if (!attendanceMap[sid]) attendanceMap[sid] = {};
+            const d = new Date(a.created_at || a.date || a.lesson_date || a.lessonDate || '');
+            if (!isNaN(d.getTime())) {
+              const key = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}`;
+              attendanceMap[sid][key] = a.isPresent ?? a.is_present ?? a.attended ?? false;
+            }
+          });
+
+          const students = currentGroup.students || [];
+          const displayDates = allDates.length > 0 ? allDates : ['12.05','14.05','16.05','19.05','21.05','23.05'];
+
+          return (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden animate-in fade-in duration-300">
+              {/* Header */}
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-purple-50 dark:bg-purple-950/30 rounded-xl flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#7C3AED]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-gray-800 dark:text-white">{t('groupDetail.attendance')}</h3>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">
+                      {students.length} {t('students')} • {displayDates.length} {t('groupDetail.lessons')}
+                    </p>
+                  </div>
+                </div>
+                {attendanceLoading && (
+                  <svg className="w-5 h-5 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                )}
+              </div>
+
+              <div className="p-6">
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                        <th className="py-3 pr-4 min-w-[160px]">{t('groupDetail.studentName')}</th>
+                        {displayDates.map((date) => (
+                          <th key={date} className="py-3 px-3 text-center whitespace-nowrap">{date}</th>
                         ))}
+                        <th className="py-3 px-4 text-center">{t('groupDetail.total')}</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {attendanceLoading ? (
+                        <tr>
+                          <td colSpan={displayDates.length + 2} className="text-center py-10">
+                            <div className="flex flex-col items-center gap-3 text-gray-400">
+                              <svg className="w-8 h-8 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                              <span className="text-sm font-semibold">{t('groupDetail.attendanceLoading')}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : students.length === 0 ? (
+                        <tr>
+                          <td colSpan={displayDates.length + 2} className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm">
+                            {t('groupDetail.noStudents')}
+                          </td>
+                        </tr>
+                      ) : (
+                        students.map((student, sIdx) => {
+                          const sMap = attendanceMap[student.id] || {};
+                          const presentCount = displayDates.filter(d => sMap[d] === true).length;
+                          const totalWithData = displayDates.filter(d => d in sMap).length;
+                          const percent = totalWithData > 0 ? Math.round((presentCount / totalWithData) * 100) : null;
+
+                          return (
+                            <tr key={student.id || sIdx} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition-colors">
+                              <td className="py-4 pr-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center text-purple-600 dark:text-purple-400 text-xs font-bold flex-shrink-0">
+                                    {(student.full_name || student.name || '?').charAt(0).toUpperCase()}
+                                  </div>
+                                  <span className="font-semibold text-sm text-gray-800 dark:text-white whitespace-nowrap">
+                                    {student.full_name || student.name}
+                                  </span>
+                                </div>
+                              </td>
+                              {displayDates.map((date) => {
+                                const hasData = date in sMap;
+                                const present = sMap[date];
+                                return (
+                                  <td key={date} className="py-4 px-3 text-center">
+                                    {hasData ? (
+                                      <span className={`inline-flex p-1.5 rounded-full ${
+                                        present
+                                          ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400'
+                                          : 'bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400'
+                                      }`}>
+                                        {present ? (
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                          </svg>
+                                        ) : (
+                                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                          </svg>
+                                        )}
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex w-5 h-5 items-center justify-center text-gray-200 dark:text-gray-600 text-base font-bold">—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                              <td className="py-4 px-4 text-center">
+                                {percent !== null ? (
+                                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                                    percent >= 80
+                                      ? 'bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400'
+                                      : percent >= 60
+                                      ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400'
+                                      : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400'
+                                  }`}>
+                                    {presentCount}/{totalWithData}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-300 dark:text-gray-600 text-xs font-bold">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Homework Create Modal */}
@@ -1366,7 +1557,7 @@ export default function GroupDetails() {
           <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-zoom-in">
             {/* Header */}
             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-              <h2 className="text-[17px] font-black text-gray-850 dark:text-white">Qo'shish</h2>
+              <h2 className="text-[17px] font-black text-gray-850 dark:text-white">{t('groupDetail.addVideo')}</h2>
               <button 
                 onClick={() => {
                   setIsVideoModalOpen(false);
@@ -1407,10 +1598,10 @@ export default function GroupDetails() {
                 </div>
                 
                 <p className="text-[14px] font-black text-gray-800 dark:text-white mb-2 leading-relaxed max-w-lg">
-                  Videofaylni yuklash uchun ushbu hudud ustiga bosing yoki faylni shu yerga olib keling
+                  {t('groupDetail.uploadVideoTitle')}
                 </p>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold max-w-md">
-                  Videofayl: .mp4, .webm, .mpeg, .avi, .mkv, .m4v, .ogm, .mov formatlaridan birida bo'lishi kerak
+                  {t('groupDetail.uploadVideoFormat')}
                 </p>
               </div>
 
@@ -1438,7 +1629,7 @@ export default function GroupDetails() {
                               onChange={(e) => setSelectedLesson(e.target.value)}
                               className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 dark:text-white border border-gray-250 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-xs font-semibold appearance-none cursor-pointer text-gray-650"
                             >
-                              <option value="">Darsni tanlang</option>
+                              <option value="">{t('groupDetail.selectLesson')}</option>
                               {Array.isArray(groupLessons) && groupLessons.length > 0 ? (
                                 groupLessons.map((lesson, idx) => (
                                   <option key={lesson.id || idx} value={lesson.id}>
@@ -1465,7 +1656,7 @@ export default function GroupDetails() {
                             type="text" 
                             value={customVideoName}
                             onChange={(e) => setCustomVideoName(e.target.value)}
-                            placeholder="Video nomi"
+                            placeholder={t('groupDetail.videoName')}
                             className="w-full px-4 py-2.5 bg-white dark:bg-gray-700 dark:text-white border border-gray-250 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 text-xs font-semibold text-gray-700"
                           />
                         </td>
@@ -1503,14 +1694,14 @@ export default function GroupDetails() {
                 }}
                 className="px-6 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 transition-colors"
               >
-                Bekor qilish
+                {t('btn.cancel')}
               </button>
               {uploadedFile && (
                 <button
                   onClick={handleUploadVideos}
                   className="px-6 py-2.5 bg-[#10B981] hover:bg-[#059669] text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-100/30 dark:shadow-none transition-colors cursor-pointer"
                 >
-                  Fayllarni yuklash
+                  {t('groupDetail.uploadFiles')}
                 </button>
               )}
             </div>
@@ -1539,7 +1730,7 @@ export default function GroupDetails() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 </div>
-                <h2 className="text-[17px] font-black text-gray-800 dark:text-white">Yangi imtihon</h2>
+                <h2 className="text-[17px] font-black text-gray-800 dark:text-white">{t('groupDetail.newExam')}</h2>
               </div>
               <button
                 onClick={() => {
@@ -1559,7 +1750,7 @@ export default function GroupDetails() {
               {/* Mavzu nomi */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <span className="text-red-500 mr-1">*</span>Imtihon nomi
+                  <span className="text-red-500 mr-1">*</span>{t('groupDetail.examName')}
                 </label>
                 <input
                   type="text"
@@ -1573,7 +1764,7 @@ export default function GroupDetails() {
               {/* Boshlanish vaqti */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  <span className="text-red-500 mr-1">*</span>Boshlanish vaqti
+                  <span className="text-red-500 mr-1">*</span>{t('groupDetail.examStartTime')}
                 </label>
                 <input
                   type="datetime-local"
@@ -1586,7 +1777,7 @@ export default function GroupDetails() {
               {/* Davomiyligi */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Davomiyligi (daqiqa)
+                  {t('groupDetail.examDuration')}
                 </label>
                 <input
                   type="number"
@@ -1609,7 +1800,7 @@ export default function GroupDetails() {
                 }}
                 className="px-5 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors"
               >
-                Bekor qilish
+                {t('btn.cancel')}
               </button>
               <button
                 disabled={examSaving}
@@ -1653,7 +1844,7 @@ export default function GroupDetails() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
-                Saqlash
+                {t('btn.save')}
               </button>
             </div>
           </div>
@@ -1703,12 +1894,22 @@ export default function GroupDetails() {
 
             {/* Video Player Area */}
             <div className="relative bg-black w-full aspect-video flex items-center justify-center">
-              <video
-                src={selectedVideo.videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
-                controls
-                autoPlay
-                className="w-full h-full object-contain"
-              />
+              {videoBlobLoading ? (
+                <div className="flex flex-col items-center gap-3 text-white">
+                  <svg className="animate-spin w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span className="text-sm font-semibold">{t('groupDetail.videoLoading')}</span>
+                </div>
+              ) : (
+                <video
+                  src={videoBlobUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
+                  controls
+                  autoPlay
+                  className="w-full h-full object-contain"
+                />
+              )}
             </div>
 
             {/* Footer Info */}

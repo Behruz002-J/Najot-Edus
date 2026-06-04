@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axiosClient from '../../api/axios';
+import { useLanguage } from '../../context/LanguageContext';
 
 const TOPICS = [
   'Html asoslari',
@@ -16,6 +17,7 @@ const TOPICS = [
 ];
 
 export default function CreateExam() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { id } = useParams();
 
@@ -51,7 +53,7 @@ export default function CreateExam() {
   };
 
   const handleFontSize = (size) => {
-    const map = { Normal: '3', Katta: '5', Kichik: '1' };
+    const map = { 'Normal': '3', 'Katta': '5', 'Kichik': '1', 'Large': '5', 'Small': '1', 'Крупный': '5', 'Мелкий': '1', 'Обычный': '3' };
     execCmd('fontSize', map[size] || '3');
     setFontSize(size);
   };
@@ -65,15 +67,15 @@ export default function CreateExam() {
 
   const handlePublish = async () => {
     if (!selectedTopic) {
-      alert('Iltimos, mavzuni tanlang!');
+      alert(t('createHomework.selectTopicError') || 'Iltimos, mavzuni tanlang!');
       return;
     }
     if (!endDate) {
-      alert("Iltimos, tugash sanasini kiriting!");
+      alert(t('createHomework.enterEndDateError') || "Iltimos, tugash sanasini kiriting!");
       return;
     }
     if (!endTime) {
-      alert("Iltimos, tugash vaqtini kiriting!");
+      alert(t('createHomework.enterEndTimeError') || "Iltimos, tugash vaqtini kiriting!");
       return;
     }
 
@@ -123,8 +125,8 @@ export default function CreateExam() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-        <h2 className="text-lg font-black text-gray-800 dark:text-white">
-          Imtihon yaratish
+        <h2 className="text-lg font-black text-gray-805 dark:text-white">
+          {t('createHomework.createExam')}
         </h2>
       </div>
 
@@ -137,15 +139,15 @@ export default function CreateExam() {
             <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-              Oxirgi 7 kundagi uyga vazifa berilmagan mavzularni tanlay olasiz!
+            <p className="text-sm text-blue-755 dark:text-blue-300 font-medium">
+              {t('createHomework.examWarningBanner')}
             </p>
           </div>
 
           {/* Mavzu */}
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-              <span className="text-red-500 mr-1">*</span>Mavzu
+              <span className="text-red-500 mr-1">*</span>{t('lessonAttendance.topic')}
             </label>
             <div className="relative" ref={dropdownRef}>
               <button
@@ -154,7 +156,7 @@ export default function CreateExam() {
                 className="w-full flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-left transition-all focus:outline-none hover:border-gray-300 dark:hover:border-gray-600"
               >
                 <span className={selectedTopic ? 'text-gray-800 dark:text-white font-semibold' : 'text-gray-400 dark:text-gray-500'}>
-                  {selectedTopic || 'Mavzulardan birini tanlang'}
+                  {selectedTopic || t('createHomework.selectTopic')}
                 </span>
                 <svg
                   className={`w-4 h-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${isTopicOpen ? 'rotate-180' : ''}`}
@@ -190,7 +192,7 @@ export default function CreateExam() {
           {/* Izoh */}
           <div>
             <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-              <span className="text-red-500 mr-1">*</span>Izoh
+              <span className="text-red-500 mr-1">*</span>{t('createHomework.description')}
             </label>
             <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-400/30 focus-within:border-emerald-400 transition-all">
               {/* Toolbar */}
@@ -208,9 +210,9 @@ export default function CreateExam() {
 
                 <select value={fontSize} onMouseDown={(e) => e.stopPropagation()} onChange={(e) => handleFontSize(e.target.value)}
                   className="text-xs font-semibold text-gray-600 dark:text-gray-300 bg-transparent border border-gray-200 dark:border-gray-600 rounded-lg px-2 py-1 cursor-pointer focus:outline-none">
-                  <option>Kichik</option>
-                  <option>Normal</option>
-                  <option>Katta</option>
+                  <option value="Kichik">{t('createHomework.small') || "Kichik"}</option>
+                  <option value="Normal">{t('createHomework.normal') || "Normal"}</option>
+                  <option value="Katta">{t('createHomework.large') || "Katta"}</option>
                 </select>
                 <Sep />
 
@@ -251,7 +253,7 @@ export default function CreateExam() {
                 contentEditable
                 suppressContentEditableWarning
                 className="min-h-[140px] p-4 text-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-900 focus:outline-none leading-relaxed"
-                data-placeholder="Imtihon haqida batafsil ma'lumot kiriting..."
+                data-placeholder={t('createHomework.descriptionPlaceholderExam')}
               />
             </div>
           </div>
@@ -272,7 +274,7 @@ export default function CreateExam() {
               className={`border border-dashed rounded-xl py-4 flex items-center justify-center gap-2 cursor-pointer transition-all select-none text-sm font-semibold ${
                 isDragging
                   ? 'border-emerald-400 bg-emerald-50/30 dark:bg-emerald-900/10 text-emerald-600'
-                  : 'border-gray-200 dark:border-gray-700 hover:border-emerald-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 text-gray-500 dark:text-gray-400'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-emerald-400 hover:bg-gray-50 dark:hover:bg-gray-850/50 text-gray-500 dark:text-gray-400'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,7 +292,7 @@ export default function CreateExam() {
                   </button>
                 </span>
               ) : (
-                <span>Yuklash</span>
+                <span>{t('createHomework.upload')}</span>
               )}
             </div>
           </div>
@@ -299,7 +301,7 @@ export default function CreateExam() {
           <div className="grid grid-cols-2 gap-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                <span className="text-red-500 mr-1">*</span>Tugash sanasi
+                <span className="text-red-500 mr-1">*</span>{t('createHomework.endDate')}
               </label>
               <div className="relative">
                 <input
@@ -307,13 +309,13 @@ export default function CreateExam() {
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all placeholder-gray-400"
-                  placeholder="Sanani kiriting"
+                  placeholder={t('createHomework.enterDatePlaceholder')}
                 />
               </div>
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                <span className="text-red-500 mr-1">*</span>Tugash vaqti
+                <span className="text-red-500 mr-1">*</span>{t('createHomework.endTime')}
               </label>
               <div className="relative">
                 <input
@@ -321,7 +323,7 @@ export default function CreateExam() {
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20 transition-all placeholder-gray-400"
-                  placeholder="Vaqtni kiriting"
+                  placeholder={t('createHomework.enterTimePlaceholder')}
                 />
               </div>
             </div>
@@ -336,7 +338,7 @@ export default function CreateExam() {
             onClick={goBack}
             className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            Bekor qilish
+            {t('btn.cancel')}
           </button>
           <button
             type="button"
@@ -350,7 +352,7 @@ export default function CreateExam() {
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            E'lon qilish
+            {t('createHomework.publish')}
           </button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axiosClient from '../../api/axios';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Mock data strictly matching the user's screenshot
 const MOCK_WAITING_STUDENTS = [
@@ -45,6 +46,7 @@ function formatDT(isoStr) {
 }
 
 export default function HomeworkDetail() {
+  const { t } = useLanguage();
   const { id, homeworkId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -230,7 +232,7 @@ export default function HomeworkDetail() {
       }, 1000);
 
     } catch (err) {
-      alert("Xatolik yuz berdi!");
+      alert(t('common.error') || "Xatolik yuz berdi!");
     }
   };
 
@@ -272,11 +274,11 @@ export default function HomeworkDetail() {
         {/* Info panel */}
         <div className="p-6 border-b border-gray-100 dark:border-gray-700 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">Mavzu</p>
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">{t('groupDetail.topic')}</p>
             <p className="text-base font-bold text-gray-850 dark:text-white">{homeworkTopic}</p>
           </div>
           <div>
-            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">Tugash vaqti</p>
+            <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase mb-1">{t('groupDetail.endTime')}</p>
             <p className="text-base font-bold text-gray-850 dark:text-white">{deadlineText}</p>
           </div>
         </div>
@@ -284,10 +286,10 @@ export default function HomeworkDetail() {
         {/* Tab row */}
         <div className="px-6 py-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/50 flex flex-wrap gap-2">
           {[
-            { id: 'waiting', label: 'Kutayotganlar', count: waitingSubmissions.length },
-            { id: 'returned', label: 'Qaytarilganlar', count: returnedSubmissions.length },
-            { id: 'accepted', label: 'Qabul qilinganlar', count: acceptedSubmissions.length },
-            { id: 'unsubmitted', label: 'Bajarilmagan', count: unsubmittedSubmissions.length }
+            { id: 'waiting', label: t('homeworkDetail.waiting'), count: waitingSubmissions.length },
+            { id: 'returned', label: t('homeworkDetail.returned'), count: returnedSubmissions.length },
+            { id: 'accepted', label: t('homeworkDetail.accepted'), count: acceptedSubmissions.length },
+            { id: 'unsubmitted', label: t('homeworkDetail.unsubmitted'), count: unsubmittedSubmissions.length }
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (
@@ -319,21 +321,21 @@ export default function HomeworkDetail() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider bg-gray-50/50 dark:bg-gray-700/10">
-                <th className="py-4 px-6">O'quvchi ismi</th>
-                <th className="py-4 px-6">Uyga vazifa jo'natilgan vaqt</th>
+                <th className="py-4 px-6">{t('homeworkDetail.studentName')}</th>
+                <th className="py-4 px-6">{t('homeworkDetail.submittedAt')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700/50">
               {loading ? (
                 <tr>
                   <td colSpan="2" className="text-center py-12 text-gray-400 font-semibold text-sm">
-                    Yuklanmoqda...
+                    {t('common.loading')}
                   </td>
                 </tr>
               ) : activeList.length === 0 ? (
                 <tr>
                   <td colSpan="2" className="text-center py-12 text-gray-400 dark:text-gray-500 font-semibold text-sm">
-                    Bu bo'limda o'quvchilar mavjud emas
+                    {t('homeworkDetail.sectionEmpty')}
                   </td>
                 </tr>
               ) : (
@@ -364,27 +366,27 @@ export default function HomeworkDetail() {
         <div className="max-w-[760px] space-y-6 mt-8 animate-in slide-in-from-top-4 duration-300">
           <div className="bg-[#F8F9FC] dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-700/50 p-6 shadow-sm">
             <h3 className="text-base font-bold text-gray-800 dark:text-white mb-4">
-              {selectedStudent.full_name} — Uyga vazifani baholash
+              {selectedStudent.full_name} — {t('homeworkDetail.gradeHomework')}
             </h3>
 
             {/* Submission card */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5 flex flex-wrap gap-12 shadow-sm mb-4">
               <div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">Topshirilgan vaqt:</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">{t('homeworkDetail.submittedTime')}</p>
                 <p className="text-sm font-bold text-gray-850 dark:text-gray-200">
-                  {selectedStudent.status === 'unsubmitted' ? 'Topshirilmagan' : formatDT(selectedStudent.submitted_at)}
+                  {selectedStudent.status === 'unsubmitted' ? t('homeworkDetail.notSubmitted') : formatDT(selectedStudent.submitted_at)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">Fayllar / Linklar soni:</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">{t('homeworkDetail.filesCount')}</p>
                 <p className="text-sm font-bold text-gray-850 dark:text-gray-200">
                   {selectedStudent.files_count ?? 0}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">Hozirgi status:</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">{t('homeworkDetail.status')}</p>
                 <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold ${STATUS_MAP[selectedStudent.status]?.cls}`}>
-                  {STATUS_MAP[selectedStudent.status]?.label}
+                  {t('homeworkDetail.' + selectedStudent.status)}
                 </span>
               </div>
             </div>
@@ -393,7 +395,7 @@ export default function HomeworkDetail() {
             {selectedStudent.description && (
               <div className="bg-[#F4F7FC] dark:bg-blue-900/10 border-l-[3px] border-l-blue-500 border border-gray-100 dark:border-gray-850 rounded-r-xl rounded-l-sm p-5 mb-6">
                 <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1.5">
-                  O'quvchi izohi va havolalar:
+                  {t('homeworkDetail.studentComment')}
                 </p>
                 <p className="text-xs text-gray-800 dark:text-gray-300 leading-relaxed font-bold whitespace-pre-wrap break-all">
                   {selectedStudent.description.split('\n').map((line, lIdx) => {
@@ -430,14 +432,14 @@ export default function HomeworkDetail() {
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
               </svg>
               <p className="text-xs text-[#1E40AF] dark:text-blue-300 font-semibold leading-relaxed">
-                60-100 oralig'ida ball qo'yilgan vazifa 'Qabul qilingan', 0-59 oralig'ida ball qo'yilgan vazifa 'Qaytarilgan' hisoblanadi.
+                {t('homeworkDetail.gradingBanner')}
               </p>
             </div>
 
             {/* Score slider & input */}
             <div className="space-y-2 mb-4">
               <label className="block text-sm font-bold text-gray-800 dark:text-white">
-                Ball
+                {t('homeworkDetail.score')}
               </label>
               <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -450,7 +452,7 @@ export default function HomeworkDetail() {
                     className="w-full accent-emerald-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                   <p className="text-xs text-gray-400 font-bold text-center mt-1">
-                    O'tish bali: 60
+                    {t('homeworkDetail.passingScore')}
                   </p>
                 </div>
                 <input
@@ -472,14 +474,14 @@ export default function HomeworkDetail() {
             {/* Teacher comment and microphone button */}
             <div className="relative">
               <textarea
-                placeholder="Izohingiz"
+                placeholder={t('homeworkDetail.teacherCommentPlaceholder')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 className="w-full min-h-[90px] p-4 pr-12 text-sm text-gray-750 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder-gray-400 font-semibold"
               />
               <button
                 type="button"
-                title="Ovozli kiritish (Voice input)"
+                title={t('homeworkDetail.voiceInput')}
                 className="absolute right-3.5 bottom-3.5 w-8 h-8 flex items-center justify-center rounded-lg bg-[#10B981] hover:bg-[#059669] text-white transition-colors cursor-pointer"
               >
                 <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -495,20 +497,20 @@ export default function HomeworkDetail() {
                 onClick={() => setSelectedStudent(null)}
                 className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all bg-white dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300"
               >
-                Bekor qilish
+                {t('btn.cancel')}
               </button>
               <button
                 type="button"
                 onClick={handleSubmitScore}
                 className="px-7 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-sm font-bold transition-all"
               >
-                Yuborish
+                {t('common.save')}
               </button>
             </div>
 
             {gradingSuccess && (
               <div className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 text-xs font-bold rounded-lg text-center animate-pulse">
-                Ball va izoh muvaffaqiyatli yuborildi!
+                {t('homeworkDetail.successGraded')}
               </div>
             )}
 

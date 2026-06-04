@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import AddTeacherModal from '../../components/AddTeacherModal';
 import axiosClient from '../../api/axios';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function Teacher() {
   const { isTeacherModalOpen, setIsTeacherModalOpen } = useOutletContext();
@@ -13,6 +14,7 @@ export default function Teacher() {
   const totalPages = 10;
   const [deleting, setDeleting] = useState(false);
   const [teacherToDelete, setTeacherToDelete] = useState(null);
+  const { t } = useLanguage();
 
   const fetchTeachers = async () => {
     try {
@@ -105,7 +107,7 @@ export default function Teacher() {
                   : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
               }`}
             >
-              Faollar
+              {t('btn.active')}
             </button>
             <button 
               onClick={() => setActiveTab('archive')}
@@ -115,7 +117,7 @@ export default function Teacher() {
                   : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50'
               }`}
             >
-              Arxiv
+              {t('btn.archive')}
             </button>
           </div>
           
@@ -123,7 +125,7 @@ export default function Teacher() {
             <div className="relative">
               <input 
                 type="text" 
-                placeholder="Qidirish..." 
+                placeholder={t('teacher.searchPlaceholder')} 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-[#F9FAFB] dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg py-2 px-4 text-sm focus:ring-1 focus:ring-purple-500 focus:outline-none dark:text-white"
@@ -140,13 +142,13 @@ export default function Teacher() {
                 <th className="px-6 py-4 w-10">
                   <input type="checkbox" className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 w-4 h-4" />
                 </th>
-                <th className="px-6 py-4">Nomi &darr;</th>
-                <th className="px-6 py-4">Guruh</th>
-                <th className="px-6 py-4">Telefon raqamlari</th>
+                <th className="px-6 py-4">{t('common.name')} &darr;</th>
+                <th className="px-6 py-4">{t('common.group')}</th>
+                <th className="px-6 py-4">{t('common.phone')}</th>
                 <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Manzil</th>
-                <th className="px-6 py-4">Yaratilgan sana</th>
-                <th className="px-6 py-4 text-right">Amallar</th>
+                <th className="px-6 py-4">{t('common.address')}</th>
+                <th className="px-6 py-4">{t('common.createdAt')}</th>
+                <th className="px-6 py-4 text-right">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="text-[14px] divide-y divide-gray-50 dark:divide-gray-700">
@@ -158,14 +160,14 @@ export default function Teacher() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Yuklanmoqda...
+                      {t('common.loading')}
                     </div>
                   </td>
                 </tr>
               ) : filteredTeachers.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="text-center py-16 text-gray-400 font-semibold text-sm">
-                    O'qituvchilar topilmadi.
+                    {t('teacher.notFound')}
                   </td>
                 </tr>
               ) : (
@@ -271,10 +273,10 @@ export default function Teacher() {
           />
           <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              O'qituvchini o'chirish
+              {t('teacher.deleteTitle')}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-              Rostdan ham o'chirishni hohlaysizmi?
+              {t('teacher.deleteConfirm')}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -282,7 +284,7 @@ export default function Teacher() {
                 onClick={cancelDeleteTeacher}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               >
-                Bekor qilish
+                {t('btn.cancel')}
               </button>
               <button
                 type="button"
@@ -296,7 +298,7 @@ export default function Teacher() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
                   </svg>
                 )}
-                {deleting ? "O'chirilmoqda..." : "Ha"}
+                {deleting ? t('btn.deleting') : t('btn.yes')}
               </button>
             </div>
           </div>

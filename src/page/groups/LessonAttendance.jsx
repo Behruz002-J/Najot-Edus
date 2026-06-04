@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function LessonAttendance() {
+  const { t } = useLanguage();
   const { groupId, date } = useParams();
   const navigate = useNavigate();
 
@@ -109,14 +111,14 @@ export default function LessonAttendance() {
         <button
           onClick={() => navigate(`/dashboard/groups/${groupId || "1"}`)}
           className="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 hover:text-gray-800 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          title="Guruhga qaytish"
+          title={t('lessonAttendance.backToGroup')}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <h2 className="text-lg font-black text-gray-800 dark:text-white">
-          Dars yo'qlamasi
+          {t('lessonAttendance.lessonAttendance')}
         </h2>
       </div>
 
@@ -153,7 +155,7 @@ export default function LessonAttendance() {
       {/* 3. "Ma'lumot" Card */}
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm space-y-4">
         <h3 className="text-sm font-bold text-gray-800 dark:text-white">
-          Ma'lumot
+          {t('lessonAttendance.info')}
         </h3>
         <div className="flex flex-wrap items-center justify-between gap-6 relative">
           <div className="flex items-center gap-4">
@@ -161,7 +163,7 @@ export default function LessonAttendance() {
               {activeRole === "teacher" ? "M" : "J"}
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-800 dark:text-white">
+              <h2 className="text-base font-bold text-gray-850 dark:text-white">
                 {activeRole === "teacher" ? "Mohirbek" : "Javohir"}
               </h2>
               <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
@@ -172,7 +174,7 @@ export default function LessonAttendance() {
 
           <div className="flex flex-col">
             <span className="text-xs text-gray-400 font-semibold mb-0.5">
-              Dars kuni
+              {t('lessonAttendance.lessonDate')}
             </span>
             <span className="text-sm font-bold text-gray-800 dark:text-white">
               2026 M05 {date || "14"}
@@ -181,12 +183,12 @@ export default function LessonAttendance() {
 
           <div className="flex flex-col">
             <span className="text-xs text-gray-400 font-semibold mb-0.5">
-              Holat
+              {t('lessonAttendance.status')}
             </span>
             <span
               className={`text-sm font-bold ${isSaved ? "text-[#10B981] dark:text-emerald-400" : "text-amber-500"}`}
             >
-              {isSaved ? "Dars o'tilgan" : "Dars o'tilmagan"}
+              {isSaved ? t('lessonAttendance.lessonCompleted') : t('lessonAttendance.lessonNotCompleted')}
             </span>
           </div>
         </div>
@@ -195,7 +197,7 @@ export default function LessonAttendance() {
       {/* 4. Yo'qlama va mavzu kiritish */}
       <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 shadow-sm space-y-6 relative overflow-hidden">
         <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-          Yo'qlama va mavzu kiritish
+          {t('lessonAttendance.attendanceAndTopic')}
         </h3>
 
         {/* Radio group */}
@@ -212,7 +214,7 @@ export default function LessonAttendance() {
             <span
               className={`text-sm font-semibold transition-colors ${topicType === "syllabus" ? "text-gray-800 dark:text-white" : "text-gray-400"}`}
             >
-              O'quv reja bo'yicha
+              {t('lessonAttendance.bySyllabus')}
             </span>
           </label>
           <label className="flex items-center gap-2.5 cursor-pointer select-none">
@@ -227,7 +229,7 @@ export default function LessonAttendance() {
             <span
               className={`text-sm font-semibold transition-colors ${topicType === "other" ? "text-gray-800 dark:text-white" : "text-gray-400"}`}
             >
-              Boshqa
+              {t('lessonAttendance.other')}
             </span>
           </label>
         </div>
@@ -235,7 +237,7 @@ export default function LessonAttendance() {
         {/* Topic Input */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-red-500 uppercase tracking-wider">
-            * Mavzu
+            * {t('lessonAttendance.topic')}
           </label>
           <input
             type="text"
@@ -249,11 +251,11 @@ export default function LessonAttendance() {
         {/* Description Input */}
         <div className="space-y-2">
           <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Tavsif (ixtiyoriy)
+            {t('lessonAttendance.descriptionOptional')}
           </label>
           <textarea
             rows={3}
-            placeholder="Dars haqida qo'shimcha ma'lumot..."
+            placeholder={t('lessonAttendance.descriptionPlaceholder')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={isSaved}
@@ -270,8 +272,8 @@ export default function LessonAttendance() {
         <div className="border-t border-gray-100 dark:border-gray-700 pt-6 space-y-4 z-10 relative">
           <div className="grid grid-cols-12 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider pb-2">
             <div className="col-span-1 text-center">#</div>
-            <div className="col-span-8 px-2">O'quvchi ismi</div>
-            <div className="col-span-3 text-right pr-4">Keldi</div>
+            <div className="col-span-8 px-2">{t('homeworkDetail.studentName')}</div>
+            <div className="col-span-3 text-right pr-4">{t('lessonAttendance.attended')}</div>
           </div>
 
           <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
@@ -334,21 +336,21 @@ export default function LessonAttendance() {
           onClick={() => navigate(`/dashboard/groups/${groupId || "1"}`)}
           className="px-6 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-white dark:bg-gray-800 shadow-sm"
         >
-          Bekor qilish
+          {t('btn.cancel')}
         </button>
         {isSaved ? (
           <button
             disabled
             className="px-6 py-3 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-bold text-gray-400 dark:text-gray-500 cursor-not-allowed select-none transition-colors"
           >
-            Dars allaqachon saqlangan
+            {t('lessonAttendance.lessonAlreadySaved')}
           </button>
         ) : (
           <button
             onClick={() => navigate(`/dashboard/groups/${groupId || "1"}`)}
             className="px-6 py-3 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl text-sm font-bold shadow-md shadow-purple-100/50 dark:shadow-none transition-colors"
           >
-            Saqlash
+            {t('common.save')}
           </button>
         )}
       </div>

@@ -11,6 +11,19 @@ export default function DashboardLayout() {
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [isLangOpen, setIsLangOpen] = useState(false);
+
+  // Tashqarida bosganda dropdown yopilsin
+  useEffect(() => {
+    if (!isLangOpen) return;
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('[data-lang-dropdown]')) {
+        setIsLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isLangOpen]);
 
   const [teachers, setTeachers] = useState([]);
 
@@ -216,11 +229,14 @@ export default function DashboardLayout() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="relative group">
-                <button className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-1 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+              <div className="relative" data-lang-dropdown>
+                <button
+                  onClick={() => setIsLangOpen(prev => !prev)}
+                  className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-1 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                >
                   {language === "uz" ? "O'zbekcha" : language === "ru" ? "Русский" : "English"}{" "}
                   <svg
-                    className="w-3 h-3"
+                    className={`w-3 h-3 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -235,40 +251,42 @@ export default function DashboardLayout() {
                 </button>
 
                 {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="p-1">
-                    <button
-                      onClick={() => setLanguage("uz")}
-                      className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                        language === "uz"
-                          ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
-                          : "text-gray-600 dark:text-gray-300"
-                      }`}
-                    >
-                      O'zbekcha
-                    </button>
-                    <button
-                      onClick={() => setLanguage("ru")}
-                      className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                        language === "ru"
-                          ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
-                          : "text-gray-600 dark:text-gray-300"
-                      }`}
-                    >
-                      Русский
-                    </button>
-                    <button
-                      onClick={() => setLanguage("en")}
-                      className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                        language === "en"
-                          ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
-                          : "text-gray-600 dark:text-gray-300"
-                      }`}
-                    >
-                      English
-                    </button>
+                {isLangOpen && (
+                  <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="p-1">
+                      <button
+                        onClick={() => { setLanguage("uz"); setIsLangOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          language === "uz"
+                            ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
+                            : "text-gray-600 dark:text-gray-300"
+                        }`}
+                      >
+                        O'zbekcha
+                      </button>
+                      <button
+                        onClick={() => { setLanguage("ru"); setIsLangOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          language === "ru"
+                            ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
+                            : "text-gray-600 dark:text-gray-300"
+                        }`}
+                      >
+                        Русский
+                      </button>
+                      <button
+                        onClick={() => { setLanguage("en"); setIsLangOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                          language === "en"
+                            ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
+                            : "text-gray-600 dark:text-gray-300"
+                        }`}
+                      >
+                        English
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 

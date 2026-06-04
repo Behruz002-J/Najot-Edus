@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useOutletContext, Link } from 'react-router-dom';
 import AddGroupModal from '../../components/AddGroupModal';
 import axiosClient from '../../api/axios';
+import { useLanguage } from '../../context/LanguageContext';
 
 const MAP_DAYS = {
   MONDAY: 'Du',
@@ -14,6 +15,7 @@ const MAP_DAYS = {
 };
 
 export default function Groups() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('groups');
   const { isGroupModalOpen, setIsGroupModalOpen } = useOutletContext();
   const [groups, setGroups] = useState([]);
@@ -101,17 +103,17 @@ export default function Groups() {
   const filteredGroups = groups;
 
   const stats = [
-    { label: 'Jami guruhlar', value: loading ? '...' : String(groups.length), icon: (
+    { label: t('nav.groups'), value: loading ? '...' : String(groups.length), icon: (
       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     )},
-    { label: "O'qituvchilar", value: loading ? '...' : String(totalTeachers), icon: (
+    { label: t('nav.teachers'), value: loading ? '...' : String(totalTeachers), icon: (
       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     )},
-    { label: "O'quvchilar", value: loading ? '...' : String(totalStudents), icon: (
+    { label: t('nav.students'), value: loading ? '...' : String(totalStudents), icon: (
       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7zM12 7a4 4 0 100-8 4 4 0 000 8z" />
       </svg>
@@ -122,7 +124,7 @@ export default function Groups() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Guruhlar</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{t('nav.groups')}</h1>
       </div>
 
       {/* Tabs */}
@@ -136,7 +138,7 @@ export default function Groups() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          Guruhlar
+          {t('nav.groups')}
           {activeTab === 'groups' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
         </button>
         <button
@@ -148,7 +150,7 @@ export default function Groups() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
           </svg>
-          Arxiv
+          {t('btn.archive')}
           {activeTab === 'archive' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
         </button>
       </div>
@@ -190,14 +192,14 @@ export default function Groups() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/50 dark:bg-gray-700/50 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Guruh nomi</th>
-                <th className="px-6 py-4 text-center">Kurs</th>
-                <th className="px-6 py-4 text-center">Davomiyligi</th>
-                <th className="px-6 py-4 text-center">Dars vaqti</th>
-                <th className="px-6 py-4">Xona</th>
-                <th className="px-6 py-4">O'qituvchi</th>
-                <th className="px-6 py-4 text-center">Talabalar</th>
+                <th className="px-6 py-4">{t('common.status')}</th>
+                <th className="px-6 py-4">{t('common.name')}</th>
+                <th className="px-6 py-4 text-center">{t('group.course')}</th>
+                <th className="px-6 py-4 text-center">{t('group.time')}</th>
+                <th className="px-6 py-4 text-center">{t('group.time')}</th>
+                <th className="px-6 py-4">{t('group.room')}</th>
+                <th className="px-6 py-4">{t('group.teacher')}</th>
+                <th className="px-6 py-4 text-center">{t('nav.students')}</th>
                 <th className="px-6 py-4 text-right">
                   <svg 
                     onClick={fetchGroups}
@@ -220,14 +222,14 @@ export default function Groups() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                       </svg>
-                      Guruhlar yuklanmoqda...
+                      {t('common.loading')}
                     </div>
                   </td>
                 </tr>
               ) : filteredGroups.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="text-center py-16 text-gray-400 font-semibold text-sm">
-                    {activeTab === 'groups' ? 'Guruhlar topilmadi.' : 'Arxivlangan guruhlar topilmadi.'}
+                    {t('group.notFound')}
                   </td>
                 </tr>
               ) : (

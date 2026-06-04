@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import axiosClient from '../../api/axios';
+import { useLanguage } from '../../context/LanguageContext';
 
 // Mock talabalar (API ishlamasa)
 const MOCK_STUDENTS = [
@@ -33,6 +34,7 @@ function formatDT(isoStr) {
 }
 
 export default function ExamDetail() {
+  const { t } = useLanguage();
   const { id, examId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,10 +78,10 @@ export default function ExamDetail() {
 
   const handleSubmitScore = async () => {
     try {
-      alert("Ball muvaffaqiyatli yuborildi!");
+      alert(t('examDetail.successScore') || "Ball muvaffaqiyatli yuborildi!");
       navigate(`/dashboard/groups/${id}`);
     } catch (err) {
-      alert("Xatolik yuz berdi!");
+      alert(t('common.error') || "Xatolik yuz berdi!");
     }
   };
 
@@ -102,9 +104,9 @@ export default function ExamDetail() {
 
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 mb-6 text-sm font-bold text-gray-800 dark:text-white">
-        <span>Kutayotganlar</span>
+        <span>{t('homeworkDetail.waiting')}</span>
         <span className="text-gray-400 dark:text-gray-600 font-normal">&gt;</span>
-        <span className="text-gray-400 dark:text-gray-500">Imtihon</span>
+        <span className="text-gray-400 dark:text-gray-500">{t('groupDetail.exams')}</span>
       </div>
 
       {/* Content */}
@@ -113,12 +115,12 @@ export default function ExamDetail() {
         {/* ===== Imtihon vazifasi ===== */}
         <div className="bg-[#F8F9FC] dark:bg-gray-800/40 rounded-2xl border border-gray-100 dark:border-gray-700/50 p-6 shadow-sm">
           <h3 className="text-base font-bold text-gray-800 dark:text-white mb-4">
-            Imtihon vazifasi
+            {t('examDetail.examTask')}
           </h3>
 
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
             <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-2">
-              Imtihon izohi:
+              {t('examDetail.examComment')}
             </p>
             {loading ? (
               <div className="animate-pulse space-y-2">
@@ -160,21 +162,21 @@ export default function ExamDetail() {
                 {/* Meta Card */}
                 <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5 flex items-center gap-16 shadow-sm">
                   <div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">Vaqti:</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">{t('groupDetail.lessonDate')}:</p>
                     <p className="text-sm font-bold text-gray-850 dark:text-gray-200">
                       {formatDT(student.submitted_at)}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">Fayllar soni:</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">{t('homeworkDetail.filesCount')}</p>
                     <p className="text-sm font-bold text-gray-850 dark:text-gray-200">
                       {student.files_count ?? 0}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">Status:</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 font-semibold mb-1">{t('homeworkDetail.status')}</p>
                     <span className={`inline-block px-2.5 py-0.5 rounded text-xs font-semibold ${st.cls}`}>
-                      {st.label}
+                      {t('homeworkDetail.' + student.status) !== ('homeworkDetail.' + student.status) ? t('homeworkDetail.' + student.status) : st.label}
                     </span>
                   </div>
                 </div>
@@ -183,7 +185,7 @@ export default function ExamDetail() {
                 {student.description && (
                   <div className="bg-[#F4F7FC] dark:bg-blue-900/10 border-l-[3px] border-l-blue-500 border border-gray-100 dark:border-gray-850 rounded-r-xl rounded-l-sm p-5 mt-4">
                     <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1.5">
-                      Uyga vazifa izohi:
+                      {t('homeworkDetail.studentComment')}
                     </p>
                     <p className="text-xs text-gray-800 dark:text-gray-300 leading-relaxed font-bold whitespace-pre-wrap break-all">
                       {student.description}
@@ -197,14 +199,14 @@ export default function ExamDetail() {
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
                   <p className="text-xs text-[#1E40AF] dark:text-blue-300 font-semibold leading-relaxed">
-                    60-100 oralig'ida ball qo'yilgan vazifa 'Qabul qilingan', 0-59 oralig'ida ball qo'yilgan vazifa 'Qaytarilgan' hisoblanadi.
+                    {t('homeworkDetail.gradingBanner')}
                   </p>
                 </div>
 
                 {/* Ball Range & Input */}
                 <div className="mt-5 space-y-2">
                   <label className="block text-sm font-bold text-gray-800 dark:text-white">
-                    Ball
+                    {t('homeworkDetail.score')}
                   </label>
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
@@ -217,7 +219,7 @@ export default function ExamDetail() {
                         className="w-full accent-emerald-500 h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                       />
                       <p className="text-xs text-gray-400 font-bold text-center mt-1">
-                        O'tish bali
+                        {t('homeworkDetail.passingScore')}
                       </p>
                     </div>
                     <input
@@ -239,14 +241,14 @@ export default function ExamDetail() {
                 {/* Izoh Input & Microphone */}
                 <div className="mt-4 relative">
                   <textarea
-                    placeholder="Izohingiz"
+                    placeholder={t('homeworkDetail.teacherCommentPlaceholder')}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="w-full min-h-[90px] p-4 pr-12 text-sm text-gray-750 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder-gray-400 font-semibold"
+                    className="w-full min-h-[90px] p-4 pr-12 text-sm text-gray-750 dark:text-gray-200 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-850 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none placeholder-gray-400 font-semibold"
                   />
                   <button
                     type="button"
-                    title="Ovozli kiritish"
+                    title={t('homeworkDetail.voiceInput')}
                     className="absolute right-3.5 bottom-3.5 w-8 h-8 flex items-center justify-center rounded-lg bg-[#10B981] hover:bg-[#059669] text-white transition-colors cursor-pointer"
                   >
                     <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,7 +271,7 @@ export default function ExamDetail() {
               </svg>
             </div>
             <p className="text-sm text-gray-400 font-semibold">
-              Hech qaysi talaba topshirmagan
+              {t('examDetail.noStudentsSubmitted')}
             </p>
           </div>
         )}
@@ -283,14 +285,14 @@ export default function ExamDetail() {
           onClick={goBack}
           className="px-6 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-all bg-white"
         >
-          Bekor qilish
+          {t('btn.cancel')}
         </button>
         <button
           type="button"
           onClick={handleSubmitScore}
           className="px-7 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-sm font-bold transition-all"
         >
-          Yuborish
+          {t('common.save')}
         </button>
       </div>
 

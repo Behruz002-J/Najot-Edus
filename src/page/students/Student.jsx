@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import AddStudentModal from "../../components/AddStudentModal";
 import axiosClient from "../../api/axios";
+import { useLanguage } from "../../context/LanguageContext";
 
 const LIMIT = 10;
 
@@ -25,6 +26,7 @@ export default function Student() {
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const { t } = useLanguage();
 
   const addToast = (type, title, desc = "") => {
     const id = Date.now();
@@ -132,13 +134,13 @@ export default function Student() {
       });
 
       await fetchStudents(page);
-      addToast("success", "Talaba qo'shildi!", `"${newStudent.name}" muvaffaqiyatli qo'shildi.`);
+      addToast("success", t('msg.studentAdded'), `${newStudent.name} ${t('msg.addedSuccess')}`);
     } catch (error) {
       const raw = error?.response?.data?.message;
       const msg = Array.isArray(raw)
         ? raw.join(", ")
-        : raw || error?.response?.data?.error || "Server bilan bog'lanib bo'lmadi.";
-      addToast("error", "Xatolik!", msg);
+        : raw || error?.response?.data?.error || t('msg.serverError');
+      addToast("error", t('common.error'), msg);
     }
   };
 
@@ -176,13 +178,13 @@ export default function Student() {
       });
 
       await fetchStudents(page);
-      addToast("success", "Talaba tahrirlandi!", `"${updatedStudent.name}" muvaffaqiyatli yangilandi.`);
+      addToast("success", t('msg.studentEdited'), `${updatedStudent.name} ${t('msg.updatedSuccess')}`);
     } catch (error) {
       const raw = error?.response?.data?.message;
       const msg = Array.isArray(raw)
         ? raw.join(", ")
-        : raw || error?.response?.data?.error || "Server bilan bog'lanib bo'lmadi.";
-      addToast("error", "Xatolik!", msg);
+        : raw || error?.response?.data?.error || t('msg.serverError');
+      addToast("error", t('common.error'), msg);
     } finally {
       setEditingStudent(null);
     }
@@ -198,14 +200,14 @@ export default function Student() {
     try {
       await axiosClient.delete(`/students/${studentToDelete.id}`);
       setStudents((prev) => prev.filter((s) => s.id !== studentToDelete.id));
-      addToast("success", "Talaba o'chirildi!", `"${studentToDelete.name}" muvaffaqiyatli o'chirildi.`);
+      addToast("success", t('msg.studentDeleted'), `${studentToDelete.name} ${t('msg.deletedSuccess')}`);
       setStudentToDelete(null);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
-        `Server xatosi: ${err?.response?.status || "Noma'lum"}`;
-      addToast("error", "O'chirishda xatolik", msg);
+        `${t('common.serverError')}: ${err?.response?.status || "Noma'lum"}`;
+      addToast("error", t('msg.deleteError'), msg);
       setStudentToDelete(null);
     } finally {
       setIsDeleting(false);
@@ -226,7 +228,7 @@ export default function Student() {
 
   const handleViewStudent = (student) => {
     alert(
-      `Talaba ma'lumotlari:\nFIO: ${student.name}\nTel: ${student.phone}\nEmail: ${student.email}\nManzil: ${student.address}`,
+      `${t('student.details')}:\n${t('common.name')}: ${student.name}\n${t('common.phone')}: ${student.phone}\nEmail: ${student.email}\n${t('common.address')}: ${student.address}`,
     );
   };
 
@@ -279,7 +281,7 @@ export default function Student() {
               </span>
               <input
                 type="text"
-                placeholder="Talaba qidirish..."
+                placeholder={t('student.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="bg-white dark:bg-gray-700 border border-gray-200/60 dark:border-gray-600 rounded-lg py-2 pl-10 pr-4 text-sm w-72 focus:ring-1 focus:ring-[#7C3AED] dark:text-white outline-none shadow-sm hover:shadow-md transition-all"
@@ -305,10 +307,10 @@ export default function Student() {
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              Yangilash
+              {t('btn.refresh')}
             </button>
             <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-semibold border border-gray-100 dark:border-gray-600">
-              Arxiv
+              {t('btn.archive')}
             </button>
           </div>
         </div>
@@ -324,14 +326,14 @@ export default function Student() {
                     className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="px-6 py-4">Nomi</th>
-                <th className="px-6 py-4">Guruh</th>
-                <th className="px-6 py-4">Telefon raqamlari</th>
+                <th className="px-6 py-4">{t('common.name')}</th>
+                <th className="px-6 py-4">{t('common.group')}</th>
+                <th className="px-6 py-4">{t('common.phone')}</th>
                 <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Tug'ilgan sanasi</th>
-                <th className="px-6 py-4">Manzil</th>
-                <th className="px-6 py-4">Yaratilgan sana</th>
-                <th className="px-6 py-4 text-right">Amallar</th>
+                <th className="px-6 py-4">{t('common.birthDate')}</th>
+                <th className="px-6 py-4">{t('common.address')}</th>
+                <th className="px-6 py-4">{t('common.createdAt')}</th>
+                <th className="px-6 py-4 text-right">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="text-[13px] divide-y divide-gray-50 dark:divide-gray-700">
@@ -377,7 +379,7 @@ export default function Student() {
                     colSpan="9"
                     className="text-center py-16 text-gray-400 font-semibold text-sm"
                   >
-                    Talabalar topilmadi.
+                    {t('student.notFound')}
                   </td>
                 </tr>
               ) : (
@@ -440,7 +442,7 @@ export default function Student() {
                         <button
                           onClick={() => handleViewStudent(student)}
                           className="p-1.5 text-gray-400 hover:text-blue-500 transition-colors"
-                          title="Ko'rish"
+                          title={t('btn.view')}
                         >
                           <svg
                             className="w-4 h-4"
@@ -465,7 +467,7 @@ export default function Student() {
                         <button
                           onClick={() => handleDeleteStudent(student)}
                           className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                          title="O'chirish"
+                          title={t('btn.delete')}
                         >
                           <svg
                             className="w-4 h-4"
@@ -484,7 +486,7 @@ export default function Student() {
                         <button
                           onClick={() => openEditModal(student)}
                           className="p-1.5 text-purple-400 hover:text-purple-600 transition-colors"
-                          title="Tahrirlash"
+                          title={t('btn.edit')}
                         >
                           <svg
                             className="w-4 h-4"
@@ -529,12 +531,12 @@ export default function Student() {
                 d="M10 19l-7-7 7-7"
               />
             </svg>
-            Previous
+            {t('btn.prev')}
           </button>
 
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-400 dark:text-gray-500 font-medium mr-2">
-              Sahifa:
+              {t('common.page')}:
             </span>
             {getPaginationRange(page).map((item, idx) => {
               if (item === "...") {
@@ -571,7 +573,7 @@ export default function Student() {
             disabled={!hasMore || loading}
             className="flex items-center gap-2 px-3 py-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-xs font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            Next
+            {t('btn.next')}
             <svg
               className="w-4 h-4"
               fill="none"
@@ -599,15 +601,15 @@ export default function Student() {
 
       {/* Toast */}
       <div className="fixed top-5 right-5 z-[9999] flex flex-col gap-3 pointer-events-none">
-        {toasts.map((t) => (
+        {toasts.map((tItem) => (
           <div
-            key={t.id}
+            key={tItem.id}
             className={`pointer-events-auto flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border min-w-[300px] max-w-sm bg-white dark:bg-gray-800 ${
-              t.type === "success" ? "border-green-100 dark:border-green-900" : "border-red-100 dark:border-red-900"
+              tItem.type === "success" ? "border-green-100 dark:border-green-900" : "border-red-100 dark:border-red-900"
             }`}
           >
-            <div className={`shrink-0 mt-0.5 ${t.type === "success" ? "text-green-500" : "text-red-500"}`}>
-              {t.type === "success" ? (
+            <div className={`shrink-0 mt-0.5 ${tItem.type === "success" ? "text-green-500" : "text-red-500"}`}>
+              {tItem.type === "success" ? (
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
@@ -618,8 +620,8 @@ export default function Student() {
               )}
             </div>
             <div className="flex-1">
-              <p className="text-[14px] font-semibold text-gray-900 dark:text-white">{t.title}</p>
-              {t.desc && <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">{t.desc}</p>}
+              <p className="text-[14px] font-semibold text-gray-900 dark:text-white">{tItem.title}</p>
+              {tItem.desc && <p className="text-[12px] text-gray-500 dark:text-gray-400 mt-0.5">{tItem.desc}</p>}
             </div>
           </div>
         ))}
@@ -634,10 +636,10 @@ export default function Student() {
           />
           <div className="relative w-full max-w-sm rounded-[28px] bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 shadow-2xl p-6">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              Talabani o'chirish
+              {t('student.deleteTitle')}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">
-              Rostdan ham o'chirishni hohlaysizmi?
+              {t('student.deleteConfirm')}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -646,7 +648,7 @@ export default function Student() {
                 disabled={isDeleting}
                 className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
               >
-                Bekor qilish
+                {t('btn.cancel')}
               </button>
               <button
                 type="button"
@@ -660,9 +662,9 @@ export default function Student() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    O'chirilmoqda...
+                    {t('btn.deleting')}
                   </>
-                ) : "Ha"}
+                ) : t('btn.yes')}
               </button>
             </div>
           </div>
