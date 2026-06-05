@@ -7,7 +7,7 @@ import ExamsTab from '../../components/ExamsTab';
 import { useLanguage } from '../../context/LanguageContext';
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes('1780247797805.png') || String(photo).includes('bane-profile.jpg')) return '/bane-profile.jpg';
   if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
   const path = photo.startsWith("/") ? photo : `/${photo}`;
   if (path.startsWith("/files/")) {
@@ -24,6 +24,7 @@ export default function GroupDetails() {
 
   // Active tab state
   const [activeTab, setActiveTab] = useState('info');
+  const [teachersMap, setTeachersMap] = useState({});
   const [alertMessage, setAlertMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [groupInfo, setGroupInfo] = useState(null);
@@ -212,6 +213,38 @@ export default function GroupDetails() {
     const lessonDate = new Date(lessonDateStr);
     lessonDate.setHours(0, 0, 0, 0);
     return lessonDate <= today;
+  };
+
+  const getIsLessonCompleted = (lessonDateStr) => {
+    const lDate = new Date(lessonDateStr);
+    if (isNaN(lDate.getTime())) return false;
+    const day = lDate.getDate();
+    const month = lDate.getMonth() + 1;
+    const year = lDate.getFullYear();
+    const formattedDateParam = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    // 1. Check API attendanceData
+    const hasApiAttendance = attendanceData.some(a => {
+      const aDateStr = a.created_at || a.date || a.lesson_date || a.lessonDate;
+      if (!aDateStr) return false;
+      const aDate = new Date(aDateStr);
+      if (isNaN(aDate.getTime())) return false;
+      return aDate.getDate() === day && (aDate.getMonth() + 1) === month && aDate.getFullYear() === year;
+    });
+
+    if (hasApiAttendance) return true;
+
+    // 2. Check local storage
+    try {
+      const storedStr = localStorage.getItem(`attendance_saved_${id || "1"}`);
+      if (storedStr) {
+        const stored = JSON.parse(storedStr);
+        return stored.includes(formattedDateParam) || stored.includes(String(day));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return false;
   };
 
   const fetchSchedules = async (groupStartDate) => {
@@ -729,7 +762,24 @@ export default function GroupDetails() {
       let startDateVal = null;
       try {
         setLoading(true);
-        const res = await axiosClient.get(`/groups/one/${id}`);
+        const [res, activeRes, archiveRes] = await Promise.all([
+          axiosClient.get(`/groups/one/${id}`),
+          axiosClient.get('/teachers').catch(() => null),
+          axiosClient.get('/teachers/archive').catch(() => null)
+        ]);
+
+        // Build combined map of all teachers
+        const activeList = activeRes?.data?.success ? activeRes.data.data : (Array.isArray(activeRes?.data) ? activeRes.data : []);
+        const archiveList = archiveRes?.data?.success ? archiveRes.data.data : (Array.isArray(archiveRes?.data) ? archiveRes.data : []);
+        const combined = [...activeList, ...archiveList];
+        const map = {};
+        combined.forEach(t => {
+          if (t && t.id) {
+            map[t.id] = t;
+          }
+        });
+        setTeachersMap(map);
+
         if (res?.data?.success && res?.data?.data) {
           const item = res.data.data;
           startDateVal = item.start_date;
@@ -927,7 +977,11 @@ export default function GroupDetails() {
                 <div className="p-6 animate-in fade-in slide-in-from-top-2 duration-200 space-y-4">
                   {Array.isArray(currentGroup.teachers) && currentGroup.teachers.length > 0 ? (
                     currentGroup.teachers.map((teacher, idx) => {
-                      const photoUrl = getImageUrl(teacher.photo || teacher.avatar || teacher.image) || '/bane-profile.jpg';
+                      const fullTeacher = teachersMap[teacher.id] || {};
+                      const teacherPhoto = fullTeacher.photo || fullTeacher.avatar || fullTeacher.image || teacher.photo || teacher.avatar || teacher.image;
+                      const photoUrlRaw = teacherPhoto ? getImageUrl(teacherPhoto) : null;
+                      const photoUrl = photoUrlRaw || '/bane-profile.jpg';
+
                       return (
                         <div key={teacher.id || idx} className="flex items-center gap-4 py-2 border-b border-gray-50 last:border-0 dark:border-gray-700/50">
                            <img 
@@ -1121,7 +1175,11 @@ export default function GroupDetails() {
                         const dayNum = lDate.getDate();
                         const active = isLessonActive(lesson.date);
                         const monthShort = currentMonthData.monthName.substring(0, 3);
-                        const dateUrlParam = String(dayNum);
+                        const y = lDate.getFullYear();
+                        const m = String(lDate.getMonth() + 1).padStart(2, '0');
+                        const d = String(lDate.getDate()).padStart(2, '0');
+                        const dateUrlParam = `${y}-${m}-${d}`;
+                        const isCompleted = getIsLessonCompleted(lesson.date);
 
                         return (
                           <div 
@@ -1133,14 +1191,21 @@ export default function GroupDetails() {
                                 triggerAlert("Dars vaqti hali kelmagan");
                               }
                             }}
-                            className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
-                              active 
-                                ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
-                                : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
+                            className={`flex flex-col items-center ${isCompleted ? 'justify-between' : 'justify-center gap-1'} p-2 min-w-[72px] h-[80px] rounded-2xl border transition-all relative ${
+                              isCompleted
+                                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 cursor-pointer hover:border-emerald-400'
+                                : active 
+                                  ? 'bg-gray-50 dark:bg-gray-700/20 border-gray-100 dark:border-gray-700/50 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
+                                  : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
                             }`}
                           >
-                            <span className="text-[10px] font-bold uppercase tracking-wider">{monthShort}</span>
-                            <span className="text-lg font-black mt-0.5">{dayNum}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">{monthShort}</span>
+                            <span className="text-xl font-black leading-none">{dayNum}</span>
+                            {isCompleted && (
+                              <span className="text-[7.5px] font-extrabold uppercase px-1 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/35 text-emerald-700 dark:text-emerald-300 tracking-tight leading-none text-center">
+                                {t('lessonAttendance.lessonCompleted')}
+                              </span>
+                            )}
                           </div>
                         );
                       })
@@ -1172,7 +1237,11 @@ export default function GroupDetails() {
                             const dayNum = lDate.getDate();
                             const active = isLessonActive(lesson.date);
                             const monthShort = monthData.monthName.substring(0, 3);
-                            const dateUrlParam = String(dayNum);
+                            const y = lDate.getFullYear();
+                            const m = String(lDate.getMonth() + 1).padStart(2, '0');
+                            const d = String(lDate.getDate()).padStart(2, '0');
+                            const dateUrlParam = `${y}-${m}-${d}`;
+                            const isCompleted = getIsLessonCompleted(lesson.date);
 
                             return (
                               <div 
@@ -1184,14 +1253,21 @@ export default function GroupDetails() {
                                     triggerAlert("Dars vaqti hali kelmagan");
                                   }
                                 }}
-                                className={`flex flex-col items-center justify-center min-w-[64px] h-[72px] rounded-2xl border transition-all ${
-                                  active 
-                                    ? 'bg-gray-100 dark:bg-gray-700/40 border-gray-100 dark:border-gray-700/80 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
-                                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
+                                className={`flex flex-col items-center ${isCompleted ? 'justify-between' : 'justify-center gap-1'} p-2 min-w-[72px] h-[80px] rounded-2xl border transition-all relative ${
+                                  isCompleted
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 cursor-pointer hover:border-emerald-400'
+                                    : active 
+                                      ? 'bg-gray-50 dark:bg-gray-700/20 border-gray-100 dark:border-gray-700/50 text-gray-400 dark:text-gray-500 cursor-pointer hover:border-[#7C3AED]' 
+                                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#7C3AED] dark:hover:border-purple-400 cursor-pointer shadow-sm'
                                 }`}
                               >
-                                <span className="text-[10px] font-bold uppercase tracking-wider">{monthShort}</span>
-                                <span className="text-lg font-black mt-0.5">{dayNum}</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider opacity-80">{monthShort}</span>
+                                <span className="text-xl font-black leading-none">{dayNum}</span>
+                                {isCompleted && (
+                                  <span className="text-[7.5px] font-extrabold uppercase px-1 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/35 text-emerald-700 dark:text-emerald-300 tracking-tight leading-none text-center">
+                                    {t('lessonAttendance.lessonCompleted')}
+                                  </span>
+                                )}
                               </div>
                             );
                           })}

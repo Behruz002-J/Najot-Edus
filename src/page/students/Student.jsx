@@ -5,7 +5,7 @@ import axiosClient from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes('1780247797805.png') || String(photo).includes('bane-profile.jpg')) return '/bane-profile.jpg';
   if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
   const path = photo.startsWith("/") ? photo : `/${photo}`;
   if (path.startsWith("/files/")) {
@@ -218,6 +218,15 @@ export default function Student() {
 
       if (newStudent.photo) {
         formData.append("photo", newStudent.photo);
+      } else {
+        try {
+          const responseDefault = await fetch('/bane-profile.jpg');
+          const blobDefault = await responseDefault.blob();
+          const defaultFile = new File([blobDefault], 'bane-profile.jpg', { type: 'image/jpeg' });
+          formData.append('photo', defaultFile);
+        } catch (err) {
+          console.warn('Failed to load default bane-profile.jpg:', err);
+        }
       }
 
       // groups: array of numbers

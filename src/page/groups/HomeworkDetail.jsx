@@ -69,6 +69,7 @@ export default function HomeworkDetail() {
 
   useEffect(() => {
     const fetchHomeworkDetails = async () => {
+      const localKey = `homework_submissions_${id}_${homeworkId}`;
       try {
         setLoading(true);
         // 1. Fetch metadata
@@ -426,7 +427,7 @@ export default function HomeworkDetail() {
                 }`}
               >
                 <span>{tab.label}</span>
-                {tab.count > 0 && (
+                {tab.count >= 0 && (
                   <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-black ${
                     tab.id === 'waiting'
                       ? 'bg-emerald-500 text-white'

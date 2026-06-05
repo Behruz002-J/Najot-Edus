@@ -71,6 +71,7 @@ const translations = {
     "common.email": "Email",
     "common.address": "Manzil",
     "common.createdAt": "Yaratilgan sana",
+    "common.creator": "Yaratuvchi",
     "common.group": "Guruh",
     "common.birthDate": "Tug'ilgan sanasi",
     "common.notFound": "Topilmadi",
@@ -100,6 +101,7 @@ const translations = {
     "group.endDate": "Tugash sanasi",
     "group.days": "Kunlar",
     "group.time": "Vaqt",
+    "group.duration": "Davomiyligi",
     "group.room": "Xona",
 
     // GroupDetails page
@@ -284,6 +286,7 @@ const translations = {
     "common.email": "Email",
     "common.address": "Адрес",
     "common.createdAt": "Дата создания",
+    "common.creator": "Создатель",
     "common.group": "Группа",
     "common.birthDate": "Дата рождения",
     "common.notFound": "Не найдено",
@@ -313,6 +316,7 @@ const translations = {
     "group.endDate": "Дата окончания",
     "group.days": "Дни",
     "group.time": "Время",
+    "group.duration": "Длительность",
     "group.room": "Комната",
 
     // GroupDetails page
@@ -497,6 +501,7 @@ const translations = {
     "common.email": "Email",
     "common.address": "Address",
     "common.createdAt": "Created date",
+    "common.creator": "Creator",
     "common.group": "Group",
     "common.birthDate": "Birth date",
     "common.notFound": "Not found",
@@ -526,6 +531,7 @@ const translations = {
     "group.endDate": "End date",
     "group.days": "Days",
     "group.time": "Time",
+    "group.duration": "Duration",
     "group.room": "Room",
 
     // GroupDetails page

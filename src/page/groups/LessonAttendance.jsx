@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext";
+import axiosClient from "../../api/axios";
 
 export default function LessonAttendance() {
   const { t } = useLanguage();
@@ -42,11 +43,29 @@ export default function LessonAttendance() {
     },
   };
 
-  const initialLesson = pastLessons[date] || { topic: "Nodejs", desc: "" };
+  const parseUrlDate = (dateParam) => {
+    if (!dateParam) return new Date();
+    if (dateParam.includes("-")) {
+      return new Date(dateParam);
+    }
+    return new Date(2026, 4, Number(dateParam) || 14); // May 14, 2026 fallback
+  };
+
+  const getUzbekMonthName = (monthNum) => {
+    const months = [
+      'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun', 
+      'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr'
+    ];
+    return months[monthNum] || '';
+  };
+
+  const parsedDate = parseUrlDate(date);
+  const dayNumStr = String(parsedDate.getDate());
+  const initialLesson = pastLessons[date] || pastLessons[dayNumStr] || { topic: "Nodejs", desc: "" };
 
   // Radio selection state
   const [topicType, setTopicType] = useState(
-    pastLessons[date] ? "syllabus" : "other",
+    (pastLessons[date] || pastLessons[dayNumStr]) ? "syllabus" : "other",
   ); // 'syllabus' or 'other'
 
   // Topic states
@@ -65,15 +84,11 @@ export default function LessonAttendance() {
     { id: 3, name: "Bobur", avatarSeed: "Bobur", attended: false },
   ];
 
+  const [loading, setLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+
   // Attendance list state
-  const [students, setStudents] = useState(() => {
-    try {
-      const stored = localStorage.getItem(`attendance_students_${groupId || "1"}_${date}`);
-      return stored ? JSON.parse(stored) : defaultStudents;
-    } catch {
-      return defaultStudents;
-    }
-  });
+  const [students, setStudents] = useState(defaultStudents);
 
   const defaultPastDates = ["2", "5", "7", "9", "12"];
   const [savedDates, setSavedDates] = useState(() => {
@@ -84,8 +99,6 @@ export default function LessonAttendance() {
       return defaultPastDates;
     }
   });
-
-  const isSaved = savedDates.includes(date);
 
   const toggleAttendance = (id) => {
     if (isSaved) return; // Prevent changing past attendance
@@ -111,21 +124,129 @@ export default function LessonAttendance() {
     }, 1500);
   };
 
-  // Hooking topic loaded whenever date changes in URL
-  React.useEffect(() => {
-    const freshLesson = pastLessons[date] || { topic: "Nodejs", desc: "" };
-    setTopicName(freshLesson.topic);
-    setDescription(freshLesson.desc);
-    setTopicType(pastLessons[date] ? "syllabus" : "other");
+  // Dynamic loading of group info and attendance status
+  useEffect(() => {
+    const loadGroupAndAttendance = async () => {
+      try {
+        setLoading(true);
+        
+        // 1. Fetch group details to get the actual students list
+        const groupRes = await axiosClient.get(`/groups/one/${groupId}`).catch(() => null);
+        let fetchedStudents = [];
+        if (groupRes?.data?.success && groupRes?.data?.data) {
+          fetchedStudents = groupRes.data.data.students || [];
+        } else if (groupRes?.data) {
+          fetchedStudents = groupRes.data.students || [];
+        }
 
-    // Load students for this date
-    try {
-      const stored = localStorage.getItem(`attendance_students_${groupId || "1"}_${date}`);
-      setStudents(stored ? JSON.parse(stored) : defaultStudents);
-    } catch {
-      setStudents(defaultStudents);
-    }
-  }, [date, groupId]);
+        // 2. Fetch all attendance from backend
+        const attRes = await axiosClient.get('/attendance/all').catch(() => null);
+        let allAtt = [];
+        if (attRes?.data?.success && Array.isArray(attRes?.data?.data)) {
+          allAtt = attRes.data.data;
+        } else if (Array.isArray(attRes?.data)) {
+          allAtt = attRes.data;
+        } else if (attRes?.data?.data && Array.isArray(attRes?.data?.data)) {
+          allAtt = attRes.data.data;
+        }
+
+        // Filter attendance for this group
+        const groupAttendance = allAtt.filter(a => {
+          const gId = a.group_id || a.groupId || (a.group && a.group.id);
+          return String(gId) === String(groupId);
+        });
+
+        // Parse url date parameter to match
+        const targetDateObj = parseUrlDate(date);
+        const targetDay = targetDateObj.getDate();
+        const targetMonth = targetDateObj.getMonth() + 1; // 1-indexed
+        const targetYear = targetDateObj.getFullYear();
+
+        // Check if there is backend attendance saved for this date
+        const backendRecordsForDate = groupAttendance.filter(a => {
+          const aDateStr = a.created_at || a.date || a.lesson_date || a.lessonDate;
+          if (!aDateStr) return false;
+          const aDate = new Date(aDateStr);
+          if (isNaN(aDate.getTime())) return false;
+          return aDate.getDate() === targetDay && (aDate.getMonth() + 1) === targetMonth && aDate.getFullYear() === targetYear;
+        });
+
+        const hasBackendSaved = backendRecordsForDate.length > 0;
+
+        // Determine if attendance is already saved (either locally or on backend)
+        const isLocallySaved = savedDates.includes(date) || savedDates.includes(dayNumStr);
+        const finalSaved = isLocallySaved || hasBackendSaved;
+        setIsSaved(finalSaved);
+
+        if (hasBackendSaved) {
+          // If saved on backend, load student attendance from backend records
+          const backendStudents = fetchedStudents.map(student => {
+            const record = backendRecordsForDate.find(r => {
+              const sid = r.student_id || r.studentId || (r.student && r.student.id);
+              return String(sid) === String(student.id);
+            });
+            return {
+              id: student.id,
+              name: student.full_name || student.name || 'Noma\'lum talaba',
+              avatarSeed: student.full_name || student.name || 'User',
+              attended: record ? (record.isPresent ?? record.is_present ?? record.attended ?? false) : false
+            };
+          });
+          setStudents(backendStudents.length > 0 ? backendStudents : defaultStudents);
+          
+          // Sync saved dates list in local storage if not already there
+          if (!savedDates.includes(date)) {
+            const updated = [...savedDates, date];
+            setSavedDates(updated);
+            localStorage.setItem(`attendance_saved_${groupId || "1"}`, JSON.stringify(updated));
+          }
+        } else {
+          // If not saved on backend, check if we have local storage attendance for this date
+          const localStored = localStorage.getItem(`attendance_students_${groupId || "1"}_${date}`) || localStorage.getItem(`attendance_students_${groupId || "1"}_${dayNumStr}`);
+          if (localStored) {
+            setStudents(JSON.parse(localStored));
+          } else {
+            // Otherwise initialize with the group's students
+            const initialStudents = fetchedStudents.map(student => ({
+              id: student.id,
+              name: student.full_name || student.name || 'Noma\'lum talaba',
+              avatarSeed: student.full_name || student.name || 'User',
+              attended: false
+            }));
+            // Fallback to default mock students if group has no students
+            setStudents(initialStudents.length > 0 ? initialStudents : defaultStudents);
+          }
+        }
+
+        // Keep topic loaded dynamically
+        const freshLesson = pastLessons[date] || pastLessons[dayNumStr] || { topic: "Nodejs", desc: "" };
+        setTopicName(freshLesson.topic);
+        setDescription(freshLesson.desc);
+        setTopicType((pastLessons[date] || pastLessons[dayNumStr]) ? "syllabus" : "other");
+
+      } catch (err) {
+        console.error("Error loading group and attendance data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGroupAndAttendance();
+  }, [groupId, date]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[300px] gap-3">
+        <svg className="w-10 h-10 animate-spin text-[#7C3AED]" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
+        <span className="text-sm font-semibold text-gray-500 dark:text-gray-400">
+          Yo'qlama yuklanmoqda...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 relative">
@@ -222,7 +343,7 @@ export default function LessonAttendance() {
               {t('lessonAttendance.lessonDate')}
             </span>
             <span className="text-sm font-bold text-gray-800 dark:text-white">
-              2026 M05 {date || "14"}
+              {parsedDate.getFullYear()} {getUzbekMonthName(parsedDate.getMonth())} {parsedDate.getDate()}
             </span>
           </div>
 

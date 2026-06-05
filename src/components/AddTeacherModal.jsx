@@ -4,7 +4,7 @@ import AssignGroupModal from './AssignGroupModal';
 import { getValidToken } from '../api/tokenUtils';
 import axiosClient from '../api/axios';
 
-export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
+export default function AddTeacherModal({ isOpen, onClose, setTeachers, teacherData }) {
   const navigate = useNavigate();
   const [isAssignGroupModalOpen, setIsAssignGroupModalOpen] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState([]);
@@ -32,6 +32,42 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
     }).catch(() => {});
   }, [isOpen]);
 
+  // Set form data when teacherData is provided for editing
+  useEffect(() => {
+    if (teacherData && isOpen) {
+      setFormData({
+        fullName: teacherData.name || '',
+        phone: (teacherData.phone || '').replace(/\D/g, '').replace(/^998/, '').replace(/^8/, ''),
+        email: teacherData.email || '',
+        address: teacherData.address || '',
+        password: '' // Don't pre-fill password for security
+      });
+      
+      // Match group names to group IDs
+      if (allGroups.length > 0 && Array.isArray(teacherData.group)) {
+        const matchedIds = teacherData.group.map(groupName => {
+          const found = allGroups.find(g => g.name === groupName || `Guruh #${g.id}` === groupName);
+          return found ? found.id : null;
+        }).filter(Boolean);
+        setSelectedGroups(matchedIds);
+      } else {
+        setSelectedGroups([]);
+      }
+    } else if (isOpen) {
+      setFormData({
+        fullName: '',
+        phone: '',
+        email: '',
+        address: '',
+        password: ''
+      });
+      setSelectedGroups([]);
+      setSelectedFile(null);
+    }
+  }, [teacherData, isOpen, allGroups]);
+
+  const isEdit = !!teacherData;
+
   if (!isOpen) return null;
 
   const handleInputChange = (e) => {
@@ -56,8 +92,8 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
   };
 
   const handleSave = async () => {
-    if (!formData.fullName || !formData.phone || !formData.email || !formData.address || !formData.password) {
-      alert("Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam, Mail, Manzil, Parol) to'ldiring!");
+    if (!formData.fullName || !formData.phone || !formData.email || !formData.address || (!isEdit && !formData.password)) {
+      alert(`Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam, Mail, Manzil${isEdit ? '' : ', Parol'}) to'ldiring!`);
       return;
     }
 
@@ -86,7 +122,9 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
         postData.append('email', formData.email);
       }
       
-      postData.append('password', formData.password);
+      if (formData.password) {
+        postData.append('password', formData.password);
+      }
       
       if (formData.address) {
         postData.append('address', formData.address);
@@ -94,7 +132,7 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
       
       if (selectedFile) {
         postData.append('photo', selectedFile);
-      } else {
+      } else if (!isEdit) {
         try {
           const responseDefault = await fetch('/bane-profile.jpg');
           const blobDefault = await responseDefault.blob();
@@ -110,8 +148,12 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
         postData.append('groups', id);
       });
 
-      const response = await fetch("https://najot-edu.softwareengineer.uz/api/v1/teachers", {
-        method: "POST",
+      const url = isEdit 
+        ? `https://najot-edu.softwareengineer.uz/api/v1/teachers/${teacherData.id}`
+        : "https://najot-edu.softwareengineer.uz/api/v1/teachers";
+
+      const response = await fetch(url, {
+        method: isEdit ? "PATCH" : "POST",
         headers: {
           "Authorization": `Bearer ${token}`
         },
@@ -140,9 +182,9 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
 
       console.log("API Response:", resData);
 
-      if (response.ok && (resData.success || resData.message === "Teacher created")) {
+      if (response.ok && (resData.success || resData.message === "Teacher created" || resData.message === "Teacher updated" || isEdit)) {
         const newTeacher = {
-          id: resData.data?.id || resData.id || Date.now(),
+          id: teacherData?.id || resData.data?.id || resData.id || Date.now(),
           name: formData.fullName,
           group: selectedGroups.map(id => {
             const grp = allGroups.find(g => g.id === id);
@@ -151,12 +193,17 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
           phone: '+998 ' + formData.phone,
           email: formData.email,
           address: formData.address,
-          photo: resData.data?.photo || (selectedFile ? URL.createObjectURL(selectedFile) : null),
-          createdDate: new Date().toLocaleDateString('ru-RU')
+          photo: resData.data?.photo || resData.photo || (selectedFile ? URL.createObjectURL(selectedFile) : (teacherData ? teacherData.photo : null)),
+          createdDate: teacherData ? teacherData.createdDate : new Date().toLocaleDateString('ru-RU')
         };
 
-        setTeachers(prev => [newTeacher, ...prev]);
-        alert("O'qituvchi muvaffaqiyatli qo'shildi!");
+        if (isEdit) {
+          setTeachers(prev => prev.map(t => t.id === teacherData.id ? newTeacher : t));
+          alert("O'qituvchi ma'lumotlari muvaffaqiyatli tahrirlandi!");
+        } else {
+          setTeachers(prev => [newTeacher, ...prev]);
+          alert("O'qituvchi muvaffaqiyatli qo'shildi!");
+        }
         
         // Reset form
         setFormData({
@@ -206,8 +253,12 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h2 className="text-[28px] font-bold text-gray-900 dark:text-white mb-2">O'qituvchi qo'shish</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-[15px]">Bu yerda siz yangi o'qituvchi qo'shishingiz mumkin.</p>
+          <h2 className="text-[28px] font-bold text-gray-900 dark:text-white mb-2">
+            {isEdit ? "O'qituvchini tahrirlash" : "O'qituvchi qo'shish"}
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 text-[15px]">
+            {isEdit ? "Bu yerda siz o'qituvchi ma'lumotlarini tahrirlashingiz mumkin." : "Bu yerda siz yangi o'qituvchi qo'shishingiz mumkin."}
+          </p>
         </div>
 
         <div className="border-b border-gray-100 dark:border-gray-800 mx-8"></div>
@@ -341,7 +392,7 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers }) {
               name="password"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="Parol yarating"
+              placeholder={isEdit ? "Parolni o'zgartirish (ixtiyoriy)" : "Parol yarating"}
               className="w-full px-5 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#7B2CBF] transition-all text-gray-900 dark:text-white text-base"
             />
           </div>

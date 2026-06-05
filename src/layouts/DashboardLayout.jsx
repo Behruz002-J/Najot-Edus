@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar/Sidebar";
 import { useLanguage } from "../context/LanguageContext";
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes('1780247797805.png') || String(photo).includes('bane-profile.jpg')) return '/bane-profile.jpg';
   if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
   const path = photo.startsWith("/") ? photo : `/${photo}`;
   if (path.startsWith("/files/")) {

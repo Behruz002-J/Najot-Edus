@@ -86,3 +86,14 @@ input, select, textarea {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Global interactive cursor styles */
+button,
+a,
+select,
+label,
+input[type="button"],
+input[type="submit"],
+[role="button"] {
+  cursor: pointer;
+}
