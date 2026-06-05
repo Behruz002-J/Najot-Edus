@@ -5,7 +5,7 @@ import axiosClient from '../../api/axios';
 import { useLanguage } from '../../context/LanguageContext';
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('1780247797805.png') || String(photo).includes('bane-profile.jpg')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes('bane-profile.jpg')) return null;
   if (photo.startsWith('http') || photo.startsWith('blob:')) return photo;
   const path = photo.startsWith('/') ? photo : `/${photo}`;
   if (path.startsWith('/files/')) {
@@ -14,10 +14,24 @@ const getImageUrl = (photo) => {
   return `https://najot-edu.softwareengineer.uz/files${path}`;
 };
 
+const AVATAR_COLORS = [
+  "bg-purple-100 text-purple-600",
+  "bg-blue-100 text-blue-600",
+  "bg-green-100 text-green-600",
+  "bg-orange-100 text-orange-600",
+  "bg-pink-100 text-pink-600",
+  "bg-teal-100 text-teal-600",
+];
+
 export default function Teacher() {
   const { isTeacherModalOpen, setIsTeacherModalOpen } = useOutletContext();
   const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [imageErrors, setImageErrors] = useState({});
+
+  const handleImageError = (id) => {
+    setImageErrors((prev) => ({ ...prev, [id]: true }));
+  };
   const [activeTab, setActiveTab] = useState('active'); // 'active' or 'archive'
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,7 +55,7 @@ export default function Teacher() {
         teachersData = data.data;
       }
 
-      const formatted = teachersData.map((item) => ({
+      const formatted = teachersData.map((item, idx) => ({
         id: item.id,
         name: item.full_name || item.name || "Noma'lum",
         group: item.groups || [],
@@ -52,6 +66,8 @@ export default function Teacher() {
         createdDate: item.created_at
           ? new Date(item.created_at).toLocaleDateString("ru-RU")
           : "",
+        initial: (item.full_name || item.name || "?")[0]?.toUpperCase(),
+        bgColor: AVATAR_COLORS[(item.id || idx) % AVATAR_COLORS.length],
       }));
       setTeachers(formatted);
     } catch (err) {
@@ -190,21 +206,17 @@ export default function Teacher() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      {teacher.photo ? (
+                      {getImageUrl(teacher.photo) && !imageErrors[teacher.id] ? (
                         <img 
                           src={getImageUrl(teacher.photo)} 
                           alt={teacher.name} 
-                          onError={(e) => {
-                            e.target.src = '/bane-profile.jpg';
-                          }}
+                          onError={() => handleImageError(teacher.id)}
                           className="w-10 h-10 rounded-full object-cover bg-gray-100 dark:bg-gray-700" 
                         />
                       ) : (
-                        <img 
-                          src="/bane-profile.jpg" 
-                          alt="" 
-                          className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 object-cover" 
-                        />
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${teacher.bgColor}`}>
+                          {teacher.initial}
+                        </div>
                       )}
                       <span className="font-medium text-gray-900 dark:text-gray-100">{teacher.name} {currentPage > 1 ? `#${currentPage}` : ''}</span>
                     </div>

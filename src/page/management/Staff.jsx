@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axiosClient from "../../api/axios";
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('1780247797805.png')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes('bane-profile.jpg')) return null;
   if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
   const path = photo.startsWith("/") ? photo : `/${photo}`;
   if (path.startsWith("/files/")) {
@@ -27,6 +27,11 @@ export default function Staff() {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [imageErrors, setImageErrors] = useState({});
+
+  const handleImageError = (id) => {
+    setImageErrors((prev) => ({ ...prev, [id]: true }));
+  };
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -274,21 +279,17 @@ export default function Staff() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {admin.photo ? (
+                        {getImageUrl(admin.photo) && !imageErrors[admin.id] ? (
                           <img 
                             src={getImageUrl(admin.photo)} 
                             alt={admin.name} 
-                            onError={(e) => {
-                              e.target.src = '/bane-profile.jpg';
-                            }}
+                            onError={() => handleImageError(admin.id)}
                             className="w-8 h-8 rounded-full object-cover" 
                           />
                         ) : (
-                          <img 
-                            src="/bane-profile.jpg" 
-                            alt="" 
-                            className="w-8 h-8 rounded-full object-cover" 
-                          />
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${admin.bgColor}`}>
+                            {admin.initial}
+                          </div>
                         )}
                         <span className="font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
                           {admin.name}

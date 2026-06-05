@@ -5,7 +5,7 @@ import axiosClient from "../../api/axios";
 import { useLanguage } from "../../context/LanguageContext";
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('1780247797805.png') || String(photo).includes('bane-profile.jpg')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes('bane-profile.jpg')) return null;
   if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
   const path = photo.startsWith("/") ? photo : `/${photo}`;
   if (path.startsWith("/files/")) {
@@ -530,7 +530,7 @@ export default function Student() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        {student.photo && !imageErrors[student.id] ? (
+                        {getImageUrl(student.photo) && !imageErrors[student.id] ? (
                           <img
                             src={getImageUrl(student.photo)}
                             alt={student.name}
