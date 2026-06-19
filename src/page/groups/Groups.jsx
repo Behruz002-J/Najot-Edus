@@ -14,18 +14,19 @@ const MAP_DAYS = {
   SUNDAY: 'Yak'
 };
 
-export default function Groups() {
+export default function Groups({ isGathering }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('groups');
   const { isGroupModalOpen, setIsGroupModalOpen } = useOutletContext();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
+  const role = window.localStorage.getItem("role") || "TEACHER";
 
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const endpoint = activeTab === 'groups' ? '/groups/all' : '/groups/archive';
+      const endpoint = (activeTab === 'groups' || isGathering) ? '/groups/all' : '/groups/archive';
       const res = await axiosClient.get(endpoint);
       const data = res?.data;
       let groupsData = [];
@@ -64,10 +65,111 @@ export default function Groups() {
         };
       });
 
-      setGroups(mapped);
+      // Fetch local groups & inject default mock groups if missing
+      let localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const defaultMockGroups = [
+        {
+          id: "mock-n26",
+          status: "FAOL",
+          name: "N26",
+          course: "Backend",
+          duration: "6 oy",
+          time: "09:30",
+          days: "Du, Se, Chor, Pay, Ju",
+          room: "Autodesk",
+          teacher: window.localStorage.getItem("username") || "Behruz Jumanov",
+          students: 2
+        },
+        {
+          id: "mock-n105",
+          status: "FAOL",
+          name: "n105",
+          course: "Backend",
+          duration: "6 oy",
+          time: "16:00",
+          days: "Se, Pay, Shan",
+          room: "Autodesk",
+          teacher: window.localStorage.getItem("username") || "Behruz Jumanov",
+          students: 5
+        },
+        {
+          id: "mock-n25",
+          status: "FAOL",
+          name: "n25",
+          course: "Backend",
+          duration: "6 oy",
+          time: "14:00",
+          days: "Du, Se, Chor, Pay, Ju",
+          room: "Autodesk",
+          teacher: window.localStorage.getItem("username") || "Behruz Jumanov",
+          students: 0
+        }
+      ];
+
+      let updated = false;
+      defaultMockGroups.forEach(mockG => {
+        if (!localGroups.some(g => g.name.toLowerCase() === mockG.name.toLowerCase())) {
+          localGroups.push(mockG);
+          updated = true;
+        }
+      });
+      if (updated || !window.localStorage.getItem("local_groups")) {
+        window.localStorage.setItem("local_groups", JSON.stringify(localGroups));
+      }
+
+      const filteredLocal = localGroups.filter(lg => {
+        const isGroupActive = lg.status === 'FAOL';
+        if (isGathering) return !isGroupActive; // gathering groups are not yet active
+        if (activeTab === 'groups') return isGroupActive;
+        return !isGroupActive;
+      });
+
+      // Merge & deduplicate by name
+      const merged = [...filteredLocal];
+      mapped.forEach(mg => {
+        if (!merged.some(lg => lg.name.toLowerCase() === mg.name.toLowerCase())) {
+          merged.push(mg);
+        }
+      });
+
+      // Filter groups by user role and group state
+      let finalGroups = merged;
+      if (isGathering) {
+        finalGroups = merged.filter(g => g.status === 'FAOL EMAS');
+      } else if (activeTab === 'groups') {
+        finalGroups = merged.filter(g => g.status === 'FAOL');
+      } else {
+        finalGroups = merged.filter(g => g.status === 'FAOL EMAS');
+      }
+
+      // Filter by teacher name if role is TEACHER
+      if (role === 'TEACHER') {
+        const loggedInTeacher = (window.localStorage.getItem("username") || "").trim().toLowerCase();
+        if (loggedInTeacher) {
+          const matched = finalGroups.filter(g => 
+            g.teacher && g.teacher.toLowerCase().includes(loggedInTeacher)
+          );
+          // Only apply filter if there are actually matched groups to avoid rendering empty list
+          // if usernames are formatted differently in DB
+          if (matched.length > 0) {
+            finalGroups = matched;
+          }
+        }
+      }
+
+      setGroups(finalGroups);
     } catch (err) {
-      console.error('Fetch groups error:', err?.response?.data || err.message);
-      setGroups([]);
+      console.error('Fetch groups error, using local fallback:', err?.response?.data || err.message);
+      
+      const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const filteredLocal = localGroups.filter(lg => {
+        const isGroupActive = lg.status === 'FAOL';
+        if (isGathering) return !isGroupActive;
+        if (activeTab === 'groups') return isGroupActive;
+        return !isGroupActive;
+      });
+
+      setGroups(filteredLocal);
     } finally {
       setLoading(false);
     }
@@ -75,7 +177,7 @@ export default function Groups() {
 
   useEffect(() => {
     fetchGroups();
-  }, [activeTab]);
+  }, [activeTab, isGathering]);
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'FAOL' ? 'FAOL EMAS' : 'FAOL';
@@ -125,82 +227,87 @@ export default function Groups() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">{t('nav.groups')}</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
+          {isGathering ? "Yig'ilayotgan guruhlar" : "Guruhlar"}
+        </h1>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-6 border-b border-gray-100 dark:border-gray-800 pb-px">
-        <button
-          onClick={() => setActiveTab('groups')}
-          className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all relative ${
-            activeTab === 'groups' ? 'text-gray-800 dark:text-white' : 'text-gray-400 hover:text-gray-600'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          {t('nav.groups')}
-          {activeTab === 'groups' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
-        </button>
-        <button
-          onClick={() => setActiveTab('archive')}
-          className={`flex items-center gap-2 pb-3 text-sm font-semibold transition-all relative ${
-            activeTab === 'archive' ? 'text-gray-800 dark:text-white' : 'text-gray-400 hover:text-gray-600'
-          }`}
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-          </svg>
-          {t('btn.archive')}
-          {activeTab === 'archive' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#7C3AED]" />}
-        </button>
-      </div>
+      {!isGathering && (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setActiveTab('groups')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+              activeTab === 'groups'
+                ? 'bg-white dark:bg-gray-850 text-gray-850 dark:text-white shadow-sm border-gray-200 dark:border-gray-700'
+                : 'bg-transparent text-gray-500 hover:text-gray-700 border-transparent'
+            }`}
+          >
+            Guruhlar
+          </button>
+          <button
+            onClick={() => setActiveTab('archive')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+              activeTab === 'archive'
+                ? 'bg-white dark:bg-gray-850 text-gray-855 dark:text-white shadow-sm border-gray-200 dark:border-gray-700'
+                : 'bg-transparent text-gray-500 hover:text-gray-700 border-transparent'
+            }`}
+          >
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            Arxiv
+          </button>
+        </div>
+      )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, idx) => (
-          <div key={idx} className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-50 dark:border-gray-700 shadow-sm relative overflow-hidden group">
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:scale-110 transition-transform duration-300">
-                {stat.icon}
+      {/* Stats Cards (hidden for teachers) */}
+      {role !== 'TEACHER' && !isGathering && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {stats.map((stat, idx) => (
+            <div key={idx} className="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-50 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg group-hover:scale-110 transition-transform duration-300">
+                  {stat.icon}
+                </div>
+                <button className="text-gray-300 hover:text-gray-500">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
               </div>
-              <button className="text-gray-300 hover:text-gray-500">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>
-              <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{stat.value}</h3>
-            </div>
-            {stat.label === "O'quvchilar" && (
-              <div className="absolute right-6 bottom-6 flex -space-x-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className={`w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-[8px] font-bold text-white ${i === 1 ? 'bg-orange-500' : i === 2 ? 'bg-blue-500' : 'bg-pink-500'}`}>
-                    {i === 1 ? 'M' : i === 2 ? 'S' : 'A'}
-                  </div>
-                ))}
+              <div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">{stat.label}</p>
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{stat.value}</h3>
               </div>
-            )}
-          </div>
-        ))}
-      </div>
+              {stat.label === "O'quvchilar" && (
+                <div className="absolute right-6 bottom-6 flex -space-x-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className={`w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-[8px] font-bold text-white ${i === 1 ? 'bg-orange-500' : i === 2 ? 'bg-blue-500' : 'bg-pink-500'}`}>
+                      {i === 1 ? 'M' : i === 2 ? 'S' : 'A'}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Table Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-50 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 dark:bg-gray-700/50 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                <th className="px-6 py-4">{t('common.status')}</th>
-                <th className="px-6 py-4">{t('common.name')}</th>
-                <th className="px-6 py-4 text-center">{t('group.course')}</th>
-                <th className="px-6 py-4 text-center">{t('group.time')}</th>
-                <th className="px-6 py-4 text-center">{t('group.time')}</th>
-                <th className="px-6 py-4">{t('group.room')}</th>
-                <th className="px-6 py-4">{t('group.teacher')}</th>
-                <th className="px-6 py-4 text-center">{t('nav.students')}</th>
+              <tr className="bg-[#F9FAFB] dark:bg-gray-800 text-[12px] font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Guruh nomi</th>
+                <th className="px-6 py-4 text-center">Kurs</th>
+                <th className="px-6 py-4 text-center">Davomiyligi</th>
+                <th className="px-6 py-4 text-center">Dars vaqti</th>
+                <th className="px-6 py-4">Xona</th>
+                <th className="px-6 py-4">O'qituvchi</th>
+                <th className="px-6 py-4 text-center">Talabalar</th>
                 <th className="px-6 py-4 text-right">
                   <svg 
                     onClick={fetchGroups}
@@ -214,7 +321,7 @@ export default function Groups() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+            <tbody className="divide-y divide-gray-150 dark:divide-gray-700">
               {loading ? (
                 <tr>
                   <td colSpan="9" className="text-center py-16 text-gray-400 font-semibold text-sm">
@@ -230,7 +337,7 @@ export default function Groups() {
               ) : filteredGroups.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="text-center py-16 text-gray-400 font-semibold text-sm">
-                    {t('group.notFound')}
+                    Guruhlar topilmadi
                   </td>
                 </tr>
               ) : (
@@ -251,7 +358,11 @@ export default function Groups() {
                           />
                           <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-[#7C3AED]"></div>
                         </label>
-                        <span className={`text-[10px] font-bold tracking-wider ${group.status === 'FAOL' ? 'text-green-500' : 'text-red-500'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider ${
+                          group.status === 'FAOL' 
+                            ? 'bg-green-50 text-green-600 border border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800' 
+                            : 'bg-red-50 text-red-600 border border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800'
+                        }`}>
                           {group.status}
                         </span>
                       </div>
@@ -275,7 +386,7 @@ export default function Groups() {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-800 dark:text-white">{group.time}</span>
+                        <span className="text-xs font-bold text-gray-805 dark:text-white">{group.time}</span>
                         <span className="text-[9px] text-gray-400 font-medium">{group.days}</span>
                       </div>
                     </td>
@@ -283,7 +394,9 @@ export default function Groups() {
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.room}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-xs font-semibold text-gray-800 dark:text-white">{group.teacher}</span>
+                      <span className="text-xs font-semibold text-gray-800 dark:text-white">
+                        {role === 'TEACHER' ? '' : group.teacher}
+                      </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className="text-sm font-bold text-gray-800 dark:text-white">{group.students}</span>

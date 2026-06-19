@@ -92,15 +92,17 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers, teacherD
   };
 
   const handleSave = async () => {
-    if (!formData.fullName || !formData.phone || !formData.email || !formData.address || (!isEdit && !formData.password)) {
-      alert(`Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam, Mail, Manzil${isEdit ? '' : ', Parol'}) to'ldiring!`);
+    if (!formData.fullName || !formData.phone || (!isEdit && !formData.password)) {
+      alert(`Iltimos, barcha majburiy maydonlarni (O'qituvchi FIO, Telefon raqam${isEdit ? '' : ', Parol'}) to'ldiring!`);
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      alert("Iltimos, to'g'ri elektron pochta (Mail) kiriting (masalan: oqituvchi@example.com)!");
-      return;
+    if (formData.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        alert("Iltimos, to'g'ri elektron pochta (Mail) kiriting (masalan: oqituvchi@example.com)!");
+        return;
+      }
     }
 
     try {
@@ -116,7 +118,10 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers, teacherD
       // Construct multipart FormData as required by the backend schema
       const postData = new FormData();
       postData.append('full_name', formData.fullName);
-      postData.append('phone', formData.phone);
+      
+      // Format phone number to 12 digits (with 998 prefix) as expected by the backend
+      const phone = "998" + formData.phone.replace(/\D/g, "").replace(/^998/, "");
+      postData.append('phone', phone);
       
       if (formData.email) {
         postData.append('email', formData.email);
@@ -143,9 +148,9 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers, teacherD
         }
       }
 
-      // Append array items for 'groups' individually
+      // Append array items for 'groups' individually using standard array brackets []
       selectedGroups.forEach(id => {
-        postData.append('groups', id);
+        postData.append('groups[]', Number(id));
       });
 
       const url = isEdit 

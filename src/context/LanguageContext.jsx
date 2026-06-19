@@ -16,6 +16,17 @@ const translations = {
     "nav.archive": "Arxiv",
     "nav.coin": "Coin",
     "nav.sendMessage": "Xabar Yuborish",
+    "nav.profile": "Profil",
+
+    // Student panel navigation
+    "nav.studentDashboard": "Bosh sahifa",
+    "nav.myPayments": "To'lovlarim",
+    "nav.myGroups": "Guruhlarim",
+    "nav.myMetrics": "Ko'rsatkichlarim",
+    "nav.studentRating": "Reyting",
+    "nav.store": "Do'kon",
+    "nav.extraLessons": "Qo'shimcha darslar",
+    "nav.settings": "Sozlamalar",
 
     // Header & Layout
     "header.add": "Qo'shish",
@@ -231,6 +242,17 @@ const translations = {
     "nav.archive": "Архив",
     "nav.coin": "Коин",
     "nav.sendMessage": "Отправить сообщение",
+    "nav.profile": "Профиль",
+
+    // Student panel navigation
+    "nav.studentDashboard": "Главная",
+    "nav.myPayments": "Мои платежи",
+    "nav.myGroups": "Мои группы",
+    "nav.myMetrics": "Мои показатели",
+    "nav.studentRating": "Рейтинг",
+    "nav.store": "Магазин",
+    "nav.extraLessons": "Дополнительные уроки",
+    "nav.settings": "Настройки",
 
     // Header & Layout
     "header.add": "Добавить",
@@ -446,6 +468,17 @@ const translations = {
     "nav.archive": "Archive",
     "nav.coin": "Coin",
     "nav.sendMessage": "Send Message",
+    "nav.profile": "Profile",
+
+    // Student panel navigation
+    "nav.studentDashboard": "Home",
+    "nav.myPayments": "My Payments",
+    "nav.myGroups": "My Groups",
+    "nav.myMetrics": "My Metrics",
+    "nav.studentRating": "Rating",
+    "nav.store": "Store",
+    "nav.extraLessons": "Extra Lessons",
+    "nav.settings": "Settings",
 
     // Header & Layout
     "header.add": "Add",

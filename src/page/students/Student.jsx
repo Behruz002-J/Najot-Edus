@@ -140,46 +140,72 @@ export default function Student() {
       // If returned less than limit, no more pages
       setHasMore(studentsData.length === LIMIT);
 
-      setStudents(
-        studentsData.map((item, idx) => ({
-          id: item.id,
-          name: item.full_name || item.name || "Nomsiz",
-          // groups is array of { id, name } objects
-          groups: Array.isArray(item.groups)
-            ? item.groups.map((g) => (typeof g === "object" ? g.name : g))
-            : [],
-          groupIds: Array.isArray(item.groups)
-            ? item.groups.map((g) => (typeof g === "object" ? g.id : g)).filter(Boolean)
-            : [],
-          phone: item.phone || "—",
-          email: item.email || "—",
-          birthDate: item.birth_date
-            ? new Date(item.birth_date).toLocaleDateString("uz-UZ")
-            : "—",
-          address: item.address || "—",
-          createdDate: item.created_at
-            ? new Date(item.created_at).toLocaleDateString("uz-UZ")
-            : "—",
-          photo: (() => {
-            const rawPhoto = item.photo || item.avatar || item.image;
-            if (!rawPhoto) return "/bane-profile.jpg";
-            const str = String(rawPhoto).trim();
-            if (str === "" || str === "null" || str === "undefined" || str === "—") {
-              return "/bane-profile.jpg";
-            }
-            return str;
-          })(),
-          initial: (item.full_name || item.name || "?")[0]?.toUpperCase(),
-          bgColor: AVATAR_COLORS[(item.id || idx) % AVATAR_COLORS.length],
-        })),
-      );
+      const apiStudents = studentsData.map((item, idx) => ({
+        id: item.id,
+        name: item.full_name || item.name || "Nomsiz",
+        // groups is array of { id, name } objects
+        groups: Array.isArray(item.groups)
+          ? item.groups.map((g) => (typeof g === "object" ? g.name : g))
+          : [],
+        groupIds: Array.isArray(item.groups)
+          ? item.groups.map((g) => (typeof g === "object" ? g.id : g)).filter(Boolean)
+          : [],
+        phone: item.phone || "—",
+        email: item.email || "—",
+        birthDate: item.birth_date
+          ? new Date(item.birth_date).toLocaleDateString("uz-UZ")
+          : "—",
+        address: item.address || "—",
+        createdDate: item.created_at
+          ? new Date(item.created_at).toLocaleDateString("uz-UZ")
+          : "—",
+        photo: (() => {
+          const rawPhoto = item.photo || item.avatar || item.image;
+          if (!rawPhoto) return "/bane-profile.jpg";
+          const str = String(rawPhoto).trim();
+          if (str === "" || str === "null" || str === "undefined" || str === "—") {
+            return "/bane-profile.jpg";
+          }
+          return str;
+        })(),
+        initial: (item.full_name || item.name || "?")[0]?.toUpperCase(),
+        bgColor: AVATAR_COLORS[(item.id || idx) % AVATAR_COLORS.length],
+      }));
+
+      // Combine with local students, filtering duplicates
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const filteredLocal = localList.filter(ls => {
+        const lsPhone = (ls.phone || "").replace(/\D/g, "");
+        return !apiStudents.some(as => (as.phone || "").replace(/\D/g, "") === lsPhone);
+      }).map(ls => ({
+        ...ls,
+        initial: (ls.name || "?")[0]?.toUpperCase(),
+        bgColor: AVATAR_COLORS[ls.id % AVATAR_COLORS.length],
+        phone: ls.phone ? (ls.phone.startsWith("+") ? ls.phone : "+" + ls.phone) : "—",
+        photo: ls.photo || "/bane-profile.jpg"
+      }));
+
+      setStudents([...filteredLocal, ...apiStudents]);
     } catch (err) {
       console.warn(
         "Fetch students error, using mock fallback:",
         err?.response?.data || err.message,
       );
       const mockList = getMockStudents();
-      setStudents(mockList);
+
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const filteredLocal = localList.filter(ls => {
+        const lsPhone = (ls.phone || "").replace(/\D/g, "");
+        return !mockList.some(as => (as.phone || "").replace(/\D/g, "") === lsPhone);
+      }).map(ls => ({
+        ...ls,
+        initial: (ls.name || "?")[0]?.toUpperCase(),
+        bgColor: AVATAR_COLORS[ls.id % AVATAR_COLORS.length],
+        phone: ls.phone ? (ls.phone.startsWith("+") ? ls.phone : "+" + ls.phone) : "—",
+        photo: ls.photo || "/bane-profile.jpg"
+      }));
+
+      setStudents([...filteredLocal, ...mockList]);
       setHasMore(false);
     } finally {
       setLoading(false);
@@ -236,15 +262,53 @@ export default function Student() {
         });
       }
 
-      await axiosClient.post("/students", formData, {
+      const res = await axiosClient.post("/students", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
+      // Save student locally (even if API succeeded, for reliable auth and offline compatibility)
+      const apiCreatedStudent = res?.data?.data || res?.data;
+      const createdId = apiCreatedStudent?.id || Date.now();
+      
+      const localGroupsList = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const groupNames = Array.isArray(newStudent.groups)
+        ? newStudent.groups.map(gid => {
+            const found = localGroupsList.find(g => g.id === Number(gid));
+            return found ? found.name : `Guruh #${gid}`;
+          })
+        : [];
+
+      const studentToSave = {
+        id: createdId,
+        name: newStudent.name,
+        phone: phone,
+        email: newStudent.email || "—",
+        birthDate: newStudent.birthDate ? new Date(newStudent.birthDate).toLocaleDateString("uz-UZ") : "—",
+        address: newStudent.address || "—",
+        createdDate: new Date().toLocaleDateString("uz-UZ"),
+        groups: groupNames,
+        groupIds: Array.isArray(newStudent.groups) ? newStudent.groups.map(Number) : [],
+        password: newStudent.password || "",
+      };
+
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      localList.push(studentToSave);
+      window.localStorage.setItem("local_students", JSON.stringify(localList));
 
       await fetchStudents(page);
       addToast("success", t('msg.studentAdded'), `${newStudent.name} ${t('msg.addedSuccess')}`);
     } catch (error) {
       console.warn("Add student API failed, applying local fallback:", error.message);
       const tempId = Date.now();
+      
+      const localGroupsList = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const groupNames = Array.isArray(newStudent.groups)
+        ? newStudent.groups.map(gid => {
+            const found = localGroupsList.find(g => g.id === Number(gid));
+            return found ? found.name : `Guruh #${gid}`;
+          })
+        : [];
+
       const mockNew = {
         id: tempId,
         name: newStudent.name,
@@ -256,9 +320,27 @@ export default function Student() {
         address: newStudent.address || "—",
         createdDate: new Date().toLocaleDateString("uz-UZ"),
         photo: newStudent.photo ? URL.createObjectURL(newStudent.photo) : null,
-        groups: Array.isArray(newStudent.groups) ? newStudent.groups.map(gid => `Guruh #${gid}`) : [],
+        groups: groupNames,
         groupIds: Array.isArray(newStudent.groups) ? newStudent.groups.map(Number) : []
       };
+
+      const studentToSave = {
+        id: tempId,
+        name: newStudent.name,
+        phone: "998" + (newStudent.phone || "").replace(/\D/g, "").replace(/^998/, ""),
+        email: newStudent.email || "—",
+        birthDate: newStudent.birthDate ? new Date(newStudent.birthDate).toLocaleDateString("uz-UZ") : "—",
+        address: newStudent.address || "—",
+        createdDate: new Date().toLocaleDateString("uz-UZ"),
+        groups: groupNames,
+        groupIds: Array.isArray(newStudent.groups) ? newStudent.groups.map(Number) : [],
+        password: newStudent.password || "",
+      };
+
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      localList.push(studentToSave);
+      window.localStorage.setItem("local_students", JSON.stringify(localList));
+
       setStudents(prev => [mockNew, ...prev]);
       setIsStudentModalOpen(false);
       addToast("success", t('msg.studentAdded') + " (Lokal)", `${newStudent.name} muvaffaqiyatli qo'shildi (offline).`);
@@ -298,10 +380,67 @@ export default function Student() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
+      // Update locally
+      const localGroupsList = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const groupNames = Array.isArray(updatedStudent.groups)
+        ? updatedStudent.groups.map(gid => {
+            const found = localGroupsList.find(g => g.id === Number(gid));
+            return found ? found.name : `Guruh #${gid}`;
+          })
+        : [];
+
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const idx = localList.findIndex(s => s.id === updatedStudent.id);
+      if (idx >= 0) {
+        localList[idx] = {
+          ...localList[idx],
+          name: updatedStudent.name,
+          phone: phone,
+          email: updatedStudent.email || "—",
+          address: updatedStudent.address || "—",
+          birthDate: updatedStudent.birthDate ? new Date(updatedStudent.birthDate).toLocaleDateString("uz-UZ") : "—",
+          groupIds: Array.isArray(updatedStudent.groups) ? updatedStudent.groups.map(Number) : [],
+          groups: groupNames
+        };
+        if (updatedStudent.password) {
+          localList[idx].password = updatedStudent.password;
+        }
+        window.localStorage.setItem("local_students", JSON.stringify(localList));
+      }
+
       await fetchStudents(page);
       addToast("success", t('msg.studentEdited'), `${updatedStudent.name} ${t('msg.updatedSuccess')}`);
     } catch (error) {
       console.warn("Edit student API failed, applying local fallback:", error.message);
+      
+      const localGroupsList = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const groupNames = Array.isArray(updatedStudent.groups)
+        ? updatedStudent.groups.map(gid => {
+            const found = localGroupsList.find(g => g.id === Number(gid));
+            return found ? found.name : `Guruh #${gid}`;
+          })
+        : [];
+
+      // Update locally in Catch block
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const idx = localList.findIndex(s => s.id === updatedStudent.id);
+      if (idx >= 0) {
+        localList[idx] = {
+          ...localList[idx],
+          name: updatedStudent.name,
+          phone: "998" + (updatedStudent.phone || "").replace(/\D/g, "").replace(/^998/, ""),
+          email: updatedStudent.email || "—",
+          address: updatedStudent.address || "—",
+          birthDate: updatedStudent.birthDate ? new Date(updatedStudent.birthDate).toLocaleDateString("uz-UZ") : "—",
+          groupIds: Array.isArray(updatedStudent.groups) ? updatedStudent.groups.map(Number) : [],
+          groups: groupNames
+        };
+        if (updatedStudent.password) {
+          localList[idx].password = updatedStudent.password;
+        }
+        window.localStorage.setItem("local_students", JSON.stringify(localList));
+      }
+
       setStudents(prev => prev.map(s => {
         if (s.id === updatedStudent.id) {
           return {
@@ -314,7 +453,7 @@ export default function Student() {
             address: updatedStudent.address || s.address,
             photo: updatedStudent.photo instanceof File ? URL.createObjectURL(updatedStudent.photo) : s.photo,
             groupIds: Array.isArray(updatedStudent.groups) ? updatedStudent.groups.map(Number) : s.groupIds,
-            groups: Array.isArray(updatedStudent.groups) ? updatedStudent.groups.map(gid => `Guruh #${gid}`) : s.groups
+            groups: groupNames
           };
         }
         return s;
@@ -335,11 +474,23 @@ export default function Student() {
     setIsDeleting(true);
     try {
       await axiosClient.delete(`/students/${studentToDelete.id}`);
+      
+      // Delete locally
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const updatedList = localList.filter(s => s.id !== studentToDelete.id);
+      window.localStorage.setItem("local_students", JSON.stringify(updatedList));
+
       setStudents((prev) => prev.filter((s) => s.id !== studentToDelete.id));
       addToast("success", t('msg.studentDeleted'), `${studentToDelete.name} ${t('msg.deletedSuccess')}`);
       setStudentToDelete(null);
     } catch (err) {
       console.warn("Delete student API failed, applying local fallback:", err.message);
+      
+      // Delete locally in catch block
+      const localList = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const updatedList = localList.filter(s => s.id !== studentToDelete.id);
+      window.localStorage.setItem("local_students", JSON.stringify(updatedList));
+
       setStudents((prev) => prev.filter((s) => s.id !== studentToDelete.id));
       addToast("success", t('msg.studentDeleted') + " (Lokal)", `${studentToDelete.name} muvaffaqiyatli o'chirildi (offline).`);
       setStudentToDelete(null);

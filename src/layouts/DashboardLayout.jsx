@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar/Sidebar";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -23,6 +23,10 @@ export default function DashboardLayout() {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const userPhoto = window.localStorage.getItem("user_photo");
+  const role = window.localStorage.getItem("role") || "TEACHER";
+  const isStudent = role === "STUDENT" || role === "student" || role === "PUPIL" || role === "pupil";
+  const navigate = useNavigate();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Tashqarida bosganda dropdown yopilsin
   useEffect(() => {
@@ -36,9 +40,26 @@ export default function DashboardLayout() {
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isLangOpen]);
 
+  // Profile dropdown tashqarida bosilganda yopilsin
+  useEffect(() => {
+    if (!isProfileOpen) return;
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest('[data-profile-dropdown]')) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isProfileOpen]);
 
-
-
+  const handleLogout = () => {
+    window.localStorage.removeItem("token");
+    window.localStorage.removeItem("username");
+    window.localStorage.removeItem("role");
+    window.localStorage.removeItem("user_photo");
+    window.localStorage.removeItem("_creds");
+    navigate("/login");
+  };
   const location = useLocation();
   const username = window.localStorage.getItem("username") || "";
   const rawDisplayName = username || "Admin";
@@ -282,63 +303,127 @@ export default function DashboardLayout() {
               </button>
             </div>
 
-            <div className="flex items-center gap-3 ml-2">
-              <img
-                src="/bane-profile.jpg"
-                alt="Profile"
-                className="w-9 h-9 rounded-full object-cover border border-gray-200 dark:border-gray-600"
-              />
+            <div className="relative ml-2" data-profile-dropdown>
+              <button
+                onClick={() => setIsProfileOpen(prev => !prev)}
+                className="w-9 h-9 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center font-bold text-sm shadow-sm transition-all focus:outline-none"
+              >
+                {(role || "TEACHER").charAt(0).toUpperCase()}
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl z-50 p-3.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="flex items-center gap-3 mb-3 px-1">
+                    <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[#7C3AED] dark:text-purple-300 font-bold text-sm">
+                      {(role || "TEACHER").charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200">
+                      {(role || "TEACHER").toUpperCase()}
+                    </span>
+                  </div>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-2 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors duration-150"
+                  >
+                    <svg
+                      className="w-4.5 h-4.5 text-red-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    <span>Chiqish</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
 
         {/* Page Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-8">
-          <div className="mb-8 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+          {!isStudent && role !== 'TEACHER' && (
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                  {location.pathname === "/dashboard/teacher" ? (
+                    t("title.teachers")
+                  ) : location.pathname === "/dashboard/students" ? (
+                    t("title.students")
+                  ) : location.pathname === "/dashboard/groups" ? (
+                    t("title.groups")
+                  ) : location.pathname === "/dashboard" ? (
+                    <>
+                      {t("title.welcome")}, <span className="text-blue-500">{displayName}</span>
+                    </>
+                  ) : location.pathname.includes("/homework/create") ? (
+                    t("title.createHomework")
+                  ) : (
+                    t("title.dashboard")
+                  )}
+                </h1>
                 {location.pathname === "/dashboard/teacher" ? (
-                  t("title.teachers")
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                    {t("subtitle.teachers")}
+                  </p>
                 ) : location.pathname === "/dashboard/students" ? (
-                  t("title.students")
-                ) : location.pathname === "/dashboard/groups" ? (
-                  t("title.groups")
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                    {t("subtitle.students")}
+                  </p>
+                ) : (location.pathname === "/dashboard/groups" && role !== 'TEACHER') ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                    {t("subtitle.groups")}
+                  </p>
                 ) : location.pathname === "/dashboard" ? (
-                  <>
-                    {t("title.welcome")}, <span className="text-blue-500">{displayName}</span>
-                  </>
-                ) : location.pathname.includes("/homework/create") ? (
-                  t("title.createHomework")
-                ) : (
-                  t("title.dashboard")
-                )}
-              </h1>
-              {location.pathname === "/dashboard/teacher" ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                  {t("subtitle.teachers")}
-                </p>
-              ) : location.pathname === "/dashboard/students" ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                  {t("subtitle.students")}
-                </p>
-              ) : location.pathname === "/dashboard/groups" ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                  {t("subtitle.groups")}
-                </p>
-              ) : location.pathname === "/dashboard" ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                  {t("subtitle.welcome")}
-                </p>
-              ) : null}
-            </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                    {t("subtitle.welcome")}
+                  </p>
+                ) : null}
+              </div>
 
-            {(location.pathname === "/dashboard/teacher" ||
-              location.pathname === "/dashboard/students" ||
-              location.pathname === "/dashboard/groups") && (
-              <div className="flex items-center gap-3">
-                {(location.pathname === "/dashboard/teacher" ||
-                  location.pathname === "/dashboard/groups") && (
-                  <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm transition-all">
+              {(location.pathname === "/dashboard/teacher" ||
+                location.pathname === "/dashboard/students" ||
+                location.pathname === "/dashboard/groups") && (
+                <div className="flex items-center gap-3">
+                  {(location.pathname === "/dashboard/teacher" ||
+                    location.pathname === "/groups") && (
+                    <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm transition-all">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                      {t("btn.export")}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (location.pathname === "/dashboard/students") {
+                        setIsStudentModalOpen(true);
+                      } else if (location.pathname === "/dashboard/teacher") {
+                        setIsTeacherModalOpen(true);
+                      } else if (location.pathname === "/dashboard/groups") {
+                        setIsGroupModalOpen(true);
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-[#6D28D9] shadow-sm transition-all"
+                  >
                     <svg
                       className="w-4 h-4"
                       fill="none"
@@ -349,46 +434,19 @@ export default function DashboardLayout() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        d="M12 4v16m8-8H4"
                       />
                     </svg>
-                    {t("btn.export")}
+                    {location.pathname === "/dashboard/teacher"
+                      ? t("btn.addTeacher")
+                      : location.pathname === "/dashboard/groups"
+                        ? t("btn.addGroup")
+                        : t("btn.addStudent")}
                   </button>
-                )}
-                <button
-                  onClick={() => {
-                    if (location.pathname === "/dashboard/students") {
-                      setIsStudentModalOpen(true);
-                    } else if (location.pathname === "/dashboard/teacher") {
-                      setIsTeacherModalOpen(true);
-                    } else if (location.pathname === "/dashboard/groups") {
-                      setIsGroupModalOpen(true);
-                    }
-                  }}
-                  className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-[#6D28D9] shadow-sm transition-all"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  {location.pathname === "/dashboard/teacher"
-                    ? t("btn.addTeacher")
-                    : location.pathname === "/dashboard/groups"
-                      ? t("btn.addGroup")
-                      : t("btn.addStudent")}
-                </button>
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
           <Outlet
             context={{
               isStudentModalOpen,

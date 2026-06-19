@@ -24,14 +24,38 @@ export default function AssignGroupModal({
         let list = [];
         if (Array.isArray(data)) list = data;
         else if (Array.isArray(data?.data)) list = data.data;
-        setGroups(
-          list.map((g) => ({
-            id: g.id,
-            name: g.name || `Guruh #${g.id}`,
-          }))
-        );
+        
+        const apiMapped = list.map((g) => ({
+          id: g.id,
+          name: g.name || `Guruh #${g.id}`,
+        }));
+
+        // Load local groups
+        const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+        const localMapped = localGroups.map((g) => ({
+          id: g.id,
+          name: g.name,
+        }));
+
+        // Merge & deduplicate by name
+        const merged = [...localMapped];
+        apiMapped.forEach(ag => {
+          if (!merged.some(lg => lg.name.toLowerCase() === ag.name.toLowerCase())) {
+            merged.push(ag);
+          }
+        });
+
+        setGroups(merged);
       })
-      .catch(() => setGroups([]))
+      .catch(() => {
+        // Fallback to local groups only
+        const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+        const localMapped = localGroups.map((g) => ({
+          id: g.id,
+          name: g.name,
+        }));
+        setGroups(localMapped);
+      })
       .finally(() => setLoadingGroups(false));
   }, [isOpen]);
 

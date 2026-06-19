@@ -63,18 +63,18 @@ export default function Dashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center text-center justify-between hover:shadow-[0_0_20px_rgba(124,58,237,0.12)] hover:border-[#7C3AED]/30 transition-all duration-300 group cursor-default">
+          <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col items-center text-center justify-between hover:shadow-[0_0_20px_rgba(124,58,237,0.12)] hover:border-[#7C3AED]/30 dark:hover:border-[#7C3AED]/50 transition-all duration-300 group cursor-default">
             <div className="mb-3">
-              <div className="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center text-[#7B2CBF] group-hover:bg-[#7C3AED] group-hover:text-white transition-all duration-300">
+              <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center text-[#7B2CBF] dark:text-purple-400 group-hover:bg-[#7C3AED] group-hover:text-white transition-all duration-300">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
                 </svg>
               </div>
             </div>
             <div className="flex flex-col items-center w-full">
-              <h3 className="text-gray-500 text-[11px] font-semibold uppercase tracking-wider">{stat.title}</h3>
+              <h3 className="text-gray-500 dark:text-gray-400 text-[11px] font-semibold uppercase tracking-wider">{stat.title}</h3>
               <div className="mt-1 flex justify-center">
-                <span className="text-lg font-bold text-gray-800">{stat.value}</span>
+                <span className="text-lg font-bold text-gray-800 dark:text-white">{stat.value}</span>
               </div>
             </div>
           </div>
@@ -84,15 +84,15 @@ export default function Dashboard() {
       {/* Main Content Sections */}
       <div className="grid grid-cols-1 gap-6">
         {/* Schedule Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           {/* Schedule Header (Accordian Style) */}
           <button
             onClick={() => setIsScheduleOpen(!isScheduleOpen)}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
           >
-            <h2 className="text-sm font-semibold text-gray-700">{t('dashboard.schedule') || 'Dars Jadvali'}</h2>
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">{t('dashboard.schedule') || 'Dars Jadvali'}</h2>
             <svg
-              className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isScheduleOpen ? 'rotate-180' : ''}`}
+              className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-300 ${isScheduleOpen ? 'rotate-180' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -108,7 +108,7 @@ export default function Dashboard() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-gray-100 text-sm text-gray-500">
+                    <tr className="border-b border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-400">
                       <th className="pb-3 font-medium">{t('dashboard.subject') || 'Fan nomi'}</th>
                       <th className="pb-3 font-medium">{t('nav.teachers')}</th>
                       <th className="pb-3 font-medium">{t('group.time')}</th>
@@ -117,15 +117,15 @@ export default function Dashboard() {
                   </thead>
                   <tbody className="text-sm">
                     {schedule.map((item) => (
-                      <tr key={item.id} className="border-b border-gray-50 last:border-none hover:bg-gray-50">
-                        <td className="py-4 font-medium text-gray-800">{item.subject}</td>
-                        <td className="py-4 text-gray-600">{item.teacher}</td>
-                        <td className="py-4 text-gray-600">
-                          <span className="bg-purple-50 text-[#7B2CBF] px-2 py-1 rounded font-medium">
+                      <tr key={item.id} className="border-b border-gray-50 dark:border-gray-700/50 last:border-none hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                        <td className="py-4 font-medium text-gray-800 dark:text-gray-200">{item.subject}</td>
+                        <td className="py-4 text-gray-600 dark:text-gray-400">{item.teacher}</td>
+                        <td className="py-4 text-gray-600 dark:text-gray-400">
+                          <span className="bg-purple-50 dark:bg-purple-950/40 text-[#7B2CBF] dark:text-purple-300 px-2 py-1 rounded font-medium">
                             {item.time}
                           </span>
                         </td>
-                        <td className="py-4 text-gray-600">{item.room}</td>
+                        <td className="py-4 text-gray-600 dark:text-gray-400">{item.room}</td>
                       </tr>
                     ))}
                   </tbody>

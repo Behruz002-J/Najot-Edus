@@ -31,8 +31,23 @@ export default function AddStudentModal({
       let list = [];
       if (Array.isArray(data)) list = data;
       else if (Array.isArray(data?.data)) list = data.data;
-      setAllGroups(list.map((g) => ({ id: g.id, name: g.name || `Guruh #${g.id}` })));
-    }).catch(() => {});
+      
+      const apiMapped = list.map((g) => ({ id: g.id, name: g.name || `Guruh #${g.id}` }));
+      const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const localMapped = localGroups.map((g) => ({ id: g.id, name: g.name }));
+
+      const merged = [...localMapped];
+      apiMapped.forEach(ag => {
+        if (!merged.some(lg => lg.name.toLowerCase() === ag.name.toLowerCase())) {
+          merged.push(ag);
+        }
+      });
+      setAllGroups(merged);
+    }).catch(() => {
+      const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const localMapped = localGroups.map((g) => ({ id: g.id, name: g.name }));
+      setAllGroups(localMapped);
+    });
   }, []);
 
   useEffect(() => {

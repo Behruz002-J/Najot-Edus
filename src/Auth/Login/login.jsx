@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import studentCopyImage from "../assets/images/student copy.svg";
+import studentCopyImage from "../../assets/images/student copy.svg";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 
@@ -40,73 +40,182 @@ export default function Login() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "https://najot-edu.softwareengineer.uz/api/v1/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            phone: formData.username.replace(/\D/g, ""),
-            password: formData.password,
-          }),
-        },
-      );
+      const enteredPhoneCleaned = formData.username.replace(/\D/g, "");
+      const normalizedEnteredPhone = enteredPhoneCleaned.length === 9 ? `998${enteredPhoneCleaned}` : enteredPhoneCleaned;
 
-      const data = await response.json();
+      const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+      const matchingStudent = localStudents.find(student => {
+        const studentPhoneCleaned = (student.phone || "").replace(/\D/g, "");
+        const normalizedStudentPhone = studentPhoneCleaned.length === 9 ? `998${studentPhoneCleaned}` : studentPhoneCleaned;
+        return normalizedStudentPhone === normalizedEnteredPhone && student.password === formData.password;
+      });
 
-      if (response.ok) {
-        const token =
-          data?.accessToken ||
-          data?.data?.accessToken ||
-          data?.data?.token ||
-          data?.token ||
-          data?.access_token;
+      let responseOk = false;
+      let token = "";
+      let apiRole = "TEACHER";
+      let apiUsername = "";
 
-        const resolveName = (obj) => {
-          if (!obj || typeof obj !== "object") return undefined;
-          return (
-            obj.full_name ||
-            obj.fullName ||
-            obj.name ||
-            (obj.first_name && obj.last_name
-              ? `${obj.first_name} ${obj.last_name}`
-              : undefined) ||
-            (obj.firstName && obj.lastName
-              ? `${obj.firstName} ${obj.lastName}`
-              : undefined) ||
-            obj.first_name ||
-            obj.firstName
-          );
-        };
-
-        const formatDisplayName = (name) => {
-          if (!name) return "Behruz Jumanov";
-          const clean = name.replace(/\D/g, "");
-          if (clean === "998975661099") {
-            return "Behruz Jumanov";
+      if (matchingStudent) {
+        responseOk = true;
+        token = "mock-student-token-" + Date.now();
+        apiRole = "STUDENT";
+        apiUsername = matchingStudent.name;
+        window.localStorage.setItem("student_phone", normalizedEnteredPhone);
+      } else {
+        const response = await fetch(
+          "https://najot-edu.softwareengineer.uz/api/v1/auth/login",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              phone: normalizedEnteredPhone,
+              password: formData.password,
+            }),
           }
-          if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
-            return "Behruz Jumanov";
+        );
+
+        const data = await response.json();
+        responseOk = response.ok;
+
+        if (response.ok) {
+          token =
+            data?.accessToken ||
+            data?.data?.accessToken ||
+            data?.data?.token ||
+            data?.token ||
+            data?.access_token;
+
+          const resolveName = (obj) => {
+            if (!obj || typeof obj !== "object") return undefined;
+            return (
+              obj.full_name ||
+              obj.fullName ||
+              obj.name ||
+              (obj.first_name && obj.last_name
+                ? `${obj.first_name} ${obj.last_name}`
+                : undefined) ||
+              (obj.firstName && obj.lastName
+                ? `${obj.firstName} ${obj.lastName}`
+                : undefined) ||
+              obj.first_name ||
+              obj.firstName
+            );
+          };
+
+          const formatDisplayName = (name) => {
+            if (!name) return "Behruz Jumanov";
+            const clean = name.replace(/\D/g, "");
+            if (clean === "998975661099") {
+              return "Behruz Jumanov";
+            }
+            if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
+              return "Behruz Jumanov";
+            }
+            return name;
+          };
+
+          apiUsername =
+            resolveName(data?.data?.user) ||
+            resolveName(data?.data) ||
+            resolveName(data?.user) ||
+            formData.username;
+
+          apiUsername = formatDisplayName(apiUsername);
+
+          const decodeJwt = (t) => {
+            try {
+              const payload = t.split(".")[1];
+              return JSON.parse(atob(payload));
+            } catch {
+              return null;
+            }
+          };
+
+          const jwtPayload = decodeJwt(token);
+          const jwtRole =
+            jwtPayload?.role ||
+            jwtPayload?.roles ||
+            jwtPayload?.roleName ||
+            jwtPayload?.user?.role ||
+            jwtPayload?.authorities;
+
+          const rawRole =
+            data?.role ||
+            data?.data?.role ||
+            data?.data?.user?.role ||
+            data?.user?.role ||
+            (typeof jwtRole === "string" ? jwtRole : undefined) ||
+            (Array.isArray(jwtRole) && typeof jwtRole[0] === "string" ? jwtRole[0] : undefined) ||
+            (Array.isArray(jwtRole) && jwtRole[0] && typeof jwtRole[0] === "object" ? (jwtRole[0].authority || jwtRole[0].role) : undefined) ||
+            "TEACHER";
+
+          let normalizedRole = "TEACHER";
+          if (typeof rawRole === "string") {
+            const upperRole = rawRole.toUpperCase();
+            if (upperRole.includes("STUDENT") || upperRole.includes("PUPIL")) {
+              normalizedRole = "STUDENT";
+            } else if (upperRole.includes("ADMIN")) {
+              normalizedRole = "ADMIN";
+            } else if (upperRole.includes("TEACHER")) {
+              normalizedRole = "TEACHER";
+            } else {
+              normalizedRole = rawRole;
+            }
           }
-          return name;
-        };
+          apiRole = normalizedRole;
 
-        let apiUsername =
-          resolveName(data?.data?.user) ||
-          resolveName(data?.data) ||
-          resolveName(data?.user) ||
-          formData.username;
+          if (apiRole === "STUDENT") {
+            const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+            const phoneCleaned = normalizedEnteredPhone.replace(/\D/g, "");
+            
+            const existingIndex = localStudents.findIndex(s => {
+              const sPhone = (s.phone || "").replace(/\D/g, "");
+              const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
+              return sNorm === phoneCleaned;
+            });
 
+            const userObj = data?.data?.user || data?.data || data?.user || {};
+            const studentObj = {
+              id: userObj.id || Date.now(),
+              name: apiUsername,
+              phone: normalizedEnteredPhone,
+              email: userObj.email || "—",
+              birthDate: userObj.birth_date ? new Date(userObj.birth_date).toLocaleDateString("uz-UZ") : "—",
+              address: userObj.address || "—",
+              createdDate: userObj.created_at ? new Date(userObj.created_at).toLocaleDateString("uz-UZ") : new Date().toLocaleDateString("uz-UZ"),
+              groups: Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.name : g) : [],
+              groupIds: Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.id : g).filter(Boolean) : [],
+              password: formData.password,
+            };
 
+            if (existingIndex >= 0) {
+              localStudents[existingIndex] = {
+                ...localStudents[existingIndex],
+                ...studentObj,
+                password: formData.password || localStudents[existingIndex].password
+              };
+            } else {
+              localStudents.push(studentObj);
+            }
+            
+            window.localStorage.setItem("local_students", JSON.stringify(localStudents));
+            window.localStorage.setItem("student_phone", normalizedEnteredPhone);
+          }
+        } else {
+          const msg = data?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
+          setApiError(msg);
+          setErrorMsg(msg);
+          setErrorOpen(true);
+        }
+      }
 
-        apiUsername = formatDisplayName(apiUsername);
-
+      if (responseOk) {
         if (token) {
           window.localStorage.setItem("token", token);
           window.localStorage.setItem("username", apiUsername);
-          
+          window.localStorage.setItem("role", apiRole);
           window.localStorage.setItem("user_photo", "/bane-profile.jpg");
 
           // Save credentials for auto-refresh when token expires
@@ -116,7 +225,13 @@ export default function Login() {
           }));
           setSuccessOpen(true);
           setTimeout(() => {
-            navigate("/dashboard");
+            if (apiRole === "STUDENT" || apiRole === "student" || apiRole === "PUPIL" || apiRole === "pupil") {
+              navigate("/dashboard/my-groups");
+            } else if (apiRole === "TEACHER" || apiRole === "teacher") {
+              navigate("/dashboard/groups");
+            } else {
+              navigate("/dashboard");
+            }
           }, 2000);
         } else {
           const msg = "Xatolik: Token topilmadi.";
@@ -124,11 +239,6 @@ export default function Login() {
           setErrorMsg(msg);
           setErrorOpen(true);
         }
-      } else {
-        const msg = data?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
-        setApiError(msg);
-        setErrorMsg(msg);
-        setErrorOpen(true);
       }
     } catch (err) {
       const msg = "Xatolik yuz berdi! Server bilan bog'lanish o'rnatilmadi.";
@@ -142,24 +252,24 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar">
       {/* Left side with illustration */}
-      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#17275b]">
-        <div className="w-full h-full p-12 flex items-center justify-center">
+      <div className="hidden lg:flex lg:w-1/2 items-center justify-center bg-[#17275b] self-stretch p-12">
+        <div className="w-full flex items-center justify-center">
           <img
             src={studentCopyImage}
             alt="Study Illustration"
-            className="w-full h-full max-w-[92%] max-h-[92%] object-contain"
+            className="w-full max-w-[85%] max-h-[85vh] object-contain"
           />
         </div>
       </div>
 
       {/* Right side with login form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 sm:p-12 md:p-16 lg:p-24 bg-white relative">
+      <div className="w-full lg:w-1/2 flex flex-col justify-between py-6 px-8 sm:px-12 md:px-16 lg:px-20 bg-white dark:bg-gray-900 relative self-stretch">
         <div className="flex-grow flex flex-col justify-center max-w-md mx-auto w-full">
           {/* Header */}
-          <div className="text-center mb-10">
-            <h1 className="text-[10px] sm:text-xs font-semibold text-gray-800 tracking-wider mb-6 leading-relaxed">
+          <div className="text-center mb-6">
+            <h1 className="text-[10px] sm:text-xs font-semibold text-gray-850 dark:text-gray-200 tracking-wider mb-4 leading-relaxed">
               MUHAMMAD AL-XORAZMIY NOMIDAGI
               <br />
               TOSHKENT AXBOROT TEXNOLOGIYALARI
@@ -168,19 +278,19 @@ export default function Login() {
             </h1>
 
             {/* Logo placeholder - using a styled div with a border to represent the seal */}
-            <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-[#7B2CBF] rounded-full mx-auto mb-6 flex items-center justify-center bg-purple-50 shadow-[0_0_15px_rgba(123,44,191,0.2)]">
-              <span className="text-[#7B2CBF] font-extrabold text-2xl tracking-wider">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 border-4 border-[#7B2CBF] rounded-full mx-auto mb-4 flex items-center justify-center bg-purple-50 shadow-[0_0_15px_rgba(123,44,191,0.2)]">
+              <span className="text-[#7B2CBF] font-extrabold text-xl tracking-wider">
                 TUIT
               </span>
             </div>
 
-            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-8">
+            <h2 className="text-base sm:text-lg font-bold text-gray-800 dark:text-white mb-4">
               LEARNING MANAGEMENT SYSTEM
             </h2>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-4">
             {apiError && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded animate-pulse text-center font-medium">
                 {apiError}
@@ -259,6 +369,15 @@ export default function Login() {
                   )}
                 </button>
               </div>
+              <div className="flex justify-end mt-2">
+                <button
+                  type="button"
+                  onClick={() => alert("Parolni qayta tiklash uchun iltimos ma'muriyat (admin) bilan bog'laning.")}
+                  className="text-xs font-semibold text-[#7B2CBF] hover:text-[#621d9c] hover:underline transition-colors focus:outline-none cursor-pointer"
+                >
+                  Parolni unutdingizmi?
+                </button>
+              </div>
             </div>
 
             <button
@@ -298,7 +417,7 @@ export default function Login() {
         </div>
 
         {/* Footer text */}
-        <div className="text-center mt-12 text-xs text-gray-500">
+        <div className="text-center mt-6 text-xs text-gray-400">
           Copyright © 2021 of Tashkent University of Information Technologies
         </div>
 

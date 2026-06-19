@@ -2,15 +2,24 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 
 import MainLayout from "./layouts/MainLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
-import ProtectRoute from "./components/ProtectRoute";
 
 import About from "./page/central/About";
 import Central from "./page/central/Central";
-import Login from "./page/Login";
-import Dashboard from "./page/Dashboard";
+import Login from "./Auth/Login/login";
+import DashboardSelector from "./page/DashboardSelector";
 import Student from "./page/students/Student";
+import MyGroups from "./page/student-panel/MyGroups";
+import MyPayments from "./page/student-panel/MyPayments";
+import StudentMetrics from "./page/student-panel/StudentMetrics";
+import StudentRating from "./page/student-panel/StudentRating";
+import StudentStore from "./page/student-panel/StudentStore";
+import ExtraLessons from "./page/student-panel/ExtraLessons";
+import StudentSettings from "./page/student-panel/StudentSettings";
+import StudentGroupDetail from "./page/student-panel/StudentGroupDetail";
+import StudentHomeworkDetail from "./page/student-panel/StudentHomeworkDetail";
 import Gifts from "./page/central/Gifts";
 import Teacher from "./page/teachers/Teacher";
+import TeacherProfile from "./page/teachers/TeacherProfile";
 import Groups from "./page/groups/Groups";
 import GroupDetails from "./page/groups/GroupDetails";
 import LessonAttendance from "./page/groups/LessonAttendance";
@@ -44,17 +53,15 @@ export const route = createBrowserRouter([
   },
   {
     path: "dashboard",
-    element: (
-      <ProtectRoute>
-        <DashboardLayout />
-      </ProtectRoute>
-    ),
+    element: <DashboardLayout />,
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <DashboardSelector /> },
       { path: "students", element: <Student /> },
       { path: "gifts", element: <Gifts /> },
       { path: "teacher", element: <Teacher /> },
       { path: "groups", element: <Groups /> },
+      { path: "gathering-groups", element: <Groups isGathering={true} /> },
+      { path: "profile", element: <TeacherProfile /> },
       { path: "groups/:id", element: <GroupDetails /> },
       { path: "groups/:id/homework/create", element: <CreateHomework /> },
       { path: "groups/:id/homework/:homeworkId", element: <HomeworkDetail /> },
@@ -79,7 +86,16 @@ export const route = createBrowserRouter([
           { path: "faq", element: <div className="p-4 text-gray-500">FAQ sahifasi (Tez kunda...)</div> },
           { path: "check", element: <div className="p-4 text-gray-500">Tekshiruv sahifasi (Tez kunda...)</div> },
         ]
-      }
+      },
+      { path: "my-groups", element: <MyGroups /> },
+      { path: "my-payments", element: <MyPayments /> },
+      { path: "my-metrics", element: <StudentMetrics /> },
+      { path: "rating", element: <StudentRating /> },
+      { path: "store", element: <StudentStore /> },
+      { path: "extra-lessons", element: <ExtraLessons /> },
+      { path: "settings", element: <StudentSettings /> },
+      { path: "my-groups/:id", element: <StudentGroupDetail /> },
+      { path: "my-groups/:id/homework/:homeworkId", element: <StudentHomeworkDetail /> },
     ],
   },
 ]);
