@@ -26,8 +26,16 @@ export default function Groups({ isGathering }) {
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const endpoint = (activeTab === 'groups' || isGathering) ? '/groups/all' : '/groups/archive';
-      const res = await axiosClient.get(endpoint);
+      let res;
+      const isTeacherEndpointUsed = role === 'TEACHER';
+
+      if (isTeacherEndpointUsed) {
+        res = await axiosClient.get('/teachers/my/groups');
+      } else {
+        const endpoint = (activeTab === 'groups' || isGathering) ? '/groups/all' : '/groups/archive';
+        res = await axiosClient.get(endpoint);
+      }
+
       const data = res?.data;
       let groupsData = [];
 
@@ -40,117 +48,71 @@ export default function Groups({ isGathering }) {
       const mapped = groupsData.map(item => {
         const daysStr = Array.isArray(item.week_day) 
           ? item.week_day.map(d => MAP_DAYS[d] || d).join(', ') 
-          : '—';
+          : Array.isArray(item.week_days)
+          ? item.week_days.map(d => MAP_DAYS[d] || d).join(', ')
+          : Array.isArray(item.days)
+          ? item.days.map(d => MAP_DAYS[d] || d).join(', ')
+          : item.week_day || item.week_days || item.days || '—';
         
         const teacherStr = Array.isArray(item.teachers) && item.teachers.length > 0
-          ? item.teachers.map(t => t.full_name).join(', ')
-          : '—';
+          ? item.teachers.map(t => t.full_name || t.name).join(', ')
+          : typeof item.teacher === 'string'
+          ? item.teacher
+          : item.teacher?.full_name || item.teacher?.name || '—';
 
         // Support both active API (course, room) and archive API (courses, rooms) properties
-        const courseName = item.courses?.name || item.course?.name || '—';
-        const durationMonth = item.courses?.duration_month || item.course?.duration_month;
-        const roomName = item.rooms?.name || item.room || '—';
+        const courseName = item.courses?.name || item.course?.name || item.course || '—';
+        const durationMonth = item.courses?.duration_month || item.course?.duration_month || item.duration_month || item.duration;
+        const roomName = item.rooms?.name || item.room?.name || item.room || '—';
+
+        // Determine if group is active
+        let isGroupActive = true;
+        if (role === 'TEACHER') {
+          isGroupActive = true;
+        } else {
+          if (item.is_active === false || item.isActive === false) {
+            isGroupActive = false;
+          } else if (item.status && (
+            String(item.status).toUpperCase().includes('NOT') || 
+            String(item.status).toUpperCase().includes('INACTIVE') || 
+            String(item.status).toUpperCase().includes('EMAS') ||
+            String(item.status).toUpperCase().includes('ARCHIVE')
+          )) {
+            isGroupActive = false;
+          }
+        }
 
         return {
           id: item.id,
-          status: activeTab === 'archive' || item.is_active === false ? 'FAOL EMAS' : 'FAOL',
-          name: item.name || '—',
+          status: isGroupActive ? 'FAOL' : 'FAOL EMAS',
+          name: item.name || item.groupName || item.group_name || '—',
           course: courseName,
-          duration: durationMonth ? `${durationMonth} oy` : '—',
-          time: item.start_time || '—',
+          duration: typeof durationMonth === 'number' ? `${durationMonth} oy` : durationMonth ? `${durationMonth}` : '—',
+          time: item.start_time || item.startTime || item.time || '—',
           days: daysStr,
           room: roomName,
           teacher: teacherStr,
-          students: item.student_count || item.students?.length || 0
+          students: item.student_count || item.students?.length || item.students || 0
         };
       });
 
-      // Fetch local groups & inject default mock groups if missing
-      let localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
-      const defaultMockGroups = [
-        {
-          id: "mock-n26",
-          status: "FAOL",
-          name: "N26",
-          course: "Backend",
-          duration: "6 oy",
-          time: "09:30",
-          days: "Du, Se, Chor, Pay, Ju",
-          room: "Autodesk",
-          teacher: window.localStorage.getItem("username") || "Behruz Jumanov",
-          students: 2
-        },
-        {
-          id: "mock-n105",
-          status: "FAOL",
-          name: "n105",
-          course: "Backend",
-          duration: "6 oy",
-          time: "16:00",
-          days: "Se, Pay, Shan",
-          room: "Autodesk",
-          teacher: window.localStorage.getItem("username") || "Behruz Jumanov",
-          students: 5
-        },
-        {
-          id: "mock-n25",
-          status: "FAOL",
-          name: "n25",
-          course: "Backend",
-          duration: "6 oy",
-          time: "14:00",
-          days: "Du, Se, Chor, Pay, Ju",
-          room: "Autodesk",
-          teacher: window.localStorage.getItem("username") || "Behruz Jumanov",
-          students: 0
-        }
-      ];
-
-      let updated = false;
-      defaultMockGroups.forEach(mockG => {
-        if (!localGroups.some(g => g.name.toLowerCase() === mockG.name.toLowerCase())) {
-          localGroups.push(mockG);
-          updated = true;
-        }
-      });
-      if (updated || !window.localStorage.getItem("local_groups")) {
-        window.localStorage.setItem("local_groups", JSON.stringify(localGroups));
-      }
-
-      const filteredLocal = localGroups.filter(lg => {
-        const isGroupActive = lg.status === 'FAOL';
-        if (isGathering) return !isGroupActive; // gathering groups are not yet active
-        if (activeTab === 'groups') return isGroupActive;
-        return !isGroupActive;
-      });
-
-      // Merge & deduplicate by name
-      const merged = [...filteredLocal];
-      mapped.forEach(mg => {
-        if (!merged.some(lg => lg.name.toLowerCase() === mg.name.toLowerCase())) {
-          merged.push(mg);
-        }
-      });
-
       // Filter groups by user role and group state
-      let finalGroups = merged;
+      let finalGroups = mapped;
       if (isGathering) {
-        finalGroups = merged.filter(g => g.status === 'FAOL EMAS');
+        finalGroups = mapped.filter(g => g.status === 'FAOL EMAS');
       } else if (activeTab === 'groups') {
-        finalGroups = merged.filter(g => g.status === 'FAOL');
+        finalGroups = mapped.filter(g => g.status === 'FAOL');
       } else {
-        finalGroups = merged.filter(g => g.status === 'FAOL EMAS');
+        finalGroups = mapped.filter(g => g.status === 'FAOL EMAS');
       }
 
-      // Filter by teacher name if role is TEACHER
-      if (role === 'TEACHER') {
+      // Filter by teacher name if role is TEACHER and the local backend wasn't queried
+      if (role === 'TEACHER' && !isTeacherEndpointUsed) {
         const loggedInTeacher = (window.localStorage.getItem("username") || "").trim().toLowerCase();
         if (loggedInTeacher) {
           const matched = finalGroups.filter(g => 
             g.teacher && g.teacher.toLowerCase().includes(loggedInTeacher)
           );
-          // Only apply filter if there are actually matched groups to avoid rendering empty list
-          // if usernames are formatted differently in DB
           if (matched.length > 0) {
             finalGroups = matched;
           }
@@ -159,17 +121,8 @@ export default function Groups({ isGathering }) {
 
       setGroups(finalGroups);
     } catch (err) {
-      console.error('Fetch groups error, using local fallback:', err?.response?.data || err.message);
-      
-      const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
-      const filteredLocal = localGroups.filter(lg => {
-        const isGroupActive = lg.status === 'FAOL';
-        if (isGathering) return !isGroupActive;
-        if (activeTab === 'groups') return isGroupActive;
-        return !isGroupActive;
-      });
-
-      setGroups(filteredLocal);
+      console.error('Fetch groups error:', err?.response?.data || err.message);
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -186,7 +139,9 @@ export default function Groups({ isGathering }) {
         group.id === id ? { ...group, status: newStatus } : group
       ));
       
-      await axiosClient.patch(`/groups/${id}`, {
+      const endpoint = `/groups/${id}`;
+
+      await axiosClient.patch(endpoint, {
         is_active: newStatus === 'FAOL'
       });
       
@@ -300,15 +255,15 @@ export default function Groups({ isGathering }) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#F9FAFB] dark:bg-gray-800 text-[12px] font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700">
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Guruh nomi</th>
-                <th className="px-6 py-4 text-center">Kurs</th>
-                <th className="px-6 py-4 text-center">Davomiyligi</th>
-                <th className="px-6 py-4 text-center">Dars vaqti</th>
-                <th className="px-6 py-4">Xona</th>
-                <th className="px-6 py-4">O'qituvchi</th>
-                <th className="px-6 py-4 text-center">Talabalar</th>
-                <th className="px-6 py-4 text-right">
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Guruh nomi</th>
+                <th className="px-4 py-3 text-center">Kurs</th>
+                <th className="px-4 py-3 text-center">Davomiyligi</th>
+                <th className="px-4 py-3 text-center">Dars vaqti</th>
+                <th className="px-4 py-3">Xona</th>
+                <th className="px-4 py-3 text-right w-[160px]">O'qituvchi</th>
+                <th className="px-4 py-3 text-center">Talabalar</th>
+                <th className="px-4 py-3 text-right">
                   <svg 
                     onClick={fetchGroups}
                     className={`w-4 h-4 ml-auto cursor-pointer hover:text-[#7C3AED] transition-colors ${loading ? 'animate-spin' : ''}`} 
@@ -347,7 +302,7 @@ export default function Groups({ isGathering }) {
                     onClick={() => navigate(`/dashboard/groups/${group.id}`)}
                     className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors group cursor-pointer"
                   >
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-3">
                         <label className="relative inline-flex items-center cursor-pointer">
                           <input 
@@ -367,7 +322,7 @@ export default function Groups({ isGathering }) {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <Link 
                         to={`/dashboard/groups/${group.id}`} 
                         onClick={(e) => e.stopPropagation()}
@@ -376,32 +331,34 @@ export default function Groups({ isGathering }) {
                         {group.name}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg text-[10px] font-bold uppercase tracking-tight">
                         {group.course}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.duration}</span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-gray-805 dark:text-white">{group.time}</span>
                         <span className="text-[9px] text-gray-400 font-medium">{group.days}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{group.room}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-semibold text-gray-800 dark:text-white">
-                        {role === 'TEACHER' ? '' : group.teacher}
-                      </span>
+                    <td className="px-4 py-3 text-right w-[160px] min-w-[160px]" onClick={(e) => e.stopPropagation()}>
+                      <div className="w-[160px] max-w-[160px] overflow-x-auto whitespace-nowrap ml-auto text-right no-scrollbar overscroll-x-contain">
+                        <span className="text-xs font-semibold text-gray-855 dark:text-white">
+                          {role === 'TEACHER' ? '' : group.teacher}
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <span className="text-sm font-bold text-gray-800 dark:text-white">{group.students}</span>
                     </td>
-                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <button className="p-1 text-gray-300 hover:text-gray-500 transition-colors">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />

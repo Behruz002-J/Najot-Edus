@@ -29,70 +29,38 @@ export default function TeacherProfile() {
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const res = await axiosClient.get('/teachers');
-        const data = res?.data;
-        let teachersList = [];
+        const res = await axiosClient.get('/teachers/my/profile');
+        const teacherData = res?.data?.data || res?.data;
 
-        if (Array.isArray(data)) {
-          teachersList = data;
-        } else if (Array.isArray(data?.data)) {
-          teachersList = data.data;
-        }
-
-        // Get logged in teacher information
-        const loggedInUser = window.localStorage.getItem("username") || "";
-        const creds = JSON.parse(window.localStorage.getItem("_creds") || "{}");
-        const loggedInPhoneClean = creds.phone ? creds.phone.replace(/\D/g, "") : "";
-
-        // Find teacher in list
-        let matchedTeacher = teachersList.find(t => {
-          const tPhoneClean = t.phone ? t.phone.replace(/\D/g, "") : "";
-          if (loggedInPhoneClean && tPhoneClean && tPhoneClean.includes(loggedInPhoneClean)) {
-            return true;
-          }
-          return t.full_name?.toLowerCase() === loggedInUser.toLowerCase();
-        });
-
-        if (matchedTeacher) {
+        if (teacherData) {
           setProfile({
-            id: matchedTeacher.id,
-            name: matchedTeacher.full_name || matchedTeacher.name || "Mohirbek",
+            id: teacherData.id || 0,
+            name: teacherData.full_name || "O'qituvchi",
             role: "O'qituvchi",
-            email: matchedTeacher.email || "moxirbek@gmail.com",
-            phone: matchedTeacher.phone || "+998944481309",
-            address: matchedTeacher.address || "Tashkent",
-            createdDate: matchedTeacher.created_at
-              ? new Date(matchedTeacher.created_at).toLocaleDateString("uz-UZ")
+            email: teacherData.email || "moxirbek@gmail.com",
+            phone: teacherData.phone || "+998944481309",
+            address: teacherData.address || "Tashkent",
+            createdDate: teacherData.created_at
+              ? new Date(teacherData.created_at).toLocaleDateString("uz-UZ")
               : "12.05.2026",
-            photo: matchedTeacher.photo || matchedTeacher.avatar || null,
-            groups: Array.isArray(matchedTeacher.groups) ? matchedTeacher.groups : [],
-            initial: (matchedTeacher.full_name || "M")[0].toUpperCase()
+            photo: teacherData.photo || null,
+            groups: Array.isArray(teacherData.groups) ? teacherData.groups : [],
+            initial: (teacherData.full_name || "O")[0].toUpperCase()
           });
         } else {
-          // Fallback to mock data matching screenshot
-          setProfile({
-            id: 0,
-            name: loggedInUser || "Mohirbek",
-            role: "O'qituvchi",
-            email: "moxirbek@gmail.com",
-            phone: "+998944481309",
-            address: "Tashkent",
-            createdDate: "12.05.2026",
-            photo: null,
-            groups: ["N26", "n105", "n25"],
-            initial: (loggedInUser || "M")[0].toUpperCase()
-          });
+          throw new Error("No profile data found in response");
         }
       } catch (err) {
         console.error("Fetch teacher profile error, using fallback:", err);
         // Fallback mock
         const loggedInUser = window.localStorage.getItem("username") || "Mohirbek";
+        const creds = JSON.parse(window.localStorage.getItem("_creds") || "{}");
         setProfile({
           id: 0,
           name: loggedInUser,
           role: "O'qituvchi",
-          email: "moxirbek@gmail.com",
-          phone: "+998 94 448 13 09",
+          email: creds.email || "moxirbek@gmail.com",
+          phone: creds.phone || "+998 94 448 13 09",
           address: "Tashkent",
           createdDate: "12.05.2026",
           photo: null,

@@ -74,6 +74,7 @@ export default function LessonAttendance() {
 
   // Active Role Tab State ('teacher' or 'assistant')
   const [activeRole, setActiveRole] = useState("teacher");
+  const [groupTeachers, setGroupTeachers] = useState([]);
 
   // Expanded months state: when true show all dates for that month
   const [expandedMonths, setExpandedMonths] = useState({});
@@ -107,36 +108,112 @@ export default function LessonAttendance() {
     );
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (isSaved) return;
-    const newSavedDates = [...savedDates, date];
-    setSavedDates(newSavedDates);
+
+    const year = parsedDate.getFullYear();
+    const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(parsedDate.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
+    // Prepare payload. We include both camelCase and snake_case to support various backend schemas.
+    const payload = students.map((student) => ({
+      student_id: Number(student.id),
+      studentId: Number(student.id),
+      group_id: Number(groupId),
+      groupId: Number(groupId),
+      is_present: student.attended,
+      isPresent: student.attended,
+      attended: student.attended,
+      date: formattedDate,
+      lessonDate: formattedDate,
+      lesson_date: formattedDate,
+    }));
+
     try {
+      try {
+        // Try bulk upload first (sending the whole array)
+        await axiosClient.post('/attendance/all', payload);
+      } catch (bulkError) {
+        console.warn("Bulk POST to /attendance/all failed, trying individual POSTs:", bulkError.message);
+        // Fallback: send individual POST request for each student in parallel
+        await Promise.all(
+          payload.map((item) => axiosClient.post('/attendance/all', item))
+        );
+      }
+
+      // Save to localStorage as cache/fallback
+      const newSavedDates = [...savedDates, date];
+      setSavedDates(newSavedDates);
       localStorage.setItem(`attendance_saved_${groupId || "1"}`, JSON.stringify(newSavedDates));
       localStorage.setItem(`attendance_students_${groupId || "1"}_${date}`, JSON.stringify(students));
-    } catch (e) {
-      console.error(e);
+      
+      triggerAlert("Yo'qlama muvaffaqiyatli saqlandi va dars yakunlandi!", "success");
+      setTimeout(() => {
+        navigate(`/dashboard/groups/${groupId || "1"}`);
+      }, 1500);
+    } catch (error) {
+      console.error("Yo'qlamani saqlashda xatolik:", error?.response?.data || error.message);
+      triggerAlert("Yo'qlamani saqlashda xatolik yuz berdi!", "error");
     }
-    
-    triggerAlert("Yo'qlama muvaffaqiyatli saqlandi va dars yakunlandi!", "success");
-    setTimeout(() => {
-      navigate(`/dashboard/groups/${groupId || "1"}`);
-    }, 1500);
   };
 
-  // Dynamic loading of group info and attendance status
   useEffect(() => {
     const loadGroupAndAttendance = async () => {
       try {
         setLoading(true);
         
         // 1. Fetch group details to get the actual students list
-        const groupRes = await axiosClient.get(`/groups/one/${groupId}`).catch(() => null);
+        let groupRes = await axiosClient.get(`/groups/one/${groupId}`).catch(() => null);
+        
+        // Teacher fallback if first request fails (due to backend role restrictions)
+        if (!groupRes) {
+          try {
+            const myGroupsRes = await axiosClient.get('/teachers/my/groups');
+            const myGroupsList = myGroupsRes?.data?.success ? myGroupsRes.data.data : (Array.isArray(myGroupsRes?.data) ? myGroupsRes.data : []);
+            const matchingGroup = myGroupsList.find(g => Number(g.id) === Number(groupId));
+            if (matchingGroup) {
+              groupRes = { data: { success: true, data: matchingGroup } };
+            }
+          } catch (teacherErr) {
+            console.error('Teacher fallback group fetch failed:', teacherErr.message);
+          }
+        }
+
         let fetchedStudents = [];
+        let fetchedTeachers = [];
         if (groupRes?.data?.success && groupRes?.data?.data) {
           fetchedStudents = groupRes.data.data.students || [];
+          fetchedTeachers = groupRes.data.data.teachers || [];
         } else if (groupRes?.data) {
           fetchedStudents = groupRes.data.students || [];
+          fetchedTeachers = groupRes.data.teachers || [];
+        }
+        setGroupTeachers(fetchedTeachers);
+
+        // Fallback: If groupRes had no students, load from /students and filter by group ID.
+        if (fetchedStudents.length === 0 && !isNaN(Number(groupId))) {
+          try {
+            const studentsRes = await axiosClient.get('/students').catch(() => null);
+            const studentsData = studentsRes?.data?.success ? studentsRes.data.data : (Array.isArray(studentsRes?.data) ? studentsRes.data : (studentsRes?.data?.data || []));
+            if (Array.isArray(studentsData)) {
+              const filteredStudents = studentsData.filter(student => {
+                const sGroupIds = Array.isArray(student.groups)
+                  ? student.groups.map(g => typeof g === 'object' ? g.id : g)
+                  : (Array.isArray(student.groupIds) ? student.groupIds : []);
+                return sGroupIds.map(Number).includes(Number(groupId));
+              });
+              fetchedStudents = filteredStudents.map(student => ({
+                id: student.id,
+                full_name: student.name || student.full_name || 'Noma\'lum talaba',
+                name: student.name || student.full_name || 'Noma\'lum talaba',
+                phone: student.phone || '—',
+                avatarSeed: student.name || student.full_name || 'User'
+              }));
+            }
+          } catch (studentErr) {
+            console.error('Failed to load lesson attendance students via fallback:', studentErr.message);
+          }
         }
 
         // 2. Fetch all attendance from backend
@@ -248,6 +325,12 @@ export default function LessonAttendance() {
     );
   }
 
+  const mainTeacherName = groupTeachers[0]?.full_name || "Mohirbek";
+  const assistantTeacherName = groupTeachers[1]?.full_name || "Javohir";
+  
+  const mainTeacherInitial = mainTeacherName[0]?.toUpperCase() || "M";
+  const assistantTeacherInitial = assistantTeacherName[0]?.toUpperCase() || "J";
+
   return (
     <div className="space-y-6 relative">
       {/* Alert/Snackbar Notification */}
@@ -326,11 +409,11 @@ export default function LessonAttendance() {
         <div className="flex flex-wrap items-center justify-between gap-6 relative">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full flex items-center justify-center font-bold text-[#10B981] dark:text-emerald-400 text-lg shadow-inner">
-              {activeRole === "teacher" ? "M" : "J"}
+              {activeRole === "teacher" ? mainTeacherInitial : assistantTeacherInitial}
             </div>
             <div>
               <h2 className="text-base font-bold text-gray-850 dark:text-white">
-                {activeRole === "teacher" ? "Mohirbek" : "Javohir"}
+                {activeRole === "teacher" ? mainTeacherName : assistantTeacherName}
               </h2>
               <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
                 {activeRole}

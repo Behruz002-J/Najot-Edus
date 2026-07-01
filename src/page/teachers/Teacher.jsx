@@ -222,9 +222,9 @@ export default function Teacher() {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 overflow-x-auto max-w-[180px] no-scrollbar py-1">
                       {teacher.group.map((g, i) => (
-                        <span key={i} className="px-2.5 py-1 bg-[#F3F4F6] dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs font-medium">
+                        <span key={i} className="px-2.5 py-1 bg-[#F3F4F6] dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0">
                           {g}
                         </span>
                       ))}

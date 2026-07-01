@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import axiosClient from "../../api/axios";
 
 const STATUS_CONFIG = {
   "Qaytarilgan":   { bg: "bg-[#f3a022]",   text: "text-white" },
   "Qabul qilingan":{ bg: "bg-[#5cb85c]",   text: "text-white" },
   "Berilmagan":    { bg: "bg-[#777777]",   text: "text-white" },
   "Bajarilmagan":  { bg: "bg-[#d9534f]",   text: "text-white" },
+  "Kutilmoqda":    { bg: "bg-amber-500",   text: "text-white" },
 };
 
-const homeworkData = [
+const defaultHomeworkData = [
   { id: 1, topic: "NextJs",          video: 0, status: "Qaytarilgan",    deadline: "2026 M06 11 20:00", lessonDate: "2026 M06 11" },
   { id: 2, topic: "crm loyihasi",    video: 2, status: "Qabul qilingan", deadline: "2026 M06 09 20:00", lessonDate: "2026 M06 09" },
   { id: 3, topic: "Imtihon",         video: 0, status: "Qabul qilingan", deadline: "2026 M06 02 20:00", lessonDate: "2026 M06 02" },
@@ -19,7 +21,7 @@ const homeworkData = [
   { id: 8, topic: "CSS asoslari",    video: 1, status: "Bajarilmagan",   deadline: "2026 M05 08 20:00", lessonDate: "2026 M05 08" },
 ];
 
-const ALL_STATUSES = ["Barchasi", "Qaytarilgan", "Qabul qilingan", "Berilmagan", "Bajarilmagan"];
+const ALL_STATUSES = ["Barchasi", "Qaytarilgan", "Qabul qilingan", "Berilmagan", "Bajarilmagan", "Kutilmoqda"];
 
 export default function StudentGroupDetail() {
   const { id } = useParams();
@@ -27,6 +29,8 @@ export default function StudentGroupDetail() {
   const [filter, setFilter] = useState("Barchasi");
   const [group, setGroup] = useState(null);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
+  const [homeworkList, setHomeworkList] = useState([]);
+  const [homeworkLoading, setHomeworkLoading] = useState(true);
 
   useEffect(() => {
     // Load group details from local storage or fallback to mock data
@@ -57,9 +61,103 @@ export default function StudentGroupDetail() {
     setGroup(found);
   }, [id]);
 
+  useEffect(() => {
+    const fetchHomeworks = async () => {
+      try {
+        setHomeworkLoading(true);
+        const token = localStorage.getItem("token") || "";
+        const isMock = token.startsWith("mock-");
+        if (isMock) {
+          throw new Error("Mock token detected, using mock data");
+        }
+
+        // 1. Fetch group lessons
+        const lessonsRes = await axiosClient.get(`/groups/${id}/lessons`);
+        const lessons = lessonsRes.data?.data || lessonsRes.data || [];
+
+        // 2. Fetch homework status for each lesson
+        const detailsPromises = lessons.map(async (lesson) => {
+          try {
+            const hwRes = await axiosClient.get(`/groups/${id}/lessons/${lesson.id}/homeworks`);
+            const hwData = hwRes.data?.data || hwRes.data || null;
+            return { lesson, hwData };
+          } catch (e) {
+            console.warn(`Failed to fetch homework details for lesson ${lesson.id}:`, e.message);
+            return { lesson, hwData: null };
+          }
+        });
+
+        const detailsList = await Promise.all(detailsPromises);
+
+        // 3. Map to homework list rows
+        const mapped = [];
+        detailsList.forEach(({ lesson, hwData }) => {
+          if (!hwData || (!hwData.homework && !hwData.answer && !hwData.result)) {
+            // No homework assigned
+            mapped.push({
+              id: `no-hw-${lesson.id}`,
+              topic: lesson.topic || "Mavzu",
+              video: lesson.videoCount || 0,
+              status: "Berilmagan",
+              deadline: "—",
+              lessonDate: lesson.created_at ? new Date(lesson.created_at).toLocaleDateString("uz-UZ") : "—",
+              file: null,
+              lessonId: lesson.id
+            });
+            return;
+          }
+
+          const homework = hwData.homework || {};
+          const answer = hwData.answer || null;
+          const result = hwData.result || null;
+
+          let status = "Bajarilmagan";
+          if (result) {
+            if (result.homeworkStatus === "ACCEPTED") {
+              status = "Qabul qilingan";
+            } else if (result.homeworkStatus === "REJECTED") {
+              status = "Qaytarilgan";
+            } else if (result.homeworkStatus === "PENDING") {
+              status = "Kutilmoqda";
+            }
+          } else if (answer) {
+            status = "Kutilmoqda";
+          }
+
+          mapped.push({
+            id: homework.id || `hw-lesson-${lesson.id}`,
+            topic: homework.title || lesson.topic || "Mavzu",
+            video: lesson.videoCount || 0,
+            status: status,
+            deadline: homework.created_at
+              ? new Date(new Date(homework.created_at).getTime() + 2 * 24 * 60 * 60 * 1000).toLocaleString("uz-UZ")
+              : "Belgilanmagan",
+            lessonDate: homework.created_at
+              ? new Date(homework.created_at).toLocaleDateString("uz-UZ")
+              : (lesson.created_at ? new Date(lesson.created_at).toLocaleDateString("uz-UZ") : "—"),
+            file: homework.file,
+            lessonId: lesson.id,
+            homeworkId: homework.id
+          });
+        });
+
+        setHomeworkList(mapped);
+      } catch (err) {
+        console.warn("Error loading homeworks from API, falling back to mock:", err.message);
+        setHomeworkList(defaultHomeworkData);
+      } finally {
+        setHomeworkLoading(false);
+      }
+    };
+
+    if (id) {
+      fetchHomeworks();
+    }
+  }, [id]);
+
   const filtered = filter === "Barchasi"
-    ? homeworkData
-    : homeworkData.filter((h) => h.status === filter);
+    ? homeworkList
+    : homeworkList.filter((h) => h.status === filter);
 
   if (!group) {
     return (
@@ -121,42 +219,59 @@ export default function StudentGroupDetail() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-              {filtered.map((row) => {
-                const cfg = STATUS_CONFIG[row.status] || { bg: "bg-gray-400", text: "text-white" };
-                return (
-                  <tr
-                    key={row.id}
-                    onClick={() => navigate(`homework/${row.id}`)}
-                    className="hover:bg-orange-50/20 dark:hover:bg-gray-700/20 transition-colors cursor-pointer"
-                  >
-                    <td className="py-4 px-8 text-sm text-gray-800 dark:text-gray-200 font-semibold">
-                      {row.topic}
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-sky-400 text-xs font-bold text-sky-500 dark:text-sky-400 hover:bg-sky-400 hover:text-white transition-colors cursor-default">
-                        {row.video}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6">
-                      <span className={`inline-flex items-center justify-center w-[110px] py-1.5 rounded-md text-[13px] font-semibold text-center select-none ${cfg.bg} ${cfg.text}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
-                      {row.deadline}
-                    </td>
-                    <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
-                      {row.lessonDate}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
+              {homeworkLoading ? (
+                <tr>
+                  <td colSpan={5} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center justify-center gap-3">
+                      <svg className="animate-spin w-5 h-5 text-orange-500" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Yuklanmoqda...
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-16 text-center text-sm text-gray-400 dark:text-gray-500">
                     Ma'lumotlar topilmadi
                   </td>
                 </tr>
+              ) : (
+                filtered.map((row) => {
+                  const cfg = STATUS_CONFIG[row.status] || { bg: "bg-gray-400", text: "text-white" };
+                  return (
+                    <tr
+                      key={row.id}
+                      onClick={() => {
+                        if (row.status !== "Berilmagan") {
+                          navigate(`homework/${row.id}`);
+                        }
+                      }}
+                      className={row.status === "Berilmagan" ? "opacity-75 cursor-not-allowed" : "hover:bg-orange-50/20 dark:hover:bg-gray-700/20 transition-colors cursor-pointer"}
+                    >
+                      <td className="py-4 px-8 text-sm text-gray-800 dark:text-gray-200 font-semibold">
+                        {row.topic}
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-sky-400 text-xs font-bold text-sky-500 dark:text-sky-400 hover:bg-sky-400 hover:text-white transition-colors cursor-default">
+                          {row.video}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
+                        <span className={`inline-flex items-center justify-center w-[110px] py-1.5 rounded-md text-[13px] font-semibold text-center select-none ${cfg.bg} ${cfg.text}`}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
+                        {row.deadline}
+                      </td>
+                      <td className="py-4 px-6 text-sm text-gray-600 dark:text-gray-400">
+                        {row.lessonDate}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

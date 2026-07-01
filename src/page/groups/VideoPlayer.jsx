@@ -105,135 +105,138 @@ export default function VideoPlayer() {
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden bg-gray-950">
         {/* Video Section */}
-        <div className="flex-1 flex flex-col bg-black">
-          {/* Video Player */}
-          <div className="flex-1 flex items-center justify-center relative group bg-black min-h-[400px]">
-            {video?.src ? (
-              <video
-                ref={videoRef}
-                src={video.src}
-                className="w-full h-full object-contain max-h-[calc(100vh-200px)]"
-                onTimeUpdate={handleTimeUpdate}
-                onLoadedMetadata={handleLoadedMetadata}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onEnded={() => setIsPlaying(false)}
-              />
-            ) : (
-              /* Placeholder when no video src */
-              <div className="flex flex-col items-center gap-6 select-none">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 overflow-y-auto">
+          {/* Centered Video Player Card */}
+          <div className="w-full max-w-4xl bg-gray-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl flex flex-col relative group">
+            {/* Video Player */}
+            <div className="w-full aspect-[16/9] flex items-center justify-center relative bg-black min-h-[300px]">
+              {video?.src ? (
+                <video
+                  ref={videoRef}
+                  src={video.src}
+                  className="w-full h-full object-contain"
+                  onTimeUpdate={handleTimeUpdate}
+                  onLoadedMetadata={handleLoadedMetadata}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  onEnded={() => setIsPlaying(false)}
+                />
+              ) : (
+                /* Placeholder when no video src */
+                <div className="flex flex-col items-center gap-6 select-none">
+                  <div
+                    onClick={togglePlay}
+                    className="w-20 h-20 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer transition-all hover:scale-110"
+                  >
+                    <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white/50 text-sm font-semibold">{video?.videoName || 'Video'}</p>
+                    <p className="text-white/25 text-xs mt-1">Video fayli mavjud emas</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Play/Pause overlay */}
+              {video?.src && (
                 <div
+                  className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={togglePlay}
-                  className="w-24 h-24 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center cursor-pointer transition-all hover:scale-110"
                 >
-                  <svg className="w-12 h-12 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </div>
-                <div className="text-center">
-                  <p className="text-white/50 text-sm font-semibold">{video?.videoName || 'Video'}</p>
-                  <p className="text-white/25 text-xs mt-1">Video fayli mavjud emas</p>
-                </div>
-              </div>
-            )}
-
-            {/* Play/Pause overlay */}
-            {video?.src && (
-              <div
-                className="absolute inset-0 flex items-center justify-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={togglePlay}
-              >
-                <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
-                  {isPlaying ? (
-                    <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Controls */}
-          <div className="bg-gray-900 px-6 py-4 space-y-3">
-            {/* Progress Bar */}
-            <div
-              className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer relative group/bar"
-              onClick={handleSeek}
-            >
-              <div
-                className="h-full bg-purple-500 rounded-full relative transition-all"
-                style={{ width: `${progress}%` }}
-              >
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover/bar:opacity-100 transition-opacity" />
-              </div>
-            </div>
-
-            {/* Controls Row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                {/* Play/Pause */}
-                <button
-                  onClick={togglePlay}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
-                >
-                  {isPlaying ? (
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                  )}
-                </button>
-
-                {/* Volume */}
-                <div className="flex items-center gap-2">
-                  <button onClick={toggleMute} className="text-white/60 hover:text-white transition-colors">
-                    {isMuted || volume === 0 ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                  <div className="w-16 h-16 rounded-full bg-black/50 flex items-center justify-center">
+                    {isPlaying ? (
+                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6a9 9 0 010 12M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                      <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="bg-gray-900 px-6 py-4 space-y-3 border-t border-white/10">
+              {/* Progress Bar */}
+              <div
+                className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer relative group/bar"
+                onClick={handleSeek}
+              >
+                <div
+                  className="h-full bg-purple-500 rounded-full relative transition-all"
+                  style={{ width: `${progress}%` }}
+                >
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-lg opacity-0 group-hover/bar:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              {/* Controls Row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Play/Pause */}
+                  <button
+                    onClick={togglePlay}
+                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                  >
+                    {isPlaying ? (
+                      <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
                       </svg>
                     )}
                   </button>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={isMuted ? 0 : volume}
-                    onChange={handleVolumeChange}
-                    className="w-20 h-1 accent-purple-500 cursor-pointer"
-                  />
+
+                  {/* Volume */}
+                  <div className="flex items-center gap-2">
+                    <button onClick={toggleMute} className="text-white/60 hover:text-white transition-colors">
+                      {isMuted || volume === 0 ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072M12 6a9 9 0 010 12M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        </svg>
+                      )}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      className="w-20 h-1 accent-purple-500 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Time */}
+                  <span className="text-white/50 text-xs font-mono">
+                    {currentTime} / {duration}
+                  </span>
                 </div>
 
-                {/* Time */}
-                <span className="text-white/50 text-xs font-mono">
-                  {currentTime} / {duration}
-                </span>
+                {/* Fullscreen */}
+                <button
+                  onClick={handleFullscreen}
+                  className="text-white/60 hover:text-white transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
               </div>
-
-              {/* Fullscreen */}
-              <button
-                onClick={handleFullscreen}
-                className="text-white/60 hover:text-white transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-              </button>
             </div>
           </div>
         </div>

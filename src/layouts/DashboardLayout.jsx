@@ -350,7 +350,7 @@ export default function DashboardLayout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-8">
-          {!isStudent && role !== 'TEACHER' && (
+          {!isStudent && role !== 'TEACHER' && !location.pathname.startsWith("/dashboard/management") && (
             <div className="mb-8 flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">

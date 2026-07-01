@@ -30,82 +30,209 @@ export default function MyGroups() {
     const fetchStudentGroups = async () => {
       try {
         setLoading(true);
-        // 1. Get current logged in student
-        const loggedInPhone = localStorage.getItem("student_phone");
-        const localStudents = JSON.parse(localStorage.getItem("local_students") || "[]");
-        const currentStudent = localStudents.find(s => {
-          const sPhone = (s.phone || "").replace(/\D/g, "");
-          const cleanLoggedIn = (loggedInPhone || "").replace(/\D/g, "");
-          const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
-          const userNorm = cleanLoggedIn.length === 9 ? `998${cleanLoggedIn}` : cleanLoggedIn;
-          return sNorm === userNorm;
-        });
+        const token = localStorage.getItem("token") || "";
+        const isMock = token.startsWith("mock-");
+        
+        let apiGroups = [];
+        let fetchedFromApi = false;
 
-        if (!currentStudent) {
-          // If not found in local students, show fallback mock groups
-          setGroups([
-            {
-              id: 1,
-              name: "n105",
-              direction: "Backend",
-              status: "Faol",
+        // Try to fetch from /students/my/groups endpoint
+        if (token && !isMock) {
+          try {
+            const res = await axiosClient.get("/students/my/groups");
+            const data = res?.data;
+            if (Array.isArray(data)) {
+              apiGroups = data;
+              fetchedFromApi = true;
+            } else if (Array.isArray(data?.data)) {
+              apiGroups = data.data;
+              fetchedFromApi = true;
+            }
+          } catch (err) {
+            console.warn("Fetch from /students/my/groups failed, trying local fallback:", err.message);
+          }
+        }
+
+        let mapped = [];
+
+        if (fetchedFromApi) {
+          // Save these groups to local_groups in localStorage so that detail pages can load them
+          const localGroups = JSON.parse(localStorage.getItem("local_groups") || "[]");
+          const localGroupsMap = new Map(localGroups.map(lg => [String(lg.id), lg]));
+          apiGroups.forEach(g => {
+            const id = g.groupId || g.id;
+            const name = g.groupName || g.name || g.group_name || "Guruh";
+            const direction = g.courseName || g.course || g.courses?.name || g.course?.name || "Frontend";
+            const teacherName = g.teacher || (Array.isArray(g.teachers) && g.teachers.length > 0 ? g.teachers.map(t => t.full_name || t.name).join(', ') : "O'qituvchi");
+            const firstTeacher = Array.isArray(g.teachers) && g.teachers[0] ? g.teachers[0] : {};
+            const rawStartDate = g.startDate || g.start_date;
+
+            localGroupsMap.set(String(id), {
+              ...localGroupsMap.get(String(id)),
+              ...g,
+              id: id,
+              name: name,
+              course: direction,
+              teacher: teacherName,
+              teacherPhone: firstTeacher.phone || g.teacherPhone || "+998 90 123 45 67",
+              teacherEmail: firstTeacher.email || g.teacherEmail || "mentor@najottedu.uz",
+              teacherTelegram: firstTeacher.telegram || g.teacherTelegram || "najottedu_mentor",
+              status: g.status === 'FAOL' || g.is_active !== false ? "Faol" : "Faol emas",
+              start_date: rawStartDate || "2026-05-01"
+            });
+          });
+          localStorage.setItem("local_groups", JSON.stringify(Array.from(localGroupsMap.values())));
+
+          mapped = apiGroups.map(g => {
+            const id = g.groupId || g.id;
+            const name = g.groupName || g.name || g.group_name || "Guruh";
+            const direction = g.courseName || g.course || g.courses?.name || g.course?.name || "Frontend";
+            const teacherName = g.teacher || (Array.isArray(g.teachers) && g.teachers.length > 0 ? g.teachers.map(t => t.full_name || t.name).join(', ') : "O'qituvchi");
+            const avatarLetter = teacherName[0]?.toUpperCase() || "?";
+            const rawStartDate = g.startDate || g.start_date;
+            
+            return {
+              id: id,
+              name: name,
+              direction: direction,
+              status: g.status === 'FAOL' || g.is_active !== false ? "Faol" : "Faol emas",
               teacher: {
-                name: "O'qituvchi",
-                avatarLetter: "4",
+                name: teacherName,
+                avatarLetter: avatarLetter,
                 color: "bg-[#E29543] text-white"
               },
-              startDate: "2026 M05 1",
+              startDate: rawStartDate ? new Date(rawStartDate).toLocaleDateString("uz-UZ") : "2026 M05 1"
+            };
+          });
+        } else {
+          // Fallback to local students mapping logic
+          const loggedInPhone = localStorage.getItem("student_phone");
+          const localStudents = JSON.parse(localStorage.getItem("local_students") || "[]");
+          const currentStudent = localStudents.find(s => {
+            const sPhone = (s.phone || "").replace(/\D/g, "");
+            const cleanLoggedIn = (loggedInPhone || "").replace(/\D/g, "");
+            const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
+            const userNorm = cleanLoggedIn.length === 9 ? `998${cleanLoggedIn}` : cleanLoggedIn;
+            return sNorm === userNorm;
+          });
+
+          if (!currentStudent) {
+            setGroups([
+              {
+                id: 1,
+                name: "n105",
+                direction: "Backend",
+                status: "Faol",
+                teacher: {
+                  name: "O'qituvchi",
+                  avatarLetter: "4",
+                  color: "bg-[#E29543] text-white"
+                },
+                startDate: "2026 M05 1",
+              }
+            ]);
+            setLoading(false);
+            return;
+          }
+
+          let allGroups = [];
+          try {
+            const res = await axiosClient.get('/groups/all');
+            const data = res?.data;
+            if (Array.isArray(data)) allGroups = data;
+            else if (Array.isArray(data?.data)) allGroups = data.data;
+          } catch (err) {
+            console.warn("API load groups failed in MyGroups:", err.message);
+          }
+
+          const localGroups = JSON.parse(localStorage.getItem("local_groups") || "[]");
+          const combinedGroups = [...localGroups, ...allGroups];
+
+          const studentGroupIds = currentStudent.groupIds || [];
+          const studentGroupsList = currentStudent.groups || [];
+
+          const studentAssignedGroups = combinedGroups.filter(g => {
+            const idMatch = studentGroupIds.map(Number).includes(Number(g.id));
+            const nameMatch = studentGroupsList.some(gn => String(gn).toLowerCase().trim() === String(g.name).toLowerCase().trim());
+            const nameIdMatch = studentGroupsList.some(gn => String(gn).includes(String(g.id)));
+            return idMatch || nameMatch || nameIdMatch;
+          });
+
+          mapped = studentAssignedGroups.map(g => {
+            const direction = g.course || g.courses?.name || g.course?.name || "Frontend";
+            const teacherName = g.teacher || (Array.isArray(g.teachers) && g.teachers.length > 0 ? g.teachers.map(t => t.full_name).join(', ') : "O'qituvchi");
+            const avatarLetter = teacherName[0]?.toUpperCase() || "?";
+            
+            return {
+              id: g.id,
+              name: g.name,
+              direction: direction,
+              status: g.status === 'FAOL' || g.is_active !== false ? "Faol" : "Faol emas",
+              teacher: {
+                name: teacherName,
+                avatarLetter: avatarLetter,
+                color: "bg-[#E29543] text-white"
+              },
+              startDate: g.start_date ? new Date(g.start_date).toLocaleDateString("uz-UZ") : "2026 M05 1"
+            };
+          });
+        }
+
+        if (mapped.length === 0) {
+          const loggedInPhone = localStorage.getItem("student_phone");
+          const localStudents = JSON.parse(localStorage.getItem("local_students") || "[]");
+          const currentStudent = localStudents.find(s => {
+            const sPhone = (s.phone || "").replace(/\D/g, "");
+            const cleanLoggedIn = (loggedInPhone || "").replace(/\D/g, "");
+            const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
+            const userNorm = cleanLoggedIn.length === 9 ? `998${cleanLoggedIn}` : cleanLoggedIn;
+            return sNorm === userNorm;
+          });
+
+          if (currentStudent && (currentStudent.groupIds?.length > 0 || currentStudent.groups?.length > 0)) {
+            let allGroups = [];
+            try {
+              const res = await axiosClient.get('/groups/all');
+              const data = res?.data;
+              if (Array.isArray(data)) allGroups = data;
+              else if (Array.isArray(data?.data)) allGroups = data.data;
+            } catch (err) {
+              console.warn("API load groups failed in MyGroups fallback:", err.message);
             }
-          ]);
-          setLoading(false);
-          return;
+
+            const localGroups = JSON.parse(localStorage.getItem("local_groups") || "[]");
+            const combinedGroups = [...localGroups, ...allGroups];
+
+            const studentGroupIds = currentStudent.groupIds || [];
+            const studentGroupsList = currentStudent.groups || [];
+
+            const studentAssignedGroups = combinedGroups.filter(g => {
+              const idMatch = studentGroupIds.map(Number).includes(Number(g.id));
+              const nameMatch = studentGroupsList.some(gn => String(gn).toLowerCase().trim() === String(g.name).toLowerCase().trim());
+              const nameIdMatch = studentGroupsList.some(gn => String(gn).includes(String(g.id)));
+              return idMatch || nameMatch || nameIdMatch;
+            });
+
+            mapped = studentAssignedGroups.map(g => {
+              const direction = g.course || g.courses?.name || g.course?.name || "Frontend";
+              const teacherName = g.teacher || (Array.isArray(g.teachers) && g.teachers.length > 0 ? g.teachers.map(t => t.full_name).join(', ') : "O'qituvchi");
+              const avatarLetter = teacherName[0]?.toUpperCase() || "?";
+              
+              return {
+                id: g.id,
+                name: g.name,
+                direction: direction,
+                status: g.status === 'FAOL' || g.is_active !== false ? "Faol" : "Faol emas",
+                teacher: {
+                  name: teacherName,
+                  avatarLetter: avatarLetter,
+                  color: "bg-[#E29543] text-white"
+                },
+                startDate: g.start_date ? new Date(g.start_date).toLocaleDateString("uz-UZ") : "2026 M05 1"
+              };
+            });
+          }
         }
-
-        // 2. Fetch all groups from API and local storage
-        let allGroups = [];
-        try {
-          const res = await axiosClient.get('/groups/all');
-          const data = res?.data;
-          if (Array.isArray(data)) allGroups = data;
-          else if (Array.isArray(data?.data)) allGroups = data.data;
-        } catch (err) {
-          console.warn("API load groups failed in MyGroups:", err.message);
-        }
-
-        const localGroups = JSON.parse(localStorage.getItem("local_groups") || "[]");
-        
-        // Combine them
-        const combinedGroups = [...localGroups, ...allGroups];
-
-        // 3. Filter groups matching student's groupIds or group names
-        const studentGroupIds = currentStudent.groupIds || [];
-        const studentGroupsList = currentStudent.groups || [];
-
-        const studentAssignedGroups = combinedGroups.filter(g => {
-          const idMatch = studentGroupIds.map(Number).includes(Number(g.id));
-          const nameMatch = studentGroupsList.some(gn => String(gn).toLowerCase().trim() === String(g.name).toLowerCase().trim());
-          const nameIdMatch = studentGroupsList.some(gn => String(gn).includes(String(g.id)));
-          return idMatch || nameMatch || nameIdMatch;
-        });
-
-        const mapped = studentAssignedGroups.map(g => {
-          const direction = g.course || g.courses?.name || g.course?.name || "Frontend";
-          const teacherName = g.teacher || (Array.isArray(g.teachers) && g.teachers.length > 0 ? g.teachers.map(t => t.full_name).join(', ') : "O'qituvchi");
-          const avatarLetter = teacherName[0]?.toUpperCase() || "?";
-          
-          return {
-            id: g.id,
-            name: g.name,
-            direction: direction,
-            status: g.status === 'FAOL' || g.is_active !== false ? "Faol" : "Faol emas",
-            teacher: {
-              name: teacherName,
-              avatarLetter: avatarLetter,
-              color: "bg-[#E29543] text-white"
-            },
-            startDate: g.start_date ? new Date(g.start_date).toLocaleDateString("uz-UZ") : "2026 M05 1"
-          };
-        });
 
         if (mapped.length === 0) {
           setGroups([

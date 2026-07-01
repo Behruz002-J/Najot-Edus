@@ -173,6 +173,12 @@ export default function AddTeacherModal({ isOpen, onClose, setTeachers, teacherD
         return;
       }
 
+      // Handle 409 Conflict — phone number or email already exists
+      if (response.status === 409) {
+        alert("Xatolik: Ushbu telefon raqami yoki email manzili allaqachon tizimda ro'yxatdan o'tgan! Iltimos, boshqa telefon raqami yoki email kiriting.");
+        return;
+      }
+
       // Handle non-JSON response gracefully (e.g. 500 server error, HTML pages)
       const contentType = response.headers.get("content-type");
       let resData = null;

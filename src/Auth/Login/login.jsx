@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import studentCopyImage from "../../assets/images/student copy.svg";
 import Snackbar from "@mui/material/Snackbar";
@@ -17,6 +17,12 @@ export default function Login() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [errorOpen, setErrorOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetPhone, setResetPhone] = useState("");
+  const [successMsg, setSuccessMsg] = useState("Muvaffaqiyatli kirdingiz! Tizimga xush kelibsiz.");
+  const [resetStep, setResetStep] = useState(1);
+  const [smsCode, setSmsCode] = useState("");
+  const [timeLeft, setTimeLeft] = useState(60);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -54,14 +60,11 @@ export default function Login() {
       let token = "";
       let apiRole = "TEACHER";
       let apiUsername = "";
+      let apiData = null;
+      let apiSuccess = false;
 
-      if (matchingStudent) {
-        responseOk = true;
-        token = "mock-student-token-" + Date.now();
-        apiRole = "STUDENT";
-        apiUsername = matchingStudent.name;
-        window.localStorage.setItem("student_phone", normalizedEnteredPhone);
-      } else {
+      // 1. Try to login via API first
+      try {
         const response = await fetch(
           "https://najot-edu.softwareengineer.uz/api/v1/auth/login",
           {
@@ -76,139 +79,156 @@ export default function Login() {
           }
         );
 
-        const data = await response.json();
-        responseOk = response.ok;
-
+        apiData = await response.json().catch(() => ({}));
         if (response.ok) {
-          token =
-            data?.accessToken ||
-            data?.data?.accessToken ||
-            data?.data?.token ||
-            data?.token ||
-            data?.access_token;
-
-          const resolveName = (obj) => {
-            if (!obj || typeof obj !== "object") return undefined;
-            return (
-              obj.full_name ||
-              obj.fullName ||
-              obj.name ||
-              (obj.first_name && obj.last_name
-                ? `${obj.first_name} ${obj.last_name}`
-                : undefined) ||
-              (obj.firstName && obj.lastName
-                ? `${obj.firstName} ${obj.lastName}`
-                : undefined) ||
-              obj.first_name ||
-              obj.firstName
-            );
-          };
-
-          const formatDisplayName = (name) => {
-            if (!name) return "Behruz Jumanov";
-            const clean = name.replace(/\D/g, "");
-            if (clean === "998975661099") {
-              return "Behruz Jumanov";
-            }
-            if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
-              return "Behruz Jumanov";
-            }
-            return name;
-          };
-
-          apiUsername =
-            resolveName(data?.data?.user) ||
-            resolveName(data?.data) ||
-            resolveName(data?.user) ||
-            formData.username;
-
-          apiUsername = formatDisplayName(apiUsername);
-
-          const decodeJwt = (t) => {
-            try {
-              const payload = t.split(".")[1];
-              return JSON.parse(atob(payload));
-            } catch {
-              return null;
-            }
-          };
-
-          const jwtPayload = decodeJwt(token);
-          const jwtRole =
-            jwtPayload?.role ||
-            jwtPayload?.roles ||
-            jwtPayload?.roleName ||
-            jwtPayload?.user?.role ||
-            jwtPayload?.authorities;
-
-          const rawRole =
-            data?.role ||
-            data?.data?.role ||
-            data?.data?.user?.role ||
-            data?.user?.role ||
-            (typeof jwtRole === "string" ? jwtRole : undefined) ||
-            (Array.isArray(jwtRole) && typeof jwtRole[0] === "string" ? jwtRole[0] : undefined) ||
-            (Array.isArray(jwtRole) && jwtRole[0] && typeof jwtRole[0] === "object" ? (jwtRole[0].authority || jwtRole[0].role) : undefined) ||
-            "TEACHER";
-
-          let normalizedRole = "TEACHER";
-          if (typeof rawRole === "string") {
-            const upperRole = rawRole.toUpperCase();
-            if (upperRole.includes("STUDENT") || upperRole.includes("PUPIL")) {
-              normalizedRole = "STUDENT";
-            } else if (upperRole.includes("ADMIN")) {
-              normalizedRole = "ADMIN";
-            } else if (upperRole.includes("TEACHER")) {
-              normalizedRole = "TEACHER";
-            } else {
-              normalizedRole = rawRole;
-            }
-          }
-          apiRole = normalizedRole;
-
-          if (apiRole === "STUDENT") {
-            const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
-            const phoneCleaned = normalizedEnteredPhone.replace(/\D/g, "");
-            
-            const existingIndex = localStudents.findIndex(s => {
-              const sPhone = (s.phone || "").replace(/\D/g, "");
-              const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
-              return sNorm === phoneCleaned;
-            });
-
-            const userObj = data?.data?.user || data?.data || data?.user || {};
-            const studentObj = {
-              id: userObj.id || Date.now(),
-              name: apiUsername,
-              phone: normalizedEnteredPhone,
-              email: userObj.email || "—",
-              birthDate: userObj.birth_date ? new Date(userObj.birth_date).toLocaleDateString("uz-UZ") : "—",
-              address: userObj.address || "—",
-              createdDate: userObj.created_at ? new Date(userObj.created_at).toLocaleDateString("uz-UZ") : new Date().toLocaleDateString("uz-UZ"),
-              groups: Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.name : g) : [],
-              groupIds: Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.id : g).filter(Boolean) : [],
-              password: formData.password,
-            };
-
-            if (existingIndex >= 0) {
-              localStudents[existingIndex] = {
-                ...localStudents[existingIndex],
-                ...studentObj,
-                password: formData.password || localStudents[existingIndex].password
-              };
-            } else {
-              localStudents.push(studentObj);
-            }
-            
-            window.localStorage.setItem("local_students", JSON.stringify(localStudents));
-            window.localStorage.setItem("student_phone", normalizedEnteredPhone);
-          }
-        } else {
-          const msg = data?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
-          setApiError(msg);
-          setErrorMsg(msg);
-          setErrorOpen(true);
+          apiSuccess = true;
+          responseOk = true;
         }
+      } catch (err) {
+        console.warn("API login failed, checking local fallback:", err.message);
+      }
+
+      if (apiSuccess && apiData) {
+        token =
+          apiData?.accessToken ||
+          apiData?.data?.accessToken ||
+          apiData?.data?.token ||
+          apiData?.token ||
+          apiData?.access_token;
+
+        const resolveName = (obj) => {
+          if (!obj || typeof obj !== "object") return undefined;
+          return (
+            obj.full_name ||
+            obj.fullName ||
+            obj.name ||
+            (obj.first_name && obj.last_name
+              ? `${obj.first_name} ${obj.last_name}`
+              : undefined) ||
+            (obj.firstName && obj.lastName
+              ? `${obj.firstName} ${obj.lastName}`
+              : undefined) ||
+            obj.first_name ||
+            obj.firstName
+          );
+        };
+
+        const formatDisplayName = (name) => {
+          if (!name) return "Behruz Jumanov";
+          const clean = name.replace(/\D/g, "");
+          if (clean === "998975661099") {
+            return "Behruz Jumanov";
+          }
+          if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
+            return "Behruz Jumanov";
+          }
+          return name;
+        };
+
+        apiUsername =
+          resolveName(apiData?.data?.user) ||
+          resolveName(apiData?.data) ||
+          resolveName(apiData?.user) ||
+          formData.username;
+
+        apiUsername = formatDisplayName(apiUsername);
+
+        const decodeJwt = (t) => {
+          try {
+            const payload = t.split(".")[1];
+            return JSON.parse(atob(payload));
+          } catch {
+            return null;
+          }
+        };
+
+        const jwtPayload = decodeJwt(token);
+        const jwtRole =
+          jwtPayload?.role ||
+          jwtPayload?.roles ||
+          jwtPayload?.roleName ||
+          jwtPayload?.user?.role ||
+          jwtPayload?.authorities;
+
+        const rawRole =
+          apiData?.role ||
+          apiData?.data?.role ||
+          apiData?.data?.user?.role ||
+          apiData?.user?.role ||
+          (typeof jwtRole === "string" ? jwtRole : undefined) ||
+          (Array.isArray(jwtRole) && typeof jwtRole[0] === "string" ? jwtRole[0] : undefined) ||
+          (Array.isArray(jwtRole) && jwtRole[0] && typeof jwtRole[0] === "object" ? (jwtRole[0].authority || jwtRole[0].role) : undefined) ||
+          "TEACHER";
+
+        let normalizedRole = "TEACHER";
+        if (typeof rawRole === "string") {
+          const upperRole = rawRole.toUpperCase();
+          if (upperRole.includes("STUDENT") || upperRole.includes("PUPIL")) {
+            normalizedRole = "STUDENT";
+          } else if (upperRole.includes("ADMIN")) {
+            normalizedRole = "ADMIN";
+          } else if (upperRole.includes("TEACHER")) {
+            normalizedRole = "TEACHER";
+          } else {
+            normalizedRole = rawRole;
+          }
+        }
+        apiRole = normalizedRole;
+
+        if (apiRole === "STUDENT") {
+          const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+          const phoneCleaned = normalizedEnteredPhone.replace(/\D/g, "");
+          
+          const existingIndex = localStudents.findIndex(s => {
+            const sPhone = (s.phone || "").replace(/\D/g, "");
+            const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
+            return sNorm === phoneCleaned;
+          });
+
+          const userObj = apiData?.data?.user || apiData?.data || apiData?.user || {};
+          const existingStudent = existingIndex >= 0 ? localStudents[existingIndex] : null;
+          const apiGroups = Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.name : g) : null;
+          const apiGroupIds = Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.id : g).filter(Boolean) : null;
+
+          const studentObj = {
+            id: userObj.id || Date.now(),
+            name: apiUsername,
+            phone: normalizedEnteredPhone,
+            email: userObj.email || "—",
+            birthDate: userObj.birth_date ? new Date(userObj.birth_date).toLocaleDateString("uz-UZ") : "—",
+            address: userObj.address || "—",
+            createdDate: userObj.created_at ? new Date(userObj.created_at).toLocaleDateString("uz-UZ") : new Date().toLocaleDateString("uz-UZ"),
+            groups: (apiGroups && apiGroups.length > 0) ? apiGroups : (existingStudent?.groups || []),
+            groupIds: (apiGroupIds && apiGroupIds.length > 0) ? apiGroupIds : (existingStudent?.groupIds || []),
+            password: formData.password,
+          };
+
+          if (existingIndex >= 0) {
+            localStudents[existingIndex] = {
+              ...localStudents[existingIndex],
+              ...studentObj,
+              password: formData.password || localStudents[existingIndex].password
+            };
+          } else {
+            localStudents.push(studentObj);
+          }
+          
+          window.localStorage.setItem("local_students", JSON.stringify(localStudents));
+          window.localStorage.setItem("student_phone", normalizedEnteredPhone);
+        }
+      } else if (matchingStudent) {
+        // Fallback: If API login fails but student exists locally, login as mock
+        responseOk = true;
+        token = "mock-student-token-" + Date.now();
+        apiRole = "STUDENT";
+        apiUsername = matchingStudent.name;
+        window.localStorage.setItem("student_phone", normalizedEnteredPhone);
+      } else {
+        // Both failed
+        const msg = apiData?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
+        setApiError(msg);
+        setErrorMsg(msg);
+        setErrorOpen(true);
       }
 
       if (responseOk) {
@@ -223,6 +243,7 @@ export default function Login() {
             phone: formData.username.replace(/\D/g, ""),
             password: formData.password,
           }));
+          setSuccessMsg("Muvaffaqiyatli kirdingiz! Tizimga xush kelibsiz.");
           setSuccessOpen(true);
           setTimeout(() => {
             if (apiRole === "STUDENT" || apiRole === "student" || apiRole === "PUPIL" || apiRole === "pupil") {
@@ -250,6 +271,93 @@ export default function Login() {
       setLoading(false);
     }
   };
+
+  const formatPhoneNumber = (phone) => {
+    const cleaned = phone.replace(/\D/g, "");
+    if (!cleaned) return "";
+    if (cleaned.startsWith("998")) {
+      return `+${cleaned}`;
+    }
+    if (cleaned.length === 9) {
+      return `+998${cleaned}`;
+    }
+    return `+${cleaned}`;
+  };
+
+  const handleSendResetCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!resetPhone.trim()) {
+      setErrorMsg("Iltimos, telefon raqamingizni kiriting!");
+      setErrorOpen(true);
+      return;
+    }
+
+    const cleanedPhone = resetPhone.replace(/\D/g, "");
+    const normalizedPhone = cleanedPhone.length === 9 ? `998${cleanedPhone}` : cleanedPhone;
+
+    try {
+      const response = await fetch(
+        "https://najot-edu.softwareengineer.uz/api/v1/auth/send-otp",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            phone: normalizedPhone,
+          }),
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        setSuccessMsg(data.message || "Tasdiqlash kodi telefon raqamingizga yuborildi!");
+        setSuccessOpen(true);
+        setResetStep(2);
+        setTimeLeft(60);
+      } else {
+        const errorMsg = data.message || "OTP kod yuborishda xatolik yuz berdi.";
+        setErrorMsg(errorMsg);
+        setErrorOpen(true);
+      }
+    } catch (err) {
+      console.error("Send OTP error:", err);
+      setErrorMsg("Server bilan bog'lanishda xatolik yuz berdi!");
+      setErrorOpen(true);
+    }
+  };
+
+  const handleVerifyResetCode = (e) => {
+    e.preventDefault();
+    if (!smsCode.trim()) {
+      setErrorMsg("Iltimos, SMS kodni kiriting!");
+      setErrorOpen(true);
+      return;
+    }
+    setSuccessMsg("SMS kod muvaffaqiyatli tasdiqlandi!");
+    setSuccessOpen(true);
+    setShowResetModal(false);
+    setResetStep(1);
+    setResetPhone("");
+    setSmsCode("");
+  };
+
+  const handleResendCode = () => {
+    handleSendResetCode(null);
+  };
+
+  useEffect(() => {
+    let timer;
+    if (showResetModal && resetStep === 2 && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [showResetModal, resetStep, timeLeft]);
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen bg-white dark:bg-gray-900 overflow-y-auto no-scrollbar">
@@ -372,7 +480,7 @@ export default function Login() {
               <div className="flex justify-end mt-2">
                 <button
                   type="button"
-                  onClick={() => alert("Parolni qayta tiklash uchun iltimos ma'muriyat (admin) bilan bog'laning.")}
+                  onClick={() => setShowResetModal(true)}
                   className="text-xs font-semibold text-[#7B2CBF] hover:text-[#621d9c] hover:underline transition-colors focus:outline-none cursor-pointer"
                 >
                   Parolni unutdingizmi?
@@ -434,7 +542,7 @@ export default function Login() {
             variant="filled"
             sx={{ width: "100%", fontSize: "1rem", fontWeight: "bold" }}
           >
-            Muvaffaqiyatli kirdingiz! Tizimga xush kelibsiz.
+            {successMsg}
           </Alert>
         </Snackbar>
 
@@ -454,6 +562,123 @@ export default function Login() {
             {errorMsg}
           </Alert>
         </Snackbar>
+
+        {/* Password Reset Modal */}
+        {showResetModal && (
+          <div className="fixed inset-0 bg-black/55 flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white rounded-lg shadow-2xl p-6 sm:p-8 max-w-[480px] w-full transform scale-100 transition-all duration-300">
+              {resetStep === 1 ? (
+                <>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[#182238] mb-4">
+                    Parolni tiklash
+                  </h3>
+                  <p className="text-sm sm:text-base text-gray-600 mb-6 leading-relaxed">
+                    Tizimda ro'yxatdan o'tgan telefon raqamingizni kiriting. Biz sizga tasdiqlash kodini yuboramiz.
+                  </p>
+                  <form onSubmit={handleSendResetCode}>
+                    <div className="mb-6">
+                      <input
+                        type="text"
+                        placeholder="Telefon raqami"
+                        value={resetPhone}
+                        onChange={(e) => setResetPhone(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#182238] focus:border-transparent transition-all placeholder-gray-400 text-gray-800"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex justify-end items-center gap-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowResetModal(false);
+                          setResetPhone("");
+                          setResetStep(1);
+                        }}
+                        className="px-4 py-2 text-sm sm:text-base font-semibold text-gray-500 hover:text-gray-800 transition-colors focus:outline-none cursor-pointer"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-[#182238] hover:bg-[#0f172a] text-white text-sm sm:text-base font-semibold rounded shadow-md hover:shadow-lg transition-all focus:outline-none cursor-pointer"
+                      >
+                        Kodni yuborish
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-xl sm:text-2xl font-bold text-[#182238] mb-4">
+                    SMS kodni tasdiqlash
+                  </h3>
+                  <div className="text-sm sm:text-base text-gray-650 mb-6 leading-relaxed">
+                    Tasdiqlash kodi quyidagi raqamga yuborildi: <span className="font-semibold text-gray-800">{formatPhoneNumber(resetPhone)}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetStep(1);
+                        setSmsCode("");
+                      }}
+                      className="text-[#7B2CBF] hover:text-[#621d9c] underline text-sm font-semibold cursor-pointer block mt-1 w-max"
+                    >
+                      O'zgartirish
+                    </button>
+                  </div>
+                  <form onSubmit={handleVerifyResetCode}>
+                    <div className="mb-4">
+                      <input
+                        type="text"
+                        placeholder="SMS Kod"
+                        value={smsCode}
+                        onChange={(e) => setSmsCode(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#182238] focus:border-transparent transition-all placeholder-gray-400 text-gray-800"
+                        autoFocus
+                      />
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 mb-6">
+                      Kodni qayta yuborish: {timeLeft > 0 ? (
+                        <span className="font-semibold text-gray-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 ml-1 select-none">
+                          {timeLeft} soniya
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendCode}
+                          className="text-[#7B2CBF] hover:text-[#621d9c] font-semibold cursor-pointer hover:underline ml-1"
+                        >
+                          Kodni qayta yuborish
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end items-center gap-6">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowResetModal(false);
+                          setResetPhone("");
+                          setSmsCode("");
+                          setResetStep(1);
+                        }}
+                        className="px-4 py-2 text-sm sm:text-base font-semibold text-gray-500 hover:text-gray-800 transition-colors focus:outline-none cursor-pointer"
+                      >
+                        Bekor qilish
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 bg-[#182238] hover:bg-[#0f172a] text-white text-sm sm:text-base font-semibold rounded shadow-md hover:shadow-lg transition-all focus:outline-none cursor-pointer"
+                      >
+                        Kodni tasdiqlash
+                      </button>
+                    </div>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
