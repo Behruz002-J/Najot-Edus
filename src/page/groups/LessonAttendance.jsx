@@ -180,6 +180,70 @@ export default function LessonAttendance() {
           }
         }
 
+        // Local storage fallback if still not found
+        if (!groupRes) {
+          try {
+            const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+            const localMatch = localGroups.find(g => String(g.id) === String(groupId));
+            if (localMatch) {
+              let allStudents = [];
+              try {
+                const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+                allStudents = [...localStudents];
+              } catch (e) {}
+
+              try {
+                const apiStudentsRes = await axiosClient.get("/students").catch(() => null);
+                const apiStudents = apiStudentsRes?.data?.success
+                  ? apiStudentsRes.data.data
+                  : Array.isArray(apiStudentsRes?.data)
+                    ? apiStudentsRes.data
+                    : apiStudentsRes?.data?.data || [];
+                if (Array.isArray(apiStudents)) {
+                  const existingIds = new Set(allStudents.map(s => String(s.id)));
+                  const uniqueApi = apiStudents.filter(s => !existingIds.has(String(s.id)));
+                  allStudents = [...allStudents, ...uniqueApi];
+                }
+              } catch (e) {}
+
+              const groupStudents = (localMatch.student_ids || []).map(sId => {
+                const matchedStudent = allStudents.find(s => Number(s.id) === Number(sId));
+                return {
+                  id: sId,
+                  full_name: matchedStudent?.name || matchedStudent?.full_name || `Talaba #${sId}`,
+                  name: matchedStudent?.name || matchedStudent?.full_name || `Talaba #${sId}`,
+                  phone: matchedStudent?.phone || "—",
+                  avatarSeed: matchedStudent?.name || matchedStudent?.full_name || "User"
+                };
+              });
+
+              groupRes = {
+                data: {
+                  success: true,
+                  data: {
+                    id: localMatch.id,
+                    name: localMatch.name,
+                    description: localMatch.description,
+                    course: { name: localMatch.course, duration_month: parseInt(localMatch.duration) || 6 },
+                    course_id: localMatch.course_id,
+                    start_time: localMatch.start_time,
+                    week_day: localMatch.week_day,
+                    room: localMatch.room,
+                    room_id: localMatch.room_id,
+                    teacher: { full_name: localMatch.teacher },
+                    teachers: (localMatch.teachers || []).map(tId => ({ id: tId, full_name: localMatch.teacher })),
+                    students: groupStudents,
+                    start_date: localMatch.start_date,
+                    is_active: localMatch.is_active
+                  }
+                }
+              };
+            }
+          } catch (localErr) {
+            console.error("Local group resolution in LessonAttendance failed:", localErr);
+          }
+        }
+
         let fetchedStudents = [];
         let fetchedTeachers = [];
         if (groupRes?.data?.success && groupRes?.data?.data) {

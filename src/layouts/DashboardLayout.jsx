@@ -4,7 +4,8 @@ import Sidebar from "../components/Sidebar/Sidebar";
 import { useLanguage } from "../context/LanguageContext";
 
 const getImageUrl = (photo) => {
-  if (!photo || String(photo).includes('bane-profile.jpg')) return '/bane-profile.jpg';
+  if (!photo || String(photo).includes("bane-profile.jpg"))
+    return "/bane-profile.jpg";
   if (photo.startsWith("http") || photo.startsWith("blob:")) return photo;
   const path = photo.startsWith("/") ? photo : `/${photo}`;
   if (path.startsWith("/files/")) {
@@ -24,7 +25,11 @@ export default function DashboardLayout() {
   const [imageError, setImageError] = useState(false);
   const userPhoto = window.localStorage.getItem("user_photo");
   const role = window.localStorage.getItem("role") || "TEACHER";
-  const isStudent = role === "STUDENT" || role === "student" || role === "PUPIL" || role === "pupil";
+  const isStudent =
+    role === "STUDENT" ||
+    role === "student" ||
+    role === "PUPIL" ||
+    role === "pupil";
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -32,24 +37,24 @@ export default function DashboardLayout() {
   useEffect(() => {
     if (!isLangOpen) return;
     const handleOutsideClick = (e) => {
-      if (!e.target.closest('[data-lang-dropdown]')) {
+      if (!e.target.closest("[data-lang-dropdown]")) {
         setIsLangOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isLangOpen]);
 
   // Profile dropdown tashqarida bosilganda yopilsin
   useEffect(() => {
     if (!isProfileOpen) return;
     const handleOutsideClick = (e) => {
-      if (!e.target.closest('[data-profile-dropdown]')) {
+      if (!e.target.closest("[data-profile-dropdown]")) {
         setIsProfileOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [isProfileOpen]);
 
   const handleLogout = () => {
@@ -182,12 +187,16 @@ export default function DashboardLayout() {
             <div className="flex items-center gap-2">
               <div className="relative" data-lang-dropdown>
                 <button
-                  onClick={() => setIsLangOpen(prev => !prev)}
+                  onClick={() => setIsLangOpen((prev) => !prev)}
                   className="px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 rounded-lg flex items-center gap-1 border border-gray-100 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                 >
-                  {language === "uz" ? "O'zbekcha" : language === "ru" ? "Русский" : "English"}{" "}
+                  {language === "uz"
+                    ? "O'zbekcha"
+                    : language === "ru"
+                      ? "Русский"
+                      : "English"}{" "}
                   <svg
-                    className={`w-3 h-3 transition-transform duration-200 ${isLangOpen ? 'rotate-180' : ''}`}
+                    className={`w-3 h-3 transition-transform duration-200 ${isLangOpen ? "rotate-180" : ""}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -206,7 +215,10 @@ export default function DashboardLayout() {
                   <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="p-1">
                       <button
-                        onClick={() => { setLanguage("uz"); setIsLangOpen(false); }}
+                        onClick={() => {
+                          setLanguage("uz");
+                          setIsLangOpen(false);
+                        }}
                         className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
                           language === "uz"
                             ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
@@ -216,7 +228,10 @@ export default function DashboardLayout() {
                         O'zbekcha
                       </button>
                       <button
-                        onClick={() => { setLanguage("ru"); setIsLangOpen(false); }}
+                        onClick={() => {
+                          setLanguage("ru");
+                          setIsLangOpen(false);
+                        }}
                         className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
                           language === "ru"
                             ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
@@ -226,7 +241,10 @@ export default function DashboardLayout() {
                         Русский
                       </button>
                       <button
-                        onClick={() => { setLanguage("en"); setIsLangOpen(false); }}
+                        onClick={() => {
+                          setLanguage("en");
+                          setIsLangOpen(false);
+                        }}
                         className={`w-full text-left px-3 py-2 text-xs font-medium rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 ${
                           language === "en"
                             ? "text-[#7C3AED] font-semibold bg-purple-50 dark:bg-purple-900/20"
@@ -305,7 +323,7 @@ export default function DashboardLayout() {
 
             <div className="relative ml-2" data-profile-dropdown>
               <button
-                onClick={() => setIsProfileOpen(prev => !prev)}
+                onClick={() => setIsProfileOpen((prev) => !prev)}
                 className="w-9 h-9 rounded-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white flex items-center justify-center font-bold text-sm shadow-sm transition-all focus:outline-none"
               >
                 {(role || "TEACHER").charAt(0).toUpperCase()}
@@ -322,7 +340,7 @@ export default function DashboardLayout() {
                       {(role || "TEACHER").toUpperCase()}
                     </span>
                   </div>
-                  
+
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-2 py-2 text-sm font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors duration-150"
@@ -350,52 +368,85 @@ export default function DashboardLayout() {
 
         {/* Page Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-8">
-          {!isStudent && role !== 'TEACHER' && !location.pathname.startsWith("/dashboard/management") && (
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+          {!isStudent &&
+            role !== "TEACHER" &&
+            !location.pathname.startsWith("/dashboard/management") &&
+            !location.pathname.startsWith("/dashboard/groups/") && (
+              <div className="mb-8 flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    {location.pathname === "/dashboard/teacher" ? (
+                      t("title.teachers")
+                    ) : location.pathname === "/dashboard/students" ? (
+                      t("title.students")
+                    ) : location.pathname === "/dashboard/groups" ? (
+                      t("title.groups")
+                    ) : location.pathname === "/dashboard" ? (
+                      <>
+                        {t("title.welcome")},{" "}
+                        <span className="text-blue-500">{displayName}</span>
+                      </>
+                    ) : location.pathname.includes("/homework/create") ? (
+                      t("title.createHomework")
+                    ) : (
+                      t("title.dashboard")
+                    )}
+                  </h1>
                   {location.pathname === "/dashboard/teacher" ? (
-                    t("title.teachers")
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                      {t("subtitle.teachers")}
+                    </p>
                   ) : location.pathname === "/dashboard/students" ? (
-                    t("title.students")
-                  ) : location.pathname === "/dashboard/groups" ? (
-                    t("title.groups")
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                      {t("subtitle.students")}
+                    </p>
+                  ) : location.pathname === "/dashboard/groups" &&
+                    role !== "TEACHER" ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                      {t("subtitle.groups")}
+                    </p>
                   ) : location.pathname === "/dashboard" ? (
-                    <>
-                      {t("title.welcome")}, <span className="text-blue-500">{displayName}</span>
-                    </>
-                  ) : location.pathname.includes("/homework/create") ? (
-                    t("title.createHomework")
-                  ) : (
-                    t("title.dashboard")
-                  )}
-                </h1>
-                {location.pathname === "/dashboard/teacher" ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                    {t("subtitle.teachers")}
-                  </p>
-                ) : location.pathname === "/dashboard/students" ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                    {t("subtitle.students")}
-                  </p>
-                ) : (location.pathname === "/dashboard/groups" && role !== 'TEACHER') ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                    {t("subtitle.groups")}
-                  </p>
-                ) : location.pathname === "/dashboard" ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
-                    {t("subtitle.welcome")}
-                  </p>
-                ) : null}
-              </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                      {t("subtitle.welcome")}
+                    </p>
+                  ) : null}
+                </div>
 
-              {(location.pathname === "/dashboard/teacher" ||
-                location.pathname === "/dashboard/students" ||
-                location.pathname === "/dashboard/groups") && (
-                <div className="flex items-center gap-3">
-                  {(location.pathname === "/dashboard/teacher" ||
-                    location.pathname === "/groups") && (
-                    <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm transition-all">
+                {(location.pathname === "/dashboard/teacher" ||
+                  location.pathname === "/dashboard/students" ||
+                  location.pathname === "/dashboard/groups") && (
+                  <div className="flex items-center gap-3">
+                    {(location.pathname === "/dashboard/teacher" ||
+                      location.pathname === "/groups") && (
+                      <button className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm transition-all">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                        {t("btn.export")}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (location.pathname === "/dashboard/students") {
+                          setIsStudentModalOpen(true);
+                        } else if (location.pathname === "/dashboard/teacher") {
+                          setIsTeacherModalOpen(true);
+                        } else if (location.pathname === "/dashboard/groups") {
+                          setIsGroupModalOpen(true);
+                        }
+                      }}
+                      className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-[#6D28D9] shadow-sm transition-all"
+                    >
                       <svg
                         className="w-4 h-4"
                         fill="none"
@@ -406,47 +457,19 @@ export default function DashboardLayout() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          d="M12 4v16m8-8H4"
                         />
                       </svg>
-                      {t("btn.export")}
+                      {location.pathname === "/dashboard/teacher"
+                        ? t("btn.addTeacher")
+                        : location.pathname === "/dashboard/groups"
+                          ? t("btn.addGroup")
+                          : t("btn.addStudent")}
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      if (location.pathname === "/dashboard/students") {
-                        setIsStudentModalOpen(true);
-                      } else if (location.pathname === "/dashboard/teacher") {
-                        setIsTeacherModalOpen(true);
-                      } else if (location.pathname === "/dashboard/groups") {
-                        setIsGroupModalOpen(true);
-                      }
-                    }}
-                    className="px-4 py-2 bg-[#7C3AED] text-white rounded-lg text-sm font-semibold flex items-center gap-2 hover:bg-[#6D28D9] shadow-sm transition-all"
-                  >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                    {location.pathname === "/dashboard/teacher"
-                      ? t("btn.addTeacher")
-                      : location.pathname === "/dashboard/groups"
-                        ? t("btn.addGroup")
-                        : t("btn.addStudent")}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+                  </div>
+                )}
+              </div>
+            )}
           <Outlet
             context={{
               isStudentModalOpen,

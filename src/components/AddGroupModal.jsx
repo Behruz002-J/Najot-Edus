@@ -42,32 +42,70 @@ export default function AddGroupModal({ isOpen, onClose, onAddSuccess }) {
   useEffect(() => {
     const fetchModalData = async () => {
       try {
-        const [coursesRes, roomsRes, teachersRes, studentsRes] = await Promise.all([
-          axiosClient.get('/courses'),
-          axiosClient.get('/rooms'),
-          axiosClient.get('/teachers'),
-          axiosClient.get('/students')
-        ]);
-        
+        // Fetch courses
         let coursesData = [];
-        if (Array.isArray(coursesRes?.data)) coursesData = coursesRes.data;
-        else if (Array.isArray(coursesRes?.data?.data)) coursesData = coursesRes.data.data;
-        
-        let roomsData = [];
-        if (Array.isArray(roomsRes?.data)) roomsData = roomsRes.data;
-        else if (Array.isArray(roomsRes?.data?.data)) roomsData = roomsRes.data.data;
-
-        let teachersData = [];
-        if (Array.isArray(teachersRes?.data)) teachersData = teachersRes.data;
-        else if (Array.isArray(teachersRes?.data?.data)) teachersData = teachersRes.data.data;
-        
-        let studentsData = [];
-        if (Array.isArray(studentsRes?.data)) studentsData = studentsRes.data;
-        else if (Array.isArray(studentsRes?.data?.data)) studentsData = studentsRes.data.data;
-
+        try {
+          const coursesRes = await axiosClient.get('/courses');
+          if (Array.isArray(coursesRes?.data)) coursesData = coursesRes.data;
+          else if (Array.isArray(coursesRes?.data?.data)) coursesData = coursesRes.data.data;
+        } catch (e) {
+          console.warn("Failed to fetch courses, using mock fallback", e);
+          coursesData = [
+            { id: 1, name: "Frontend", duration_month: 8 },
+            { id: 2, name: "Backend", duration_month: 8 },
+            { id: 3, name: "Foundation", duration_month: 4 },
+            { id: 4, name: "UX/UI Design", duration_month: 3 }
+          ];
+        }
         setCoursesList(coursesData);
+
+        // Fetch rooms
+        let roomsData = [];
+        try {
+          const roomsRes = await axiosClient.get('/rooms');
+          if (Array.isArray(roomsRes?.data)) roomsData = roomsRes.data;
+          else if (Array.isArray(roomsRes?.data?.data)) roomsData = roomsRes.data.data;
+        } catch (e) {
+          console.warn("Failed to fetch rooms, using mock fallback", e);
+          roomsData = [
+            { id: 1, name: "Registon" },
+            { id: 2, name: "Xadra" },
+            { id: 3, name: "Chilonzor" },
+            { id: 4, name: "Yunusobod" },
+            { id: 5, name: "Grand" }
+          ];
+        }
         setRoomsList(roomsData);
+
+        // Fetch teachers
+        let teachersData = [];
+        try {
+          const teachersRes = await axiosClient.get('/teachers');
+          if (Array.isArray(teachersRes?.data)) teachersData = teachersRes.data;
+          else if (Array.isArray(teachersRes?.data?.data)) teachersData = teachersRes.data.data;
+        } catch (e) {
+          console.warn("Failed to fetch teachers, using empty list", e);
+        }
         setAllTeachers(teachersData);
+
+        // Fetch students and merge with localStorage local_students
+        let studentsData = [];
+        try {
+          const studentsRes = await axiosClient.get('/students');
+          if (Array.isArray(studentsRes?.data)) studentsData = studentsRes.data;
+          else if (Array.isArray(studentsRes?.data?.data)) studentsData = studentsRes.data.data;
+        } catch (e) {
+          console.warn("Failed to fetch students from API, using local_students fallback", e);
+        }
+
+        try {
+          const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+          const existingIds = new Set(studentsData.map(s => String(s.id)));
+          const uniqueLocal = localStudents.filter(s => !existingIds.has(String(s.id)));
+          studentsData = [...studentsData, ...uniqueLocal];
+        } catch (e) {
+          console.warn("Failed to merge local students", e);
+        }
         setAllStudents(studentsData);
       } catch (err) {
         console.error('Fetch modal data error:', err);

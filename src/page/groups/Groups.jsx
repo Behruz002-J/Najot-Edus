@@ -98,12 +98,49 @@ export default function Groups({ isGathering }) {
 
       // Filter groups by user role and group state
       let finalGroups = mapped;
+
+      // Merge with locally stored groups
+      try {
+        const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+        const mappedLocal = localGroups.map(item => {
+          const daysStr = Array.isArray(item.week_day) 
+            ? item.week_day.map(d => MAP_DAYS[d] || d).join(', ') 
+            : Array.isArray(item.week_days)
+            ? item.week_days.map(d => MAP_DAYS[d] || d).join(', ')
+            : Array.isArray(item.days)
+            ? item.days.map(d => MAP_DAYS[d] || d).join(', ')
+            : item.days || item.week_day || item.week_days || '—';
+
+          return {
+            id: item.id,
+            status: item.is_active ? 'FAOL' : 'FAOL EMAS',
+            name: item.name || '—',
+            course: item.course || '—',
+            duration: item.duration || '—',
+            time: item.time || item.start_time || '—',
+            days: daysStr,
+            room: item.room || '—',
+            teacher: item.teacher || '—',
+            students: item.students || 0
+          };
+        });
+
+        // Filter out duplicate groups (by name or ID) that are already in finalGroups
+        const existingNames = new Set(finalGroups.map(g => g.name.toLowerCase()));
+        const existingIds = new Set(finalGroups.map(g => String(g.id)));
+        const uniqueLocal = mappedLocal.filter(g => !existingNames.has(g.name.toLowerCase()) && !existingIds.has(String(g.id)));
+
+        finalGroups = [...finalGroups, ...uniqueLocal];
+      } catch (localErr) {
+        console.error('Failed to parse local groups:', localErr);
+      }
+
       if (isGathering) {
-        finalGroups = mapped.filter(g => g.status === 'FAOL EMAS');
+        finalGroups = finalGroups.filter(g => g.status === 'FAOL EMAS');
       } else if (activeTab === 'groups') {
-        finalGroups = mapped.filter(g => g.status === 'FAOL');
+        finalGroups = finalGroups.filter(g => g.status === 'FAOL');
       } else {
-        finalGroups = mapped.filter(g => g.status === 'FAOL EMAS');
+        finalGroups = finalGroups.filter(g => g.status === 'FAOL EMAS');
       }
 
       // Filter by teacher name if role is TEACHER and the local backend wasn't queried
@@ -122,7 +159,45 @@ export default function Groups({ isGathering }) {
       setGroups(finalGroups);
     } catch (err) {
       console.error('Fetch groups error:', err?.response?.data || err.message);
-      setGroups([]);
+      // Fallback to local groups when API fails
+      try {
+        const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+        const mappedLocal = localGroups.map(item => {
+          const daysStr = Array.isArray(item.week_day) 
+            ? item.week_day.map(d => MAP_DAYS[d] || d).join(', ') 
+            : Array.isArray(item.week_days)
+            ? item.week_days.map(d => MAP_DAYS[d] || d).join(', ')
+            : Array.isArray(item.days)
+            ? item.days.map(d => MAP_DAYS[d] || d).join(', ')
+            : item.days || item.week_day || item.week_days || '—';
+
+          return {
+            id: item.id,
+            status: item.is_active ? 'FAOL' : 'FAOL EMAS',
+            name: item.name || '—',
+            course: item.course || '—',
+            duration: item.duration || '—',
+            time: item.time || item.start_time || '—',
+            days: daysStr,
+            room: item.room || '—',
+            teacher: item.teacher || '—',
+            students: item.students || 0
+          };
+        });
+
+        let finalGroups = mappedLocal;
+        if (isGathering) {
+          finalGroups = mappedLocal.filter(g => g.status === 'FAOL EMAS');
+        } else if (activeTab === 'groups') {
+          finalGroups = mappedLocal.filter(g => g.status === 'FAOL');
+        } else {
+          finalGroups = mappedLocal.filter(g => g.status === 'FAOL EMAS');
+        }
+        setGroups(finalGroups);
+      } catch (localErr) {
+        console.error('Fallback local groups fetch failed:', localErr);
+        setGroups([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -134,6 +209,27 @@ export default function Groups({ isGathering }) {
 
   const toggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'FAOL' ? 'FAOL EMAS' : 'FAOL';
+    
+    // Check if it's a local group first
+    let isLocal = false;
+    try {
+      const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+      const matchedIdx = localGroups.findIndex(g => String(g.id) === String(id));
+      if (matchedIdx >= 0) {
+        isLocal = true;
+        localGroups[matchedIdx].is_active = newStatus === 'FAOL';
+        window.localStorage.setItem("local_groups", JSON.stringify(localGroups));
+        
+        setGroups(prev => prev.map(group => 
+          group.id === id ? { ...group, status: newStatus } : group
+        ));
+        fetchGroups();
+        return;
+      }
+    } catch (e) {
+      console.warn("Failed to check local groups on status toggle:", e);
+    }
+
     try {
       setGroups(prev => prev.map(group => 
         group.id === id ? { ...group, status: newStatus } : group

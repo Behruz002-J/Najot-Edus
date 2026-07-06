@@ -154,6 +154,8 @@ export default function StudentHomeworkDetail() {
   const [activeVideoName, setActiveVideoName] = useState("");
   const [activeVideoUrl, setActiveVideoUrl] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [videoBlobUrl, setVideoBlobUrl] = useState("");
+  const [videoBlobLoading, setVideoBlobLoading] = useState(false);
   const [homeworkList, setHomeworkList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -295,8 +297,9 @@ export default function StudentHomeworkDetail() {
     if (activeDetail) {
       if (activeDetail.videos && activeDetail.videos.length > 0) {
         const firstVid = activeDetail.videos[0];
-        setActiveVideoName(firstVid.originalname || firstVid.video_url || "Dars videosi");
-        setActiveVideoUrl(getVideoFileUrl(firstVid.video_url));
+        const fileUrlOrPath = firstVid.video_url || firstVid.url || firstVid.path || "";
+        setActiveVideoName(firstVid.originalname || firstVid.title || firstVid.name || fileUrlOrPath || "Dars videosi");
+        setActiveVideoUrl(getVideoFileUrl(fileUrlOrPath));
       } else if (activeDetail.videoCount > 0) {
         const defaultVideoName = activeDetail.topic === "crm teacher panel"
           ? "72.1.mov"
@@ -312,6 +315,68 @@ export default function StudentHomeworkDetail() {
       setActiveVideoUrl("");
     }
   }, [activeId, activeDetail]);
+
+  // Load video as blob if it's a backend API URL requiring authentication
+  useEffect(() => {
+    let active = true;
+    let blobUrl = "";
+
+    const loadVideoBlob = async () => {
+      if (!activeVideoUrl) {
+        setVideoBlobUrl("");
+        return;
+      }
+
+      const isBackendApiUrl =
+        activeVideoUrl &&
+        ((activeVideoUrl.includes("najot-edu.softwareengineer.uz/api/v1") &&
+          !activeVideoUrl.includes("/files/")) ||
+          (activeVideoUrl.startsWith("/") &&
+            !activeVideoUrl.startsWith("/files/")) ||
+          (!activeVideoUrl.startsWith("http") &&
+            !activeVideoUrl.includes("/files/")));
+
+      if (!isBackendApiUrl) {
+        setVideoBlobUrl(activeVideoUrl);
+        return;
+      }
+
+      try {
+        setVideoBlobLoading(true);
+        let endpoint = activeVideoUrl;
+        if (activeVideoUrl.startsWith("https://najot-edu.softwareengineer.uz/api/v1")) {
+          endpoint = activeVideoUrl.replace("https://najot-edu.softwareengineer.uz/api/v1", "");
+        }
+
+        const response = await axiosClient.get(endpoint, {
+          responseType: "blob",
+        });
+
+        if (active) {
+          blobUrl = URL.createObjectURL(response.data);
+          setVideoBlobUrl(blobUrl);
+        }
+      } catch (err) {
+        console.error("Error fetching video blob:", err);
+        if (active) {
+          setVideoBlobUrl(activeVideoUrl);
+        }
+      } finally {
+        if (active) {
+          setVideoBlobLoading(false);
+        }
+      }
+    };
+
+    loadVideoBlob();
+
+    return () => {
+      active = false;
+      if (blobUrl) {
+        URL.revokeObjectURL(blobUrl);
+      }
+    };
+  }, [activeVideoUrl]);
 
   const handleSelectHomework = (hwId) => {
     setActiveId(hwId);
@@ -398,12 +463,39 @@ export default function StudentHomeworkDetail() {
               {/* Video Box */}
               <div className="relative aspect-[16/10] sm:aspect-[16/9.5] w-full rounded-2xl border border-gray-200/80 dark:border-gray-700/60 bg-black shadow-md overflow-hidden flex items-center justify-center">
                 {isPlaying ? (
-                  <video
-                    src={activeVideoUrl}
-                    controls
-                    autoPlay
-                    className="w-full h-full object-contain"
-                  />
+                  videoBlobLoading ? (
+                    <div className="flex flex-col items-center gap-3 text-white">
+                      <svg
+                        className="animate-spin w-8 h-8 text-blue-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                      <span className="text-sm font-semibold">
+                        Video yuklanmoqda...
+                      </span>
+                    </div>
+                  ) : (
+                    <video
+                      src={videoBlobUrl}
+                      controls
+                      autoPlay
+                      className="w-full h-full object-contain"
+                    />
+                  )
                 ) : (
                   <div
                     onClick={() => setIsPlaying(true)}
@@ -673,8 +765,9 @@ export default function StudentHomeworkDetail() {
                         {hwDetail.videos && hwDetail.videos.length > 0 ? (
                           hwDetail.videos.map((video, idx) => {
                             const videoNum = idx + 1;
-                            const videoName = video.originalname || video.video_url || `${videoNum}-video`;
-                            const videoUrl = getVideoFileUrl(video.video_url);
+                            const fileUrlOrPath = video.video_url || video.url || video.path || "";
+                            const videoName = video.originalname || video.title || video.name || fileUrlOrPath || `${videoNum}-video`;
+                            const videoUrl = getVideoFileUrl(fileUrlOrPath);
 
                             return (
                               <div

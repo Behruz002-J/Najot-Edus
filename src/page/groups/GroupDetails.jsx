@@ -743,6 +743,14 @@ export default function GroupDetails() {
         }
       }
 
+      // Preserve any local `unreviewed` state for newly created homework rows.
+      const existingHomeworks = new Map(
+        homeworks.map((prev) => [prev.id, prev]),
+      );
+      const getUnreviewed = (hwId, acceptedCount) =>
+        Boolean(existingHomeworks.get(hwId)?.unreviewed) &&
+        Number(acceptedCount) === 0;
+
       // Adjust counts based on local storage submissions or fetch from API
       const updatedList = await Promise.all(
         list.map(async (hw) => {
@@ -761,6 +769,7 @@ export default function GroupDetails() {
                 ...hw,
                 homeworkPending: pendingCount,
                 homeworkAccept: acceptedCount,
+                unreviewed: getUnreviewed(hw.id, acceptedCount),
               };
             }
 
@@ -794,26 +803,21 @@ export default function GroupDetails() {
             const pendingCount = getCountFromRes(pendingRes);
             const acceptedCount = getCountFromRes(acceptedRes);
 
-            // If both counts are 0, and this is a mock item or fallbacks, we can default to 5 pending and 0 accepted
-            if (pendingCount === 0 && acceptedCount === 0) {
-              return {
-                ...hw,
-                homeworkPending: hw.homeworkPending ?? 5,
-                homeworkAccept: hw.homeworkAccept ?? 0,
-              };
-            }
-
             return {
               ...hw,
               homeworkPending: pendingCount,
               homeworkAccept: acceptedCount,
+              unreviewed: getUnreviewed(hw.id, acceptedCount),
             };
           } catch (e) {
             console.error(hw, e);
+            const pendingCount = hw.homeworkPending ?? 0;
+            const acceptedCount = hw.homeworkAccept ?? 0;
             return {
               ...hw,
-              homeworkPending: hw.homeworkPending ?? 5,
-              homeworkAccept: hw.homeworkAccept ?? 0,
+              homeworkPending: pendingCount,
+              homeworkAccept: acceptedCount,
+              unreviewed: getUnreviewed(hw.id, acceptedCount),
             };
           }
         }),
@@ -1058,6 +1062,70 @@ export default function GroupDetails() {
                 fallbackErr.message,
               );
             }
+          }
+        }
+
+        if (!res) {
+          try {
+            const localGroups = JSON.parse(window.localStorage.getItem("local_groups") || "[]");
+            const localMatch = localGroups.find(g => String(g.id) === String(id));
+            if (localMatch) {
+              // Resolve student details
+              let allStudents = [];
+              try {
+                const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+                allStudents = [...localStudents];
+              } catch (e) {}
+
+              try {
+                const apiStudentsRes = await axiosClient.get("/students").catch(() => null);
+                const apiStudents = apiStudentsRes?.data?.success
+                  ? apiStudentsRes.data.data
+                  : Array.isArray(apiStudentsRes?.data)
+                    ? apiStudentsRes.data
+                    : apiStudentsRes?.data?.data || [];
+                if (Array.isArray(apiStudents)) {
+                  const existingIds = new Set(allStudents.map(s => String(s.id)));
+                  const uniqueApi = apiStudents.filter(s => !existingIds.has(String(s.id)));
+                  allStudents = [...allStudents, ...uniqueApi];
+                }
+              } catch (e) {}
+
+              const groupStudents = (localMatch.student_ids || []).map(sId => {
+                const matchedStudent = allStudents.find(s => Number(s.id) === Number(sId));
+                return {
+                  id: sId,
+                  full_name: matchedStudent?.name || matchedStudent?.full_name || `Talaba #${sId}`,
+                  name: matchedStudent?.name || matchedStudent?.full_name || `Talaba #${sId}`,
+                  phone: matchedStudent?.phone || "—",
+                  avatarSeed: matchedStudent?.name || matchedStudent?.full_name || "User"
+                };
+              });
+
+              res = {
+                data: {
+                  success: true,
+                  data: {
+                    id: localMatch.id,
+                    name: localMatch.name,
+                    description: localMatch.description,
+                    course: { name: localMatch.course, duration_month: parseInt(localMatch.duration) || 6 },
+                    course_id: localMatch.course_id,
+                    start_time: localMatch.start_time,
+                    week_day: localMatch.week_day,
+                    room: localMatch.room,
+                    room_id: localMatch.room_id,
+                    teacher: { full_name: localMatch.teacher },
+                    teachers: (localMatch.teachers || []).map(tId => ({ id: tId, full_name: localMatch.teacher })),
+                    students: groupStudents,
+                    start_date: localMatch.start_date,
+                    is_active: localMatch.is_active
+                  }
+                }
+              };
+            }
+          } catch (localErr) {
+            console.error("Local group resolution failed:", localErr);
           }
         }
 
@@ -2050,7 +2118,13 @@ export default function GroupDetails() {
                                 <button
                                   type="button"
                                   onClick={(e) => e.stopPropagation()}
-                                  className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer bg-transparent border-none p-0 text-left"
+                                  className={`inline-flex items-center justify-center min-w-[280px] rounded-full px-4 py-2 text-sm font-bold transition-colors ${
+                                    hw.unreviewed ||
+                                    (Number(hw.homeworkAccept) === 0 &&
+                                      Number(hw.homeworkPending) > 0)
+                                      ? "bg-orange-500 text-white"
+                                      : "bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100"
+                                  }`}
                                 >
                                   {hw.topic ||
                                     (typeof hw.title === "object"
@@ -2561,7 +2635,18 @@ export default function GroupDetails() {
         isOpen={isHomeworkModalOpen}
         onClose={() => setIsHomeworkModalOpen(false)}
         onSave={(data) => {
-          console.log("Yangi uyga vazifa:", data);
+          const newHomework = {
+            id: `new-${Date.now()}`,
+            topic: data.topic,
+            title: data.topic,
+            created_at: new Date().toISOString(),
+            description: data.description,
+            file: data.file,
+            homeworkPending: 0,
+            homeworkAccept: 0,
+            unreviewed: true,
+          };
+          setHomeworks((prev) => [newHomework, ...(prev || [])]);
           setIsHomeworkModalOpen(false);
         }}
       />
