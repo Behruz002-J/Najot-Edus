@@ -329,8 +329,7 @@ export default function StudentHomeworkDetail() {
 
       const isBackendApiUrl =
         activeVideoUrl &&
-        ((activeVideoUrl.includes("najot-edu.softwareengineer.uz/api/v1") &&
-          !activeVideoUrl.includes("/files/")) ||
+        (activeVideoUrl.includes("/api/v1/") ||
           (activeVideoUrl.startsWith("/") &&
             !activeVideoUrl.startsWith("/files/")) ||
           (!activeVideoUrl.startsWith("http") &&

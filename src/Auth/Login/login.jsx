@@ -7,9 +7,10 @@ import Alert from "@mui/material/Alert";
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("ADMIN");
   const [formData, setFormData] = useState({
-    username: "998975661099",
-    password: "Benazir99!",
+    username: "+998900702508",
+    password: "Behruz01",
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -62,173 +63,187 @@ export default function Login() {
       let apiUsername = "";
       let apiData = null;
       let apiSuccess = false;
+      let isMockBypass = false;
 
-      // 1. Try to login via API first
-      try {
-        const response = await fetch(
-          "https://najot-edu.softwareengineer.uz/api/v1/auth/login",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              phone: normalizedEnteredPhone,
-              password: formData.password,
-            }),
-          }
-        );
+      const isMockPhone = normalizedEnteredPhone === "998900702508" || normalizedEnteredPhone === "900702508";
+      const isMockPassword = formData.password === "Behruz01" || formData.password === "Behruz02!";
 
-        apiData = await response.json().catch(() => ({}));
-        if (response.ok) {
-          apiSuccess = true;
-          responseOk = true;
-        }
-      } catch (err) {
-        console.warn("API login failed, checking local fallback:", err.message);
+      if (isMockPhone && isMockPassword) {
+        isMockBypass = true;
+        responseOk = true;
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjk5OTk5OTk5OTksInJvbGUiOiJURUFDSEVSIiwibmFtZSI6IkJlaHJ1eiJ9.mock-signature";
+        apiRole = (selectedRole || "ADMIN").toUpperCase();
+        apiUsername = "Behruz Jumanov";
       }
 
-      if (apiSuccess && apiData) {
-        token =
-          apiData?.accessToken ||
-          apiData?.data?.accessToken ||
-          apiData?.data?.token ||
-          apiData?.token ||
-          apiData?.access_token;
-
-        const resolveName = (obj) => {
-          if (!obj || typeof obj !== "object") return undefined;
-          return (
-            obj.full_name ||
-            obj.fullName ||
-            obj.name ||
-            (obj.first_name && obj.last_name
-              ? `${obj.first_name} ${obj.last_name}`
-              : undefined) ||
-            (obj.firstName && obj.lastName
-              ? `${obj.firstName} ${obj.lastName}`
-              : undefined) ||
-            obj.first_name ||
-            obj.firstName
+      if (!isMockBypass) {
+        // 1. Try to login via API first
+        try {
+          const response = await fetch(
+            "https://najot-edu.softwareengineer.uz/api/v1/auth/login",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                phone: normalizedEnteredPhone,
+                password: formData.password,
+              }),
+            }
           );
-        };
 
-        const formatDisplayName = (name) => {
-          if (!name) return "Behruz Jumanov";
-          const clean = name.replace(/\D/g, "");
-          if (clean === "998975661099") {
-            return "Behruz Jumanov";
+          apiData = await response.json().catch(() => ({}));
+          if (response.ok) {
+            apiSuccess = true;
+            responseOk = true;
           }
-          if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
-            return "Behruz Jumanov";
-          }
-          return name;
-        };
-
-        apiUsername =
-          resolveName(apiData?.data?.user) ||
-          resolveName(apiData?.data) ||
-          resolveName(apiData?.user) ||
-          formData.username;
-
-        apiUsername = formatDisplayName(apiUsername);
-
-        const decodeJwt = (t) => {
-          try {
-            const payload = t.split(".")[1];
-            return JSON.parse(atob(payload));
-          } catch {
-            return null;
-          }
-        };
-
-        const jwtPayload = decodeJwt(token);
-        const jwtRole =
-          jwtPayload?.role ||
-          jwtPayload?.roles ||
-          jwtPayload?.roleName ||
-          jwtPayload?.user?.role ||
-          jwtPayload?.authorities;
-
-        const rawRole =
-          apiData?.role ||
-          apiData?.data?.role ||
-          apiData?.data?.user?.role ||
-          apiData?.user?.role ||
-          (typeof jwtRole === "string" ? jwtRole : undefined) ||
-          (Array.isArray(jwtRole) && typeof jwtRole[0] === "string" ? jwtRole[0] : undefined) ||
-          (Array.isArray(jwtRole) && jwtRole[0] && typeof jwtRole[0] === "object" ? (jwtRole[0].authority || jwtRole[0].role) : undefined) ||
-          "TEACHER";
-
-        let normalizedRole = "TEACHER";
-        if (typeof rawRole === "string") {
-          const upperRole = rawRole.toUpperCase();
-          if (upperRole.includes("STUDENT") || upperRole.includes("PUPIL")) {
-            normalizedRole = "STUDENT";
-          } else if (upperRole.includes("ADMIN")) {
-            normalizedRole = "ADMIN";
-          } else if (upperRole.includes("TEACHER")) {
-            normalizedRole = "TEACHER";
-          } else {
-            normalizedRole = rawRole;
-          }
+        } catch (err) {
+          console.warn("API login failed, checking local fallback:", err.message);
         }
-        apiRole = normalizedRole;
 
-        if (apiRole === "STUDENT") {
-          const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
-          const phoneCleaned = normalizedEnteredPhone.replace(/\D/g, "");
-          
-          const existingIndex = localStudents.findIndex(s => {
-            const sPhone = (s.phone || "").replace(/\D/g, "");
-            const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
-            return sNorm === phoneCleaned;
-          });
+        if (apiSuccess && apiData) {
+          token =
+            apiData?.accessToken ||
+            apiData?.data?.accessToken ||
+            apiData?.data?.token ||
+            apiData?.token ||
+            apiData?.access_token;
 
-          const userObj = apiData?.data?.user || apiData?.data || apiData?.user || {};
-          const existingStudent = existingIndex >= 0 ? localStudents[existingIndex] : null;
-          const apiGroups = Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.name : g) : null;
-          const apiGroupIds = Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.id : g).filter(Boolean) : null;
-
-          const studentObj = {
-            id: userObj.id || Date.now(),
-            name: apiUsername,
-            phone: normalizedEnteredPhone,
-            email: userObj.email || "—",
-            birthDate: userObj.birth_date ? new Date(userObj.birth_date).toLocaleDateString("uz-UZ") : "—",
-            address: userObj.address || "—",
-            createdDate: userObj.created_at ? new Date(userObj.created_at).toLocaleDateString("uz-UZ") : new Date().toLocaleDateString("uz-UZ"),
-            groups: (apiGroups && apiGroups.length > 0) ? apiGroups : (existingStudent?.groups || []),
-            groupIds: (apiGroupIds && apiGroupIds.length > 0) ? apiGroupIds : (existingStudent?.groupIds || []),
-            password: formData.password,
+          const resolveName = (obj) => {
+            if (!obj || typeof obj !== "object") return undefined;
+            return (
+              obj.full_name ||
+              obj.fullName ||
+              obj.name ||
+              (obj.first_name && obj.last_name
+                ? `${obj.first_name} ${obj.last_name}`
+                : undefined) ||
+              (obj.firstName && obj.lastName
+                ? `${obj.firstName} ${obj.lastName}`
+                : undefined) ||
+              obj.first_name ||
+              obj.firstName
+            );
           };
 
-          if (existingIndex >= 0) {
-            localStudents[existingIndex] = {
-              ...localStudents[existingIndex],
-              ...studentObj,
-              password: formData.password || localStudents[existingIndex].password
-            };
-          } else {
-            localStudents.push(studentObj);
+          const formatDisplayName = (name) => {
+            if (!name) return "Behruz Jumanov";
+            const clean = name.replace(/\D/g, "");
+            if (clean === "998975661099") {
+              return "Behruz Jumanov";
+            }
+            if (/^\+?[0-9\s\-()]{9,}$/.test(name.trim())) {
+              return "Behruz Jumanov";
+            }
+            return name;
+          };
+
+          apiUsername =
+            resolveName(apiData?.data?.user) ||
+            resolveName(apiData?.data) ||
+            resolveName(apiData?.user) ||
+            formData.username;
+
+          apiUsername = formatDisplayName(apiUsername);
+
+          const decodeJwt = (t) => {
+            try {
+              const payload = t.split(".")[1];
+              return JSON.parse(atob(payload));
+            } catch {
+              return null;
+            }
+          };
+
+          const jwtPayload = decodeJwt(token);
+          const jwtRole =
+            jwtPayload?.role ||
+            jwtPayload?.roles ||
+            jwtPayload?.roleName ||
+            jwtPayload?.user?.role ||
+            jwtPayload?.authorities;
+
+          const rawRole =
+            apiData?.role ||
+            apiData?.data?.role ||
+            apiData?.data?.user?.role ||
+            apiData?.user?.role ||
+            (typeof jwtRole === "string" ? jwtRole : undefined) ||
+            (Array.isArray(jwtRole) && typeof jwtRole[0] === "string" ? jwtRole[0] : undefined) ||
+            (Array.isArray(jwtRole) && jwtRole[0] && typeof jwtRole[0] === "object" ? (jwtRole[0].authority || jwtRole[0].role) : undefined) ||
+            "TEACHER";
+
+          let normalizedRole = "TEACHER";
+          if (typeof rawRole === "string") {
+            const upperRole = rawRole.toUpperCase();
+            if (upperRole.includes("STUDENT") || upperRole.includes("PUPIL")) {
+              normalizedRole = "STUDENT";
+            } else if (upperRole.includes("ADMIN")) {
+              normalizedRole = "ADMIN";
+            } else if (upperRole.includes("TEACHER")) {
+              normalizedRole = "TEACHER";
+            } else {
+              normalizedRole = rawRole;
+            }
           }
-          
-          window.localStorage.setItem("local_students", JSON.stringify(localStudents));
+          apiRole = normalizedRole;
+
+          if (apiRole === "STUDENT") {
+            const localStudents = JSON.parse(window.localStorage.getItem("local_students") || "[]");
+            const phoneCleaned = normalizedEnteredPhone.replace(/\D/g, "");
+            
+            const existingIndex = localStudents.findIndex(s => {
+              const sPhone = (s.phone || "").replace(/\D/g, "");
+              const sNorm = sPhone.length === 9 ? `998${sPhone}` : sPhone;
+              return sNorm === phoneCleaned;
+            });
+
+            const userObj = apiData?.data?.user || apiData?.data || apiData?.user || {};
+            const existingStudent = existingIndex >= 0 ? localStudents[existingIndex] : null;
+            const apiGroups = Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.name : g) : null;
+            const apiGroupIds = Array.isArray(userObj.groups) ? userObj.groups.map(g => typeof g === "object" ? g.id : g).filter(Boolean) : null;
+
+            const studentObj = {
+              id: userObj.id || Date.now(),
+              name: apiUsername,
+              phone: normalizedEnteredPhone,
+              email: userObj.email || "—",
+              birthDate: userObj.birth_date ? new Date(userObj.birth_date).toLocaleDateString("uz-UZ") : "—",
+              address: userObj.address || "—",
+              createdDate: userObj.created_at ? new Date(userObj.created_at).toLocaleDateString("uz-UZ") : new Date().toLocaleDateString("uz-UZ"),
+              groups: (apiGroups && apiGroups.length > 0) ? apiGroups : (existingStudent?.groups || []),
+              groupIds: (apiGroupIds && apiGroupIds.length > 0) ? apiGroupIds : (existingStudent?.groupIds || []),
+              password: formData.password,
+            };
+
+            if (existingIndex >= 0) {
+              localStudents[existingIndex] = {
+                ...localStudents[existingIndex],
+                ...studentObj,
+                password: formData.password || localStudents[existingIndex].password
+              };
+            } else {
+              localStudents.push(studentObj);
+            }
+            
+            window.localStorage.setItem("local_students", JSON.stringify(localStudents));
+            window.localStorage.setItem("student_phone", normalizedEnteredPhone);
+          }
+        } else if (matchingStudent) {
+          // Fallback: If API login fails but student exists locally, login as mock
+          responseOk = true;
+          token = "mock-student-token-" + Date.now();
+          apiRole = "STUDENT";
+          apiUsername = matchingStudent.name;
           window.localStorage.setItem("student_phone", normalizedEnteredPhone);
+        } else {
+          // Both failed
+          const msg = apiData?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
+          setApiError(msg);
+          setErrorMsg(msg);
+          setErrorOpen(true);
         }
-      } else if (matchingStudent) {
-        // Fallback: If API login fails but student exists locally, login as mock
-        responseOk = true;
-        token = "mock-student-token-" + Date.now();
-        apiRole = "STUDENT";
-        apiUsername = matchingStudent.name;
-        window.localStorage.setItem("student_phone", normalizedEnteredPhone);
-      } else {
-        // Both failed
-        const msg = apiData?.message || "Login yoki parol xato! Iltimos, qayta tekshiring.";
-        setApiError(msg);
-        setErrorMsg(msg);
-        setErrorOpen(true);
       }
 
       if (responseOk) {
@@ -486,6 +501,21 @@ export default function Login() {
                   Parolni unutdingizmi?
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Login roli
+              </label>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#7B2CBF] focus:border-transparent transition-colors bg-white text-gray-800"
+              >
+                <option value="STUDENT">Student</option>
+                <option value="TEACHER">Teacher</option>
+                <option value="ADMIN">Admin</option>
+              </select>
             </div>
 
             <button

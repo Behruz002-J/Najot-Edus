@@ -878,10 +878,7 @@ export default function GroupDetails() {
       // Static resource files do not need it and should bypass blob fetching
       const isBackendApiUrl =
         selectedVideo.videoUrl &&
-        ((selectedVideo.videoUrl.includes(
-          "najot-edu.softwareengineer.uz/api/v1",
-        ) &&
-          !selectedVideo.videoUrl.includes("/files/")) ||
+        (selectedVideo.videoUrl.includes("/api/v1/") ||
           (selectedVideo.videoUrl.startsWith("/") &&
             !selectedVideo.videoUrl.startsWith("/files/")) ||
           (!selectedVideo.videoUrl.startsWith("http") &&
